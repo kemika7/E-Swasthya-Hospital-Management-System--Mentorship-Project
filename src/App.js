@@ -10,7 +10,8 @@ import Onboarding from './pages/Onboarding';
 import Login from './pages/Login';
 
 import PatientDashboard from './pages/patient/PatientDashboard';
-import Doctors from './pages/patient/Doctors';
+import CategoriesPage from './pages/patient/CategoriesPage';
+import DoctorListing from './pages/patient/DoctorListing';
 import Appointments from './pages/patient/Appointments';
 import Reports from './pages/patient/Reports';
 import DocumentLocker from './pages/patient/DocumentLocker';
@@ -26,7 +27,9 @@ const PatientLayout = () => (
     <div style={{ flex: 1 }}>
       <Routes>
         <Route index element={<PatientDashboard />} />
-        <Route path="doctors" element={<Doctors />} />
+        <Route path="dashboard" element={<PatientDashboard />} />
+        <Route path="doctors" element={<CategoriesPage />} />
+        <Route path="category/:categoryId" element={<DoctorListing />} />
         <Route path="appointments" element={<Appointments />} />
         <Route path="reports" element={<Reports />} />
         <Route path="locker" element={<DocumentLocker />} />

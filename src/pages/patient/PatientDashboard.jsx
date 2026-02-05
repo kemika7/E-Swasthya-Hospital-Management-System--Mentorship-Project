@@ -15,28 +15,59 @@ import {
   FiHeart,
   FiSmile,
   FiEye,
+  FiLogOut,
 } from 'react-icons/fi';
-import { MdLocalHospital, MdChildCare, MdOutlineHealing } from 'react-icons/md';
+import {
+  MdLocalHospital,
+  MdChildCare,
+  MdOutlineHealing,
+  MdBloodtype,
+} from 'react-icons/md';
+import {
+  FaLungs,
+  FaBone,
+  FaSyringe,
+  FaFemale,
+  FaRibbon,
+  FaXRay,
+  FaViruses,
+  FaProcedures,
+  FaAmbulance,
+  FaTooth,
+  FaNotesMedical,
+} from 'react-icons/fa';
+import { GiStomach } from 'react-icons/gi';
 import { useAuth } from '../../context/AuthContext';
-import { upcomingAppointment, specialistCategories } from '../../data/mockData';
+import { upcomingAppointment, medicalCategories } from '../../data/mockData';
 
-// Category icons mapping - using react-icons
-const categoryIcons = {
-  Neurologist: FiActivity,
-  Dentist: MdOutlineHealing,
-  Cardiologist: FiHeart,
-  Psychologist: FiSmile,
-  Dermatologist: FiUser,
-  Orthopedic: MdLocalHospital,
-  Pediatrician: MdChildCare,
-  Ophthalmologist: FiEye,
+// Map icon strings to components
+const iconMap = {
+  FiActivity,
+  FiHeart,
+  FiUser,
+  FiEye,
+  MdLocalHospital,
+  MdChildCare,
+  MdOutlineHealing,
+  MdBloodtype,
+  FaLungs,
+  FaBone,
+  FaSyringe,
+  FaFemale,
+  FaRibbon,
+  FaXRay,
+  FaViruses,
+  FaProcedures,
+  FaAmbulance,
+  FaTooth,
+  FaNotesMedical,
+  GiStomach,
 };
 
 const PatientDashboard = () => {
-  const { userProfile } = useAuth();
+  const { userProfile, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [selectedCategory, setSelectedCategory] = useState('Dentist');
 
   const patientName = userProfile?.name || 'Patient';
 
@@ -114,20 +145,45 @@ const PatientDashboard = () => {
           </div>
         </div>
 
-        {/* Notification Icon */}
-        <button
-          type="button"
-          style={{
-            border: 'none',
-            background: 'transparent',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <FiBell size={24} style={{ color: 'var(--white)' }} />
-        </button>
+        {/* Right Side Actions: Notification & Logout */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          {/* Notification Icon */}
+          <button
+            type="button"
+            style={{
+              border: 'none',
+              background: 'transparent',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '0.5rem',
+            }}
+          >
+            <FiBell size={24} style={{ color: 'var(--white)' }} />
+          </button>
+
+          {/* Logout Button */}
+          <button
+            onClick={logout}
+            style={{
+              border: 'none',
+              background: 'rgba(255, 255, 255, 0.2)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.5rem 0.75rem',
+              borderRadius: '8px',
+              color: 'var(--white)',
+              fontSize: '0.9rem',
+              fontWeight: 500,
+            }}
+          >
+            <FiLogOut size={18} />
+            <span>Logout</span>
+          </button>
+        </div>
       </div>
 
       {/* SEARCH BAR SECTION */}
@@ -300,6 +356,7 @@ const PatientDashboard = () => {
           </h2>
           <button
             type="button"
+            onClick={() => navigate('/patient/doctors')}
             style={{
               border: 'none',
               background: 'transparent',
@@ -336,20 +393,17 @@ const PatientDashboard = () => {
               }
             `}
           </style>
-          {specialistCategories.map((category) => {
-            const isSelected = selectedCategory === category;
-            const IconComponent = categoryIcons[category] || FiActivity;
+          {medicalCategories.map((category) => {
+            const IconComponent = iconMap[category.icon] || FiActivity;
             return (
               <div
-                key={category}
-                onClick={() => setSelectedCategory(category)}
+                key={category.id}
+                onClick={() => navigate(`/patient/category/${category.id}`)}
                 style={{
                   minWidth: 100,
                   width: 100,
                   height: 100,
-                  backgroundColor: isSelected
-                    ? 'var(--white)'
-                    : 'rgba(148,163,184,0.15)',
+                  backgroundColor: 'rgba(148,163,184,0.15)',
                   borderRadius: 16,
                   display: 'flex',
                   flexDirection: 'column',
@@ -358,26 +412,8 @@ const PatientDashboard = () => {
                   gap: '0.5rem',
                   cursor: 'pointer',
                   position: 'relative',
-                  boxShadow: isSelected ? '0 4px 12px rgba(82,178,191,0.2)' : 'none',
                 }}
               >
-                {/* Highlighted background for selected category */}
-                {isSelected && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: '50%',
-                      left: '50%',
-                      transform: 'translate(-50%, -50%)',
-                      width: 60,
-                      height: 60,
-                      borderRadius: '50%',
-                      backgroundColor: 'var(--primary)',
-                      opacity: 0.15,
-                      zIndex: 0,
-                    }}
-                  />
-                )}
                 <div
                   style={{
                     zIndex: 1,
@@ -390,21 +426,22 @@ const PatientDashboard = () => {
                   <IconComponent
                     size={32}
                     style={{
-                      color: isSelected ? 'var(--primary)' : 'var(--text)',
+                      color: 'var(--text)',
                     }}
                   />
                 </div>
                 <div
                   style={{
                     fontSize: '0.75rem',
-                    fontWeight: isSelected ? 600 : 400,
+                    fontWeight: 400,
                     color: 'var(--text)',
                     textAlign: 'center',
                     zIndex: 1,
                     position: 'relative',
+                    padding: '0 0.5rem',
                   }}
                 >
-                  {category}
+                  {category.title}
                 </div>
               </div>
             );

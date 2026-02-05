@@ -4,13 +4,15 @@ import Navbar from './components/Navbar';
 import { PatientSidebar, DoctorSidebar, AdminSidebar } from './components/Sidebar';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './context/AuthContext';
+import { AdminProvider } from './context/AdminContext';
 
 // Pages
 import Onboarding from './pages/Onboarding';
 import Login from './pages/Login';
 
 import PatientDashboard from './pages/patient/PatientDashboard';
-import Doctors from './pages/patient/Doctors';
+import CategoriesPage from './pages/patient/CategoriesPage';
+import DoctorListing from './pages/patient/DoctorListing';
 import Appointments from './pages/patient/Appointments';
 import Reports from './pages/patient/Reports';
 import DocumentLocker from './pages/patient/DocumentLocker';
@@ -22,13 +24,18 @@ import DoctorCalendarPage from './pages/doctor/DoctorCalendarPage';
 import DoctorReport from './pages/doctor/DoctorReport';
 
 import AdminDashboard from './pages/admin/AdminDashboard';
+import DoctorsManagement from './pages/admin/DoctorsManagement';
+import PatientsManagement from './pages/admin/PatientsManagement';
+import AppointmentsManagement from './pages/admin/AppointmentsManagement';
+import TransactionsManagement from './pages/admin/TransactionsManagement';
 
 const PatientLayout = () => (
   <div style={{ width: '100%' }}>
     <Routes>
       <Route index element={<PatientDashboard />} />
       <Route path="dashboard" element={<PatientDashboard />} />
-      <Route path="doctors" element={<Doctors />} />
+      <Route path="doctors" element={<CategoriesPage />} />
+      <Route path="category/:categoryId" element={<DoctorListing />} />
       <Route path="appointments" element={<Appointments />} />
       <Route path="reports" element={<Reports />} />
       <Route path="locker" element={<DocumentLocker />} />
@@ -55,22 +62,28 @@ const DoctorLayout = () => (
 );
 
 const AdminLayout = () => (
-  <div className="app-content">
-    <AdminSidebar />
-    <div style={{ flex: 1 }}>
-      <Routes>
-        <Route index element={<AdminDashboard />} />
-        <Route path="dashboard" element={<AdminDashboard />} />
-        <Route path="*" element={<Navigate to="/admin" replace />} />
-      </Routes>
+  <AdminProvider>
+    <div className="app-content">
+      <AdminSidebar />
+      <div style={{ flex: 1 }}>
+        <Routes>
+          <Route index element={<AdminDashboard />} />
+          <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="doctors" element={<DoctorsManagement />} />
+          <Route path="patients" element={<PatientsManagement />} />
+          <Route path="appointments" element={<AppointmentsManagement />} />
+          <Route path="transactions" element={<TransactionsManagement />} />
+          <Route path="*" element={<Navigate to="/admin" replace />} />
+        </Routes>
+      </div>
     </div>
-  </div>
+  </AdminProvider>
 );
 
 const AppShell = () => {
   const { isAuthenticated, userRole } = useAuth();
   const location = useLocation();
-  const hideNavbar = location.pathname === '/' || location.pathname === '/login';
+  const hideNavbar = location.pathname === '/' || location.pathname === '/login' || userRole === 'patient';
 
   return (
     <div className="app-shell">

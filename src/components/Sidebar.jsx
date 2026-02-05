@@ -3,7 +3,9 @@ import { NavLink } from 'react-router-dom';
 import {
   FiHome,
   FiUsers,
+  FiUser,
   FiCalendar,
+  FiDollarSign,
   FiFileText,
   FiLock,
   FiActivity,
@@ -111,6 +113,30 @@ export const AdminSidebar = () => {
           <NavLink to="/admin" end className={linkBaseStyle}>
             <FiHome size={18} />
             <span>Dashboard</span>
+          </NavLink>
+        </li>
+        <li>
+          <NavLink to="/admin/doctors" className={linkBaseStyle}>
+            <FiUsers size={18} />
+            <span>Doctors</span>
+          </NavLink>
+        </li>
+        <li>
+          <NavLink to="/admin/patients" className={linkBaseStyle}>
+            <FiUser size={18} />
+            <span>Patients</span>
+          </NavLink>
+        </li>
+        <li>
+          <NavLink to="/admin/appointments" className={linkBaseStyle}>
+            <FiCalendar size={18} />
+            <span>Appointments</span>
+          </NavLink>
+        </li>
+        <li>
+          <NavLink to="/admin/transactions" className={linkBaseStyle}>
+            <FiDollarSign size={18} />
+            <span>Transactions</span>
           </NavLink>
         </li>
       </ul>

@@ -167,11 +167,6 @@ const Login = () => {
                 ))}
               </div>
             </div>
-            <div style={{ fontSize: '0.9rem', color: 'rgba(15,23,42,0.6)' }}>
-              {form.role === 'patient' && 'Access your appointments and medical records'}
-              {form.role === 'doctor' && 'Manage patients, schedules, and reports'}
-              {form.role === 'admin' && 'System administration and data control'}
-            </div>
           </div>
 
           {/* Login Form */}

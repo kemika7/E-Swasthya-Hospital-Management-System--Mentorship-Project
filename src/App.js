@@ -12,6 +12,7 @@ import Login from './pages/Login';
 import PatientDashboard from './pages/patient/PatientDashboard';
 import CategoriesPage from './pages/patient/CategoriesPage';
 import DoctorListing from './pages/patient/DoctorListing';
+import DoctorProfile from './pages/patient/DoctorProfile';
 import Appointments from './pages/patient/Appointments';
 import Reports from './pages/patient/Reports';
 import DocumentLocker from './pages/patient/DocumentLocker';
@@ -30,6 +31,7 @@ const PatientLayout = () => (
         <Route path="dashboard" element={<PatientDashboard />} />
         <Route path="doctors" element={<CategoriesPage />} />
         <Route path="category/:categoryId" element={<DoctorListing />} />
+        <Route path="doctor/:doctorId" element={<DoctorProfile />} />
         <Route path="appointments" element={<Appointments />} />
         <Route path="reports" element={<Reports />} />
         <Route path="locker" element={<DocumentLocker />} />

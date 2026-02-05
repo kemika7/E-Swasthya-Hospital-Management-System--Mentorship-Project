@@ -153,6 +153,7 @@ const DoctorListing = () => {
           categoryDoctors.map((doc) => (
             <div
               key={doc.id}
+              onClick={() => navigate(`/patient/doctor/${doc.id}`)}
               style={{
                 backgroundColor: 'var(--white)',
                 borderRadius: 16,
@@ -160,6 +161,7 @@ const DoctorListing = () => {
                 display: 'flex',
                 gap: '1rem',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                cursor: 'pointer',
               }}
             >
               {/* Avatar */}
@@ -202,6 +204,10 @@ const DoctorListing = () => {
                 </div>
 
                 <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/patient/doctor/${doc.id}`);
+                  }}
                   style={{
                     width: '100%',
                     marginTop: '0.8rem',

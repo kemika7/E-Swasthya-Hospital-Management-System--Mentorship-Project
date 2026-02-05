@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 
 const AppointmentContext = createContext(null);
 
@@ -16,6 +16,19 @@ export const AppointmentProvider = ({ children }) => {
   });
 
   const [lastBookedAppointment, setLastBookedAppointment] = useState(null);
+  const [appointments, setAppointments] = useState([]);
+
+  useEffect(() => {
+    const persisted = localStorage.getItem('appointments');
+    if (persisted) {
+      try {
+        const parsed = JSON.parse(persisted);
+        if (Array.isArray(parsed)) {
+          setAppointments(parsed);
+        }
+      } catch {}
+    }
+  }, []);
 
   const updateAppointmentDetails = (updates) => {
     setAppointmentDetails((prev) => ({ ...prev, ...updates }));
@@ -23,10 +36,21 @@ export const AppointmentProvider = ({ children }) => {
 
   const bookAppointment = () => {
     const booked = {
-      ...appointmentDetails,
+      doctorId: appointmentDetails.doctorId,
+      doctorName: appointmentDetails.doctorName,
+      specialty: appointmentDetails.specialty,
+      date: appointmentDetails.date,
+      time: appointmentDetails.time,
+      status: appointmentDetails.status || 'Upcoming',
+      location: appointmentDetails.location,
       bookedAt: new Date().toISOString(),
     };
     setLastBookedAppointment(booked);
+    const next = [booked, ...appointments];
+    setAppointments(next);
+    try {
+      localStorage.setItem('appointments', JSON.stringify(next));
+    } catch {}
     return booked;
   };
 
@@ -35,6 +59,7 @@ export const AppointmentProvider = ({ children }) => {
     updateAppointmentDetails,
     bookAppointment,
     lastBookedAppointment,
+    appointments,
   };
 
   return (

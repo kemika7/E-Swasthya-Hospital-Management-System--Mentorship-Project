@@ -153,7 +153,7 @@ const DoctorListing = () => {
           categoryDoctors.map((doc) => (
             <div
               key={doc.id}
-              onClick={() => navigate(`/patient/doctor/${doc.id}`)}
+              onClick={() => navigate(`/doctors/${doc.id}`)}
               style={{
                 backgroundColor: 'var(--white)',
                 borderRadius: 16,
@@ -206,7 +206,7 @@ const DoctorListing = () => {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    navigate(`/patient/doctor/${doc.id}`);
+                    navigate(`/doctors/${doc.id}`);
                   }}
                   style={{
                     width: '100%',

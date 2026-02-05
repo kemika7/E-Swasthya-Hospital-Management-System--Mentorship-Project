@@ -5,7 +5,7 @@ import { useAppointment } from '../../context/AppointmentContext';
 
 const Appointments = () => {
   const navigate = useNavigate();
-  const { lastBookedAppointment } = useAppointment();
+  const { appointments } = useAppointment();
 
   return (
     <main
@@ -66,75 +66,80 @@ const Appointments = () => {
 
       {/* APPOINTMENTS LIST */}
       <section>
-        {lastBookedAppointment ? (
-          <div
-            style={{
-              backgroundColor: 'var(--white)',
-              borderRadius: 16,
-              padding: '1.25rem',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.75rem',
-              borderLeft: '5px solid var(--primary)',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#0f172a', marginBottom: '0.25rem' }}>
-                  {lastBookedAppointment.doctorName || 'Doctor Name'}
-                </h3>
-                <p style={{ fontSize: '0.9rem', color: 'var(--primary)', fontWeight: 500 }}>
-                  {lastBookedAppointment.specialty || 'Specialist'}
-                </p>
-              </div>
+        {appointments && appointments.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {appointments.map((appointment, idx) => (
               <div
+                key={`${appointment.bookedAt}-${idx}`}
                 style={{
-                  backgroundColor: '#dcfce7',
-                  color: '#166534',
-                  padding: '0.25rem 0.75rem',
-                  borderRadius: 20,
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
+                  backgroundColor: 'var(--white)',
+                  borderRadius: 16,
+                  padding: '1.25rem',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.75rem',
+                  borderLeft: '5px solid var(--primary)',
                 }}
               >
-                Upcoming
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#0f172a', marginBottom: '0.25rem' }}>
+                      {appointment.doctorName}
+                    </h3>
+                    <p style={{ fontSize: '0.9rem', color: 'var(--primary)', fontWeight: 500 }}>
+                      {appointment.specialty}
+                    </p>
+                  </div>
+                  <div
+                    style={{
+                      backgroundColor: '#dcfce7',
+                      color: '#166534',
+                      padding: '0.25rem 0.75rem',
+                      borderRadius: 20,
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {appointment.status}
+                  </div>
+                </div>
+
+                <div style={{ height: 1, backgroundColor: '#f1f5f9', margin: '0.25rem 0' }} />
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', fontSize: '0.9rem' }}>
+                    <FiCalendar color="var(--primary)" />
+                    <span>{appointment.date}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', fontSize: '0.9rem' }}>
+                    <FiClock color="var(--primary)" />
+                    <span>{appointment.time}</span>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', fontSize: '0.9rem' }}>
+                  <FiMapPin color="var(--primary)" />
+                  <span>{appointment.location || 'Kathmandu, Nepal'}</span>
+                </div>
+
+                <div style={{ marginTop: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end' }}>
+                  <button
+                     style={{
+                       padding: '0.5rem 1rem',
+                       borderRadius: 8,
+                       border: '1px solid #e2e8f0',
+                       backgroundColor: 'transparent',
+                       color: '#64748b',
+                       fontSize: '0.8rem',
+                       cursor: 'pointer',
+                     }}
+                  >
+                    Cancel Appointment
+                  </button>
+                </div>
               </div>
-            </div>
-
-            <div style={{ height: 1, backgroundColor: '#f1f5f9', margin: '0.25rem 0' }} />
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', fontSize: '0.9rem' }}>
-                <FiCalendar color="var(--primary)" />
-                <span>{lastBookedAppointment.date || 'Date'}</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', fontSize: '0.9rem' }}>
-                <FiClock color="var(--primary)" />
-                <span>{lastBookedAppointment.time || 'Time'}</span>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', fontSize: '0.9rem' }}>
-              <FiMapPin color="var(--primary)" />
-              <span>{lastBookedAppointment.location || 'Kathmandu, Nepal'}</span>
-            </div>
-
-            <div style={{ marginTop: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end' }}>
-              <button
-                 style={{
-                   padding: '0.5rem 1rem',
-                   borderRadius: 8,
-                   border: '1px solid #e2e8f0',
-                   backgroundColor: 'transparent',
-                   color: '#64748b',
-                   fontSize: '0.8rem',
-                   cursor: 'pointer',
-                 }}
-              >
-                Cancel Appointment
-              </button>
-            </div>
+            ))}
           </div>
         ) : (
           <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#94a3b8' }}>

@@ -14,6 +14,7 @@ import PatientDashboard from './pages/patient/PatientDashboard';
 import CategoriesPage from './pages/patient/CategoriesPage';
 import DoctorListing from './pages/patient/DoctorListing';
 import Appointments from './pages/patient/Appointments';
+import DoctorProfile from './pages/patient/DoctorProfile';
 import Reports from './pages/patient/Reports';
 import DocumentLocker from './pages/patient/DocumentLocker';
 
@@ -103,6 +104,24 @@ const AppShell = () => {
           }
         />
 
+        {/* Global Doctor and Appointment routes */}
+        <Route
+          path="/doctors/:doctorId"
+          element={
+            <ProtectedRoute role="patient">
+              <DoctorProfile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/appointments"
+          element={
+            <ProtectedRoute role="patient">
+              <Appointments />
+            </ProtectedRoute>
+          }
+        />
+
         {/* Patient Portal */}
         <Route
           path="/patient/*"
@@ -140,4 +159,3 @@ const AppShell = () => {
 };
 
 export default AppShell;
-

@@ -13,6 +13,8 @@ const Login = () => {
     email: '',
     password: '',
     role: 'patient',
+    username: '',
+    otp: '',
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -28,8 +30,22 @@ const Login = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!form.name || !form.email || !form.password) return;
-    login({ name: form.name, email: form.email, role: form.role });
+    if (form.role === 'patient') {
+      const emailValid = /\S+@\S+\.\S+/.test(form.email);
+      if (!form.name || !emailValid || !form.password) return;
+      login({ name: form.name, email: form.email, role: form.role });
+      return;
+    }
+    if (form.role === 'doctor') {
+      if (!form.name || !form.email || !form.password) return;
+      login({ name: form.name, email: form.email, role: form.role });
+      return;
+    }
+    if (form.role === 'admin') {
+      if (!form.username || !form.password) return;
+      login({ name: form.username, email: null, role: form.role });
+      return;
+    }
   };
 
   return (
@@ -133,8 +149,8 @@ const Login = () => {
                     type="button"
                     onClick={() => handleRoleClick(role)}
                     style={{
-                      padding: '0.4rem 0.8rem',
-                      borderRadius: 8,
+                      padding: '0.4rem 0.9rem',
+                      borderRadius: 9999,
                       border: 'none',
                       backgroundColor:
                         form.role === role ? 'var(--primary)' : 'transparent',
@@ -151,79 +167,122 @@ const Login = () => {
                 ))}
               </div>
             </div>
+            <div style={{ fontSize: '0.9rem', color: 'rgba(15,23,42,0.6)' }}>
+              {form.role === 'patient' && 'Access your appointments and medical records'}
+              {form.role === 'doctor' && 'Manage patients, schedules, and reports'}
+              {form.role === 'admin' && 'System administration and data control'}
+            </div>
           </div>
 
           {/* Login Form */}
           <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '1.25rem' }}>
-            {/* Full Name */}
-            <label style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--text)' }}>
-              Full Name
-              <div
-                style={{
-                  marginTop: '0.5rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  backgroundColor: 'var(--white)',
-                  borderRadius: 8,
-                  border: '1px solid rgba(15,23,42,0.15)',
-                  padding: '0.75rem 1rem',
-                }}
-              >
-                <FiUser size={18} style={{ opacity: 0.5, color: 'var(--text)' }} />
-                <input
-                  type="text"
-                  name="name"
-                  placeholder="Enter your full name"
-                  value={form.name}
-                  onChange={handleChange}
-                  required
+            {form.role !== 'admin' && (
+              <label style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--text)' }}>
+                {form.role === 'doctor' ? 'Doctor Full Name' : 'Full Name'}
+                <div
                   style={{
-                    flex: 1,
-                    border: 'none',
-                    outline: 'none',
-                    fontSize: '0.95rem',
-                    color: 'var(--text)',
-                    backgroundColor: 'transparent',
+                    marginTop: '0.5rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    backgroundColor: 'var(--white)',
+                    borderRadius: 8,
+                    border: '1px solid rgba(15,23,42,0.15)',
+                    padding: '0.75rem 1rem',
                   }}
-                />
-              </div>
-            </label>
+                >
+                  <FiUser size={18} style={{ opacity: 0.5, color: 'var(--text)' }} />
+                  <input
+                    type="text"
+                    name="name"
+                    placeholder={form.role === 'doctor' ? 'Enter your full name' : 'Enter your full name'}
+                    value={form.name}
+                    onChange={handleChange}
+                    required
+                    style={{
+                      flex: 1,
+                      border: 'none',
+                      outline: 'none',
+                      fontSize: '0.95rem',
+                      color: 'var(--text)',
+                      backgroundColor: 'transparent',
+                    }}
+                  />
+                </div>
+              </label>
+            )}
 
-            {/* Email Address */}
-            <label style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--text)' }}>
-              Email Address
-              <div
-                style={{
-                  marginTop: '0.5rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  backgroundColor: 'var(--white)',
-                  borderRadius: 8,
-                  border: '1px solid rgba(15,23,42,0.15)',
-                  padding: '0.75rem 1rem',
-                }}
-              >
-                <FiMail size={18} style={{ opacity: 0.5, color: 'var(--text)' }} />
-                <input
-                  type="email"
-                  name="email"
-                  placeholder="you@example.com"
-                  value={form.email}
-                  onChange={handleChange}
-                  required
+            {form.role === 'admin' && (
+              <label style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--text)' }}>
+                Username
+                <div
                   style={{
-                    flex: 1,
-                    border: 'none',
-                    outline: 'none',
-                    fontSize: '0.95rem',
-                    color: 'var(--text)',
-                    backgroundColor: 'transparent',
+                    marginTop: '0.5rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    backgroundColor: 'var(--white)',
+                    borderRadius: 8,
+                    border: '1px solid rgba(15,23,42,0.15)',
+                    padding: '0.75rem 1rem',
                   }}
-                />
-              </div>
-            </label>
+                >
+                  <FiUser size={18} style={{ opacity: 0.5, color: 'var(--text)' }} />
+                  <input
+                    type="text"
+                    name="username"
+                    placeholder="Enter your username"
+                    value={form.username}
+                    onChange={handleChange}
+                    required
+                    style={{
+                      flex: 1,
+                      border: 'none',
+                      outline: 'none',
+                      fontSize: '0.95rem',
+                      color: 'var(--text)',
+                      backgroundColor: 'transparent',
+                    }}
+                  />
+                </div>
+              </label>
+            )}
+
+            {form.role !== 'admin' && (
+              <label style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--text)' }}>
+                {form.role === 'doctor' ? 'Email Address OR Doctor ID' : 'Email Address'}
+                <div
+                  style={{
+                    marginTop: '0.5rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    backgroundColor: 'var(--white)',
+                    borderRadius: 8,
+                    border: '1px solid rgba(15,23,42,0.15)',
+                    padding: '0.75rem 1rem',
+                  }}
+                >
+                  <FiMail size={18} style={{ opacity: 0.5, color: 'var(--text)' }} />
+                  <input
+                    type={form.role === 'doctor' ? 'text' : 'email'}
+                    name="email"
+                    placeholder={form.role === 'doctor' ? 'you@example.com or DOC-1234' : 'you@example.com'}
+                    value={form.email}
+                    onChange={handleChange}
+                    required
+                    style={{
+                      flex: 1,
+                      border: 'none',
+                      outline: 'none',
+                      fontSize: '0.95rem',
+                      color: 'var(--text)',
+                      backgroundColor: 'transparent',
+                    }}
+                  />
+                </div>
+              </label>
+            )}
 
             {/* Password */}
             <label style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--text)' }}>
@@ -278,6 +337,41 @@ const Login = () => {
               </div>
             </label>
 
+            {form.role === 'admin' && (
+              <label style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--text)' }}>
+                OTP (optional)
+                <div
+                  style={{
+                    marginTop: '0.5rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    backgroundColor: 'var(--white)',
+                    borderRadius: 8,
+                    border: '1px solid rgba(15,23,42,0.15)',
+                    padding: '0.75rem 1rem',
+                  }}
+                >
+                  <FiLock size={18} style={{ opacity: 0.5, color: 'var(--text)' }} />
+                  <input
+                    type="text"
+                    name="otp"
+                    placeholder="Enter OTP if required"
+                    value={form.otp}
+                    onChange={handleChange}
+                    style={{
+                      flex: 1,
+                      border: 'none',
+                      outline: 'none',
+                      fontSize: '0.95rem',
+                      color: 'var(--text)',
+                      backgroundColor: 'transparent',
+                    }}
+                  />
+                </div>
+              </label>
+            )}
+
             {/* Forgot Password Link */}
             <div style={{ textAlign: 'right', marginTop: '-0.5rem' }}>
               <a
@@ -319,74 +413,74 @@ const Login = () => {
                 e.target.style.backgroundColor = 'var(--primary)';
               }}
             >
-              Sign IN
+              {form.role === 'admin' ? 'Secure Login' : 'Sign In'}
             </button>
 
-            {/* Divider */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '1rem',
-                margin: '1.5rem 0',
-              }}
-            >
+            {form.role === 'patient' && (
               <div
                 style={{
-                  flex: 1,
-                  height: 1,
-                  backgroundColor: 'rgba(15,23,42,0.1)',
-                }}
-              />
-              <span
-                style={{
-                  fontSize: '0.9rem',
-                  color: 'rgba(15,23,42,0.6)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '1rem',
+                  margin: '1.5rem 0',
                 }}
               >
-                or
-              </span>
-              <div
-                style={{
-                  flex: 1,
-                  height: 1,
-                  backgroundColor: 'rgba(15,23,42,0.1)',
-                }}
-              />
-            </div>
+                <div
+                  style={{
+                    flex: 1,
+                    height: 1,
+                    backgroundColor: 'rgba(15,23,42,0.1)',
+                  }}
+                />
+                <span
+                  style={{
+                    fontSize: '0.9rem',
+                    color: 'rgba(15,23,42,0.6)',
+                  }}
+                >
+                  or
+                </span>
+                <div
+                  style={{
+                    flex: 1,
+                    height: 1,
+                    backgroundColor: 'rgba(15,23,42,0.1)',
+                  }}
+                />
+              </div>
+            )}
 
-            {/* Google Sign Up Button */}
-            <button
-              type="button"
-              onClick={() => {
-                // UI only
-              }}
-              style={{
-                width: '100%',
-                padding: '0.875rem',
-                borderRadius: 8,
-                border: '1px solid rgba(15,23,42,0.15)',
-                backgroundColor: 'var(--white)',
-                color: 'var(--text)',
-                fontSize: '1rem',
-                fontWeight: 500,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.5rem',
-                transition: 'background-color 0.2s ease',
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.backgroundColor = 'rgba(15,23,42,0.02)';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.backgroundColor = 'var(--white)';
-              }}
-            >
-              <FcGoogle size={20} />
-              <span>Sign Up With Google</span>
-            </button>
+            {form.role === 'patient' && (
+              <button
+                type="button"
+                onClick={() => {}}
+                style={{
+                  width: '100%',
+                  padding: '0.875rem',
+                  borderRadius: 8,
+                  border: '1px solid rgba(15,23,42,0.15)',
+                  backgroundColor: 'var(--white)',
+                  color: 'var(--text)',
+                  fontSize: '1rem',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  transition: 'background-color 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = 'rgba(15,23,42,0.02)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'var(--white)';
+                }}
+              >
+                <FcGoogle size={20} />
+                <span>Sign in with Google</span>
+              </button>
+            )}
           </form>
         </div>
       </div>
@@ -395,4 +489,3 @@ const Login = () => {
 };
 
 export default Login;
-

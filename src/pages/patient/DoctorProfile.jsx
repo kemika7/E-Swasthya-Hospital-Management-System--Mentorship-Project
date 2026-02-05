@@ -31,8 +31,7 @@ const DoctorProfile = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date(2026, 1)); // Feb 2026 as requested
 
   useEffect(() => {
-    // Find doctor by ID
-    const doc = doctors.find((d) => d.id === parseInt(doctorId));
+    const doc = doctors.find((d) => String(d.id) === String(doctorId));
     if (doc) {
       setDoctor(doc);
     }
@@ -97,18 +96,20 @@ const DoctorProfile = () => {
   const handleConfirmBooking = () => {
     // Update context
     updateAppointmentDetails({
+      doctorId: String(doctor.id),
       doctorName: doctor.name,
       specialty: doctor.specialty,
-      date: `${selectedDate} ${currentMonth.toLocaleString('default', { month: 'long' })}`,
+      date: `${String(selectedDate).padStart(2, '0')}.${String(currentMonth.getMonth() + 1).padStart(2, '0')}.${currentMonth.getFullYear()}`,
       time: selectedTime,
       location: doctor.location,
+      status: 'Upcoming',
     });
     
     // Book it
     bookAppointment();
     
     // Navigate
-    navigate('/patient/appointments');
+    navigate('/appointments');
   };
 
   return (
@@ -191,7 +192,7 @@ const DoctorProfile = () => {
                   height: 100,
                   borderRadius: 16,
                   backgroundColor: '#e2e8f0',
-                  backgroundImage: `url(https://i.pravatar.cc/300?u=${doctor.id})`,
+                  backgroundImage: doctor.image ? `url(${doctor.image})` : `url(https://i.pravatar.cc/300?u=${doctor.id})`,
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
                   flexShrink: 0,

@@ -1,5 +1,4 @@
-<<<<<<< HEAD
-## Hospital Management System (Frontend Only)
+# Hospital Management System (Frontend Only)
 
 This is a **frontend-only Hospital Management System (HMS)** built with **React.js** for a final-year academic project.
 
@@ -35,7 +34,3 @@ You can explain this project in a viva by walking through:
 - How **mockData** powers every page
 - How **Chart.js** is integrated into analytics components
 - The **MPIN locker** UI logic and validation.
-
-=======
-# E-Swasthya-Hospital-Management-System--Mentorship-Project
->>>>>>> 02ad7e4859cde24e6163b67ef397f1ece4a73eb4

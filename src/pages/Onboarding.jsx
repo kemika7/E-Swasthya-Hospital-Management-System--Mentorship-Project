@@ -1,6 +1,5 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import Button from '../components/Button';
 import homepage1 from '../assets/images/homepage1.png';
 
 const Onboarding = () => {
@@ -89,7 +88,8 @@ const Onboarding = () => {
           >
             Your Health, Our Priority!
           </h1>
-          <Button
+          <button
+            type="button"
             onClick={() => navigate('/login')}
             style={{
               width: '100%',
@@ -99,10 +99,12 @@ const Onboarding = () => {
               color: '#FFFFFF',
               fontSize: '1rem',
               fontWeight: 600,
+              border: 'none',
+              cursor: 'pointer',
             }}
           >
             Get Started
-          </Button>
+          </button>
         </div>
       </div>
     </main>

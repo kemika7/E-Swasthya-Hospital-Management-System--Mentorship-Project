@@ -22,6 +22,7 @@ import DoctorCopilot from './pages/doctor/DoctorCopilot';
 import DoctorAnalytics from './pages/doctor/DoctorAnalytics';
 import DoctorCalendarPage from './pages/doctor/DoctorCalendarPage';
 import DoctorReport from './pages/doctor/DoctorReport';
+import DoctorAppointments from './pages/doctor/DoctorAppointments';
 
 import AdminDashboard from './pages/admin/AdminDashboard';
 import DoctorsManagement from './pages/admin/DoctorsManagement';
@@ -53,6 +54,7 @@ const DoctorLayout = () => (
         <Route path="dashboard" element={<DoctorDashboard />} />
         <Route path="analytics" element={<DoctorAnalytics />} />
         <Route path="calendar" element={<DoctorCalendarPage />} />
+        <Route path="appointments" element={<DoctorAppointments />} />
         <Route path="report" element={<DoctorReport />} />
         <Route path="copilot" element={<DoctorCopilot />} />
         <Route path="*" element={<Navigate to="/doctor" replace />} />

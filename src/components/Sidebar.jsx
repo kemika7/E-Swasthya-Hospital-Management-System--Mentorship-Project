@@ -12,6 +12,7 @@ import {
   FiCpu,
   FiBarChart2,
 } from 'react-icons/fi';
+import { FaCalendarCheck } from 'react-icons/fa';
 import logo from '../assets/images/logo.png';
 
 const linkBaseStyle = ({ isActive }) =>
@@ -95,6 +96,12 @@ export const DoctorSidebar = () => {
           </NavLink>
         </li>
         <li>
+          <NavLink to="/doctor/appointments" className={doctorLinkStyle}>
+            <FaCalendarCheck size={22} />
+            <span>Appointments</span>
+          </NavLink>
+        </li>
+        <li>
           <NavLink to="/doctor/report" className={doctorLinkStyle}>
             <FiFileText size={22} />
             <span>Report</span>
@@ -145,4 +152,3 @@ export const AdminSidebar = () => {
 };
 
 export default PatientSidebar;
-

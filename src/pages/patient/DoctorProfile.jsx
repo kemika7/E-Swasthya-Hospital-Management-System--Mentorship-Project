@@ -13,13 +13,14 @@ import {
   FiMessageSquare,
   FiChevronDown,
 } from 'react-icons/fi';
-import { doctors } from '../../data/mockData';
+import { useAdmin } from '../../context/AdminContext';
 import { useAppointment } from '../../context/AppointmentContext';
 
 const DoctorProfile = () => {
   const { doctorId } = useParams();
   const navigate = useNavigate();
   const { updateAppointmentDetails, bookAppointment } = useAppointment();
+  const { doctors } = useAdmin();
 
   const [doctor, setDoctor] = useState(null);
   const [activeTab, setActiveTab] = useState('schedules');
@@ -31,16 +32,18 @@ const DoctorProfile = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date(2026, 1)); // Feb 2026 as requested
 
   useEffect(() => {
-    const doc = doctors.find((d) => String(d.id) === String(doctorId));
+    const doc = doctors.find((d) => String(d.doctorId) === String(doctorId));
     if (doc) {
       setDoctor(doc);
+    } else {
+      setDoctor(null);
     }
-  }, [doctorId]);
+  }, [doctorId, doctors]);
 
   if (!doctor) {
     return (
       <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text)' }}>
-        Loading doctor profile...
+        Doctor not found
       </div>
     );
   }
@@ -96,9 +99,9 @@ const DoctorProfile = () => {
   const handleConfirmBooking = () => {
     // Update context
     updateAppointmentDetails({
-      doctorId: String(doctor.id),
+      doctorId: String(doctor.doctorId),
       doctorName: doctor.name,
-      specialty: doctor.specialty,
+      specialty: doctor.specialization,
       date: `${String(selectedDate).padStart(2, '0')}.${String(currentMonth.getMonth() + 1).padStart(2, '0')}.${currentMonth.getFullYear()}`,
       time: selectedTime,
       location: doctor.location,
@@ -192,7 +195,7 @@ const DoctorProfile = () => {
                   height: 100,
                   borderRadius: 16,
                   backgroundColor: '#e2e8f0',
-                  backgroundImage: doctor.image ? `url(${doctor.image})` : `url(https://i.pravatar.cc/300?u=${doctor.id})`,
+                  backgroundImage: `url(${doctor.image})`,
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
                   flexShrink: 0,
@@ -205,7 +208,7 @@ const DoctorProfile = () => {
                   {doctor.name}
                 </h2>
                 <div style={{ fontSize: '0.95rem', color: '#64748b', marginBottom: '0.5rem' }}>
-                  {doctor.specialty}
+                  {doctor.specialization}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem', color: '#64748b', marginBottom: '0.75rem' }}>
                   <FiMapPin size={14} />
@@ -216,7 +219,7 @@ const DoctorProfile = () => {
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', fontSize: '0.75rem', color: '#334155' }}>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <span style={{ opacity: 0.7 }}>Date of Birth</span>
-                    <span style={{ fontWeight: 600 }}>{doctor.dob}</span>
+                    <span style={{ fontWeight: 600 }}>{doctor.dateOfBirth}</span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <span style={{ opacity: 0.7 }}>Blood Group</span>
@@ -244,7 +247,7 @@ const DoctorProfile = () => {
                 <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Experience</div>
               </div>
               <div style={{ textAlign: 'center', flex: 1, borderLeft: '1px solid rgba(82, 178, 191, 0.2)', borderRight: '1px solid rgba(82, 178, 191, 0.2)' }}>
-                <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>{doctor.patients}</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>{doctor.patientsCount}</div>
                 <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Patients</div>
               </div>
               <div style={{ textAlign: 'center', flex: 1 }}>
@@ -461,7 +464,10 @@ const DoctorProfile = () => {
           
           {activeTab === 'about' && (
              <div style={{ padding: '1rem', color: '#64748b', lineHeight: 1.6 }}>
-               <p>{doctor.about}</p>
+               <p><strong>Category:</strong> {doctor.category}</p>
+               <p><strong>Subcategory:</strong> {doctor.subcategory}</p>
+               <p><strong>Specialization:</strong> {doctor.specialization}</p>
+               <p><strong>Location:</strong> {doctor.location}</p>
              </div>
           )}
           
@@ -476,10 +482,9 @@ const DoctorProfile = () => {
              <div style={{ padding: '1rem', color: '#64748b' }}>
                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
                  <FiStar fill="#fbbf24" color="#fbbf24" size={24} />
-                 <span style={{ fontSize: '1.5rem', fontWeight: 700, color: '#0f172a' }}>{doctor.rating}</span>
-                 <span>({doctor.reviews} reviews)</span>
+                 <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>{doctor.reviews} reviews</span>
                </div>
-               <p>Patient reviews will appear here.</p>
+               <p>Reviews not available in demo.</p>
              </div>
           )}
         </div>

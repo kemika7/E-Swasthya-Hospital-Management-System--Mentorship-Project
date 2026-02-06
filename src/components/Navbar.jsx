@@ -1,7 +1,8 @@
 import React from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { FiHeart, FiLogOut, FiUser } from 'react-icons/fi';
+import { FiLogOut, FiUser } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
+import logo from '../assets/images/logo.png';
 
 const Navbar = () => {
   const location = useLocation();
@@ -28,21 +29,17 @@ const Navbar = () => {
         to="/"
         style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600 }}
       >
-        <span
+        <img
+          src={logo}
+          alt="Hospital logo"
           style={{
-            width: 32,
-            height: 32,
-            borderRadius: '999px',
-            background: 'var(--primary)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
+            height: 28,
+            width: 'auto',
+            objectFit: 'contain',
+            display: 'block',
           }}
-        >
-          <FiHeart size={18} />
-        </span>
-        <span>CareBridge Hospital</span>
+        />
+        <span>E-SWASTHYA</span>
       </Link>
 
       {!isAuthPage && isAuthenticated && (
@@ -88,4 +85,3 @@ const Navbar = () => {
 };
 
 export default Navbar;
-

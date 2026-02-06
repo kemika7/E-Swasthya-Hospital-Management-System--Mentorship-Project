@@ -49,16 +49,15 @@ export const AdminProvider = ({ children }) => {
 
   // Doctors
   const addDoctor = (doctor) => {
-    const newDoctor = { ...doctor, id: Date.now(), rating: 0, nextAvailable: 'TBD' };
-    setDoctors([...doctors, newDoctor]);
+    setDoctors([...doctors, doctor]);
   };
 
-  const updateDoctor = (id, updatedData) => {
-    setDoctors(doctors.map(doc => doc.id === id ? { ...doc, ...updatedData } : doc));
+  const updateDoctor = (doctorId, updatedData) => {
+    setDoctors(doctors.map(doc => doc.doctorId === doctorId ? { ...doc, ...updatedData } : doc));
   };
 
-  const deleteDoctor = (id) => {
-    setDoctors(doctors.filter(doc => doc.id !== id));
+  const deleteDoctor = (doctorId) => {
+    setDoctors(doctors.filter(doc => doc.doctorId !== doctorId));
   };
 
   // Patients

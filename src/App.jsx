@@ -4,7 +4,6 @@ import Navbar from './components/Navbar';
 import { PatientSidebar, DoctorSidebar, AdminSidebar } from './components/Sidebar';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './context/AuthContext';
-import { AdminProvider } from './context/AdminContext';
 
 // Pages
 import Onboarding from './pages/Onboarding';
@@ -63,22 +62,20 @@ const DoctorLayout = () => (
 );
 
 const AdminLayout = () => (
-  <AdminProvider>
-    <div className="app-content">
-      <AdminSidebar />
-      <div style={{ flex: 1 }}>
-        <Routes>
-          <Route index element={<AdminDashboard />} />
-          <Route path="dashboard" element={<AdminDashboard />} />
-          <Route path="doctors" element={<DoctorsManagement />} />
-          <Route path="patients" element={<PatientsManagement />} />
-          <Route path="appointments" element={<AppointmentsManagement />} />
-          <Route path="transactions" element={<TransactionsManagement />} />
-          <Route path="*" element={<Navigate to="/admin" replace />} />
-        </Routes>
-      </div>
+  <div className="app-content">
+    <AdminSidebar />
+    <div style={{ flex: 1 }}>
+      <Routes>
+        <Route index element={<AdminDashboard />} />
+        <Route path="dashboard" element={<AdminDashboard />} />
+        <Route path="doctors" element={<DoctorsManagement />} />
+        <Route path="patients" element={<PatientsManagement />} />
+        <Route path="appointments" element={<AppointmentsManagement />} />
+        <Route path="transactions" element={<TransactionsManagement />} />
+        <Route path="*" element={<Navigate to="/admin" replace />} />
+      </Routes>
     </div>
-  </AdminProvider>
+  </div>
 );
 
 const AppShell = () => {

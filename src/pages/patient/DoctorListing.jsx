@@ -1,18 +1,20 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FiArrowLeft, FiStar, FiClock, FiMapPin, FiFilter } from 'react-icons/fi';
-import { medicalCategories, doctors } from '../../data/mockData';
+import { FiArrowLeft, FiStar, FiClock, FiFilter } from 'react-icons/fi';
+import { medicalCategories } from '../../data/mockData';
+import { useAdmin } from '../../context/AdminContext';
 
 const DoctorListing = () => {
   const { categoryId } = useParams();
   const navigate = useNavigate();
   const [selectedSpecialty, setSelectedSpecialty] = useState('All');
+  const { doctors } = useAdmin();
 
   const category = medicalCategories.find((c) => c.id === categoryId);
   
   const categoryDoctors = doctors.filter((doc) => {
-    const matchCategory = doc.categoryId === categoryId;
-    const matchSpecialty = selectedSpecialty === 'All' || doc.specialty === selectedSpecialty;
+    const matchCategory = doc.category === category.title;
+    const matchSpecialty = selectedSpecialty === 'All' || doc.subcategory === selectedSpecialty;
     return matchCategory && matchSpecialty;
   });
 
@@ -152,8 +154,8 @@ const DoctorListing = () => {
         {categoryDoctors.length > 0 ? (
           categoryDoctors.map((doc) => (
             <div
-              key={doc.id}
-              onClick={() => navigate(`/doctors/${doc.id}`)}
+              key={doc.doctorId}
+              onClick={() => navigate(`/doctors/${doc.doctorId}`)}
               style={{
                 backgroundColor: 'var(--white)',
                 borderRadius: 16,
@@ -171,7 +173,7 @@ const DoctorListing = () => {
                   height: 70,
                   borderRadius: 12,
                   backgroundColor: '#f1f5f9',
-                  backgroundImage: `url(https://i.pravatar.cc/150?u=${doc.id})`, // Placeholder
+                  backgroundImage: `url(${doc.image})`,
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
                 }}
@@ -185,28 +187,26 @@ const DoctorListing = () => {
                       {doc.name}
                     </h3>
                     <p style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 500 }}>
-                      {doc.specialty}
+                      {doc.specialization}
                     </p>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', backgroundColor: '#f0fdf4', padding: '0.2rem 0.4rem', borderRadius: 4 }}>
                     <FiStar size={12} fill="#22c55e" color="#22c55e" />
-                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#15803d' }}>{doc.rating}</span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#15803d' }}>{doc.reviews}</span>
                   </div>
                 </div>
 
                 <div style={{ marginTop: '0.6rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', color: '#64748b' }}>
                      <FiClock size={14} />
-                     <span>{doc.experience} exp</span>
-                     <span style={{ margin: '0 0.2rem' }}>•</span>
-                     <span>Next: {doc.nextAvailable}</span>
+                     <span>{doc.experience}</span>
                    </div>
                 </div>
 
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    navigate(`/doctors/${doc.id}`);
+                    navigate(`/doctors/${doc.doctorId}`);
                   }}
                   style={{
                     width: '100%',

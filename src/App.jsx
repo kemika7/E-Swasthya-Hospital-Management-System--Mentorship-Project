@@ -8,6 +8,7 @@ import { useAuth } from './context/AuthContext';
 // Pages
 import Onboarding from './pages/Onboarding';
 import Login from './pages/Login';
+import CreateAccountPatient from './pages/CreateAccountPatient';
 
 import PatientDashboard from './pages/patient/PatientDashboard';
 import CategoriesPage from './pages/patient/CategoriesPage';
@@ -83,7 +84,11 @@ const AdminLayout = () => (
 const AppShell = () => {
   const { isAuthenticated, userRole } = useAuth();
   const location = useLocation();
-  const hideNavbar = location.pathname === '/' || location.pathname === '/login' || userRole === 'patient';
+  const hideNavbar =
+    location.pathname === '/' ||
+    location.pathname === '/login' ||
+    location.pathname.startsWith('/create-account') ||
+    userRole === 'patient';
 
   return (
     <div className="app-shell">
@@ -98,6 +103,18 @@ const AppShell = () => {
             ) : (
               <main style={{ flex: 1 }}>
                 <Login />
+              </main>
+            )
+          }
+        />
+        <Route
+          path="/create-account/patient"
+          element={
+            isAuthenticated ? (
+              <Navigate to={`/${userRole}`} replace />
+            ) : (
+              <main style={{ flex: 1 }}>
+                <CreateAccountPatient />
               </main>
             )
           }

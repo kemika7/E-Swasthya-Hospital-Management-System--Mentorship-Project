@@ -1,21 +1,19 @@
 import React, { useState } from 'react';
-import { FiMail, FiLock, FiUser, FiEye, FiEyeOff } from 'react-icons/fi';
+import { FiMail, FiLock, FiUser, FiPhone, FiHome, FiCalendar, FiEye, FiEyeOff } from 'react-icons/fi';
 import { FcGoogle } from 'react-icons/fc';
-import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
 import AuthLayout from '../components/AuthLayout';
+import { useAuth } from '../context/AuthContext';
 
-const Login = () => {
+const CreateAccountPatient = () => {
   const { login } = useAuth();
-  const navigate = useNavigate();
-
   const [form, setForm] = useState({
+    name: '',
     email: '',
+    phone: '',
+    address: '',
+    dob: '',
     password: '',
-    role: 'patient',
-    username: '',
   });
-
   const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e) => {
@@ -23,62 +21,24 @@ const Login = () => {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleRoleClick = (role) => {
-    setForm((prev) => ({ ...prev, role }));
-  };
-
   const handleSubmit = (e) => {
     e.preventDefault();
     const emailValid = /\S+@\S+\.\S+/.test(form.email);
-    if (!form.username || !emailValid || !form.password) return;
-    login({ name: form.username, email: form.email, role: form.role });
+    if (!form.name || !emailValid || !form.phone || !form.address || !form.dob || !form.password) return;
+    login({ name: form.name, email: form.email, role: 'patient' });
   };
 
   return (
     <AuthLayout>
-      <div style={{ marginBottom: '1.5rem' }}>
-        <div
-          style={{
-            fontSize: '1.5rem',
-            fontWeight: 600,
-            color: 'var(--text)',
-            marginBottom: '1rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            flexWrap: 'wrap',
-          }}
-        >
-          <span>Log in as</span>
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            {['patient', 'doctor', 'admin'].map((role) => (
-              <button
-                key={role}
-                type="button"
-                onClick={() => handleRoleClick(role)}
-                style={{
-                  padding: '0.4rem 0.9rem',
-                  borderRadius: 9999,
-                  border: '1px solid rgba(15,23,42,0.12)',
-                  backgroundColor: form.role === role ? 'var(--primary)' : 'transparent',
-                  color: form.role === role ? 'var(--white)' : 'var(--text)',
-                  fontSize: '1rem',
-                  fontWeight: form.role === role ? 600 : 400,
-                  cursor: 'pointer',
-                  textTransform: 'capitalize',
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                {role}
-              </button>
-            ))}
-          </div>
-        </div>
+      <div style={{ marginBottom: '1.25rem' }}>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: 'var(--text)', margin: 0 }}>
+          Creating New Account in as <span style={{ color: 'var(--primary)' }}>Patient</span>
+        </h2>
       </div>
 
       <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '1.1rem' }}>
         <label style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--text)' }}>
-          Username
+          Full Name
           <div
             style={{
               marginTop: '0.5rem',
@@ -95,9 +55,9 @@ const Login = () => {
             <FiUser size={18} style={{ opacity: 0.5, color: 'var(--text)' }} />
             <input
               type="text"
-              name="username"
-              placeholder="Enter your username"
-              value={form.username}
+              name="name"
+              placeholder="Enter your full name"
+              value={form.name}
               onChange={handleChange}
               required
               style={{
@@ -148,6 +108,110 @@ const Login = () => {
         </label>
 
         <label style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--text)' }}>
+          Phone Number
+          <div
+            style={{
+              marginTop: '0.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              backgroundColor: 'var(--white)',
+              borderRadius: 12,
+              boxShadow: 'var(--shadow-soft)',
+              border: '1px solid rgba(15,23,42,0.12)',
+              padding: '0.75rem 1rem',
+            }}
+          >
+            <FiPhone size={18} style={{ opacity: 0.5, color: 'var(--text)' }} />
+            <input
+              type="tel"
+              name="phone"
+              placeholder="Enter your phone number"
+              value={form.phone}
+              onChange={handleChange}
+              required
+              style={{
+                flex: 1,
+                border: 'none',
+                outline: 'none',
+                fontSize: '0.95rem',
+                color: 'var(--text)',
+                backgroundColor: 'transparent',
+              }}
+            />
+          </div>
+        </label>
+
+        <label style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--text)' }}>
+          Address
+          <div
+            style={{
+              marginTop: '0.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              backgroundColor: 'var(--white)',
+              borderRadius: 12,
+              boxShadow: 'var(--shadow-soft)',
+              border: '1px solid rgba(15,23,42,0.12)',
+              padding: '0.75rem 1rem',
+            }}
+          >
+            <FiHome size={18} style={{ opacity: 0.5, color: 'var(--text)' }} />
+            <input
+              type="text"
+              name="address"
+              placeholder="Enter your address"
+              value={form.address}
+              onChange={handleChange}
+              required
+              style={{
+                flex: 1,
+                border: 'none',
+                outline: 'none',
+                fontSize: '0.95rem',
+                color: 'var(--text)',
+                backgroundColor: 'transparent',
+              }}
+            />
+          </div>
+        </label>
+
+        <label style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--text)' }}>
+          Date of Birth
+          <div
+            style={{
+              marginTop: '0.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              backgroundColor: 'var(--white)',
+              borderRadius: 12,
+              boxShadow: 'var(--shadow-soft)',
+              border: '1px solid rgba(15,23,42,0.12)',
+              padding: '0.75rem 1rem',
+            }}
+          >
+            <FiCalendar size={18} style={{ opacity: 0.5, color: 'var(--text)' }} />
+            <input
+              type="date"
+              name="dob"
+              value={form.dob}
+              onChange={handleChange}
+              required
+              style={{
+                flex: 1,
+                border: 'none',
+                outline: 'none',
+                fontSize: '0.95rem',
+                color: 'var(--text)',
+                backgroundColor: 'transparent',
+              }}
+            />
+          </div>
+        </label>
+
+        <label style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--text)' }}>
           Password
           <div
             style={{
@@ -166,7 +230,7 @@ const Login = () => {
             <input
               type={showPassword ? 'text' : 'password'}
               name="password"
-              placeholder="Enter your password"
+              placeholder="Create a password"
               value={form.password}
               onChange={handleChange}
               required
@@ -200,16 +264,6 @@ const Login = () => {
           </div>
         </label>
 
-        <div style={{ textAlign: 'right', marginTop: '-0.25rem' }}>
-          <a
-            href="#"
-            onClick={(e) => e.preventDefault()}
-            style={{ fontSize: '0.85rem', color: 'var(--primary)', textDecoration: 'none' }}
-          >
-            Forgot Password?
-          </a>
-        </div>
-
         <button
           type="submit"
           style={{
@@ -226,25 +280,7 @@ const Login = () => {
             marginTop: '0.25rem',
           }}
         >
-          LOGIN
-        </button>
-
-        <button
-          type="button"
-          onClick={() => navigate('/create-account/patient')}
-          style={{
-            width: '100%',
-            padding: '0.75rem',
-            borderRadius: 12,
-            border: 'none',
-            backgroundColor: 'transparent',
-            color: 'var(--primary)',
-            fontSize: '0.95rem',
-            fontWeight: 600,
-            cursor: 'pointer',
-          }}
-        >
-          Create a New Account
+          Sign IN
         </button>
 
         <div
@@ -286,4 +322,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default CreateAccountPatient;

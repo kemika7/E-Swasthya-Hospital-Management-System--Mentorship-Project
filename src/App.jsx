@@ -9,6 +9,7 @@ import { useAuth } from './context/AuthContext';
 import Onboarding from './pages/Onboarding';
 import Login from './pages/Login';
 import CreateAccountPatient from './pages/CreateAccountPatient';
+import DoctorRegister from './pages/DoctorRegister';
 
 import PatientDashboard from './pages/patient/PatientDashboard';
 import CategoriesPage from './pages/patient/CategoriesPage';
@@ -88,6 +89,7 @@ const AppShell = () => {
     location.pathname === '/' ||
     location.pathname === '/login' ||
     location.pathname.startsWith('/create-account') ||
+    location.pathname.startsWith('/register/') ||
     userRole === 'patient';
 
   return (
@@ -115,6 +117,18 @@ const AppShell = () => {
             ) : (
               <main style={{ flex: 1 }}>
                 <CreateAccountPatient />
+              </main>
+            )
+          }
+        />
+        <Route
+          path="/register/doctor"
+          element={
+            isAuthenticated ? (
+              <Navigate to={`/${userRole}`} replace />
+            ) : (
+              <main style={{ flex: 1 }}>
+                <DoctorRegister />
               </main>
             )
           }

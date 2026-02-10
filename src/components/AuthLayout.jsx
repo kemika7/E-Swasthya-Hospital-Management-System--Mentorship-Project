@@ -1,15 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import homepageImage from '../assets/images/homepage1.png';
+import React from 'react';
 
-const AuthLayout = ({ children }) => {
-  const [isMobile, setIsMobile] = useState(() => window.matchMedia('(max-width: 767px)').matches);
-
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 767px)');
-    const handler = (e) => setIsMobile(e.matches);
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  }, []);
+const AuthLayout = ({ children, leftHeader, illustrationSrc }) => {
+  const isMobile = typeof window !== 'undefined' ? window.innerWidth <= 767 : false;
 
   return (
     <main
@@ -23,7 +15,7 @@ const AuthLayout = ({ children }) => {
     >
       <div
         style={{
-          flex: isMobile ? '0 0 auto' : 1,
+        flex: 1,
           backgroundColor: 'var(--primary)',
           display: 'flex',
           flexDirection: 'column',
@@ -32,35 +24,41 @@ const AuthLayout = ({ children }) => {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <span
+          {leftHeader || (
+            <span
+              style={{
+                fontSize: '1.5rem',
+                fontWeight: 700,
+                color: 'var(--white)',
+              }}
+            >
+              E-SWASTHYA
+            </span>
+          )}
+        </div>
+        {!isMobile && (
+          <div
             style={{
-              fontSize: '1.5rem',
-              fontWeight: 700,
-              color: 'var(--white)',
+              flex: 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '2rem 0',
             }}
           >
-            E-SWASTHYA
-          </span>
-        </div>
-        <div
-          style={{
-            flex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '2rem 0',
-          }}
-        >
-          <img
-            src={homepageImage}
-            alt="Healthcare illustration"
-            style={{
-              maxWidth: '100%',
-              height: 'auto',
-              objectFit: 'contain',
-            }}
-          />
-        </div>
+            {illustrationSrc && (
+              <img
+                src={illustrationSrc}
+                alt="Healthcare illustration"
+                style={{
+                  maxWidth: '100%',
+                  height: 'auto',
+                  objectFit: 'contain',
+                }}
+              />
+            )}
+          </div>
+        )}
       </div>
 
       <div

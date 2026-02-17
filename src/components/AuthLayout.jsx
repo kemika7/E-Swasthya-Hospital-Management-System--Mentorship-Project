@@ -15,11 +15,11 @@ const AuthLayout = ({ children, leftHeader, illustrationSrc }) => {
     >
       <div
         style={{
-        flex: 1,
+          flex: 1,
           backgroundColor: 'var(--primary)',
           display: 'flex',
           flexDirection: 'column',
-          padding: '2rem',
+          padding: isMobile ? '1.5rem' : '2.5rem',
           justifyContent: 'space-between',
         }}
       >
@@ -50,8 +50,9 @@ const AuthLayout = ({ children, leftHeader, illustrationSrc }) => {
               <img
                 src={illustrationSrc}
                 alt="Healthcare illustration"
+                loading="lazy"
                 style={{
-                  maxWidth: '100%',
+                  maxWidth: '85%',
                   height: 'auto',
                   objectFit: 'contain',
                 }}
@@ -68,13 +69,13 @@ const AuthLayout = ({ children, leftHeader, illustrationSrc }) => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '2rem',
+          padding: isMobile ? '1.5rem' : '2.5rem',
         }}
       >
         <div
           style={{
             width: '100%',
-            maxWidth: 480,
+            maxWidth: isMobile ? 480 : 640,
           }}
         >
           {children}

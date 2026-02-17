@@ -29,12 +29,10 @@ const DoctorListing = () => {
 
   return (
     <div
+      className="layout-main"
       style={{
         minHeight: '100vh',
         backgroundColor: 'var(--background)',
-        padding: '1rem',
-        maxWidth: 600,
-        margin: '0 auto',
       }}
     >
       {/* Header */}

@@ -10,4 +10,4 @@ const BrandingHeader = () => {
   );
 };
 
-export default BrandingHeader;
+export default React.memo(BrandingHeader);

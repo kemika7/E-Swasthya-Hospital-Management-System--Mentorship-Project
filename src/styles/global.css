@@ -23,6 +23,8 @@ body {
     'Segoe UI', sans-serif;
   background-color: var(--background);
   color: var(--text);
+  font-size: clamp(14px, 1vw + 12px, 16px);
+  line-height: 1.6;
 }
 
 img {
@@ -87,6 +89,10 @@ button {
   .grid-cols-3 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+}
+
+.grid-cols-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .card {
@@ -314,3 +320,73 @@ button {
   }
 }
 
+@media (min-width: 1024px) {
+  .page-title {
+    font-size: 1.75rem;
+  }
+  .layout-main {
+    padding: 2rem 2.5rem 2.5rem;
+    max-width: 1200px;
+  }
+  .page-header {
+    margin-bottom: 2rem;
+  }
+  .card {
+    padding: 1.25rem;
+  }
+  .btn {
+    padding: 0.7rem 1.4rem;
+    font-size: 1rem;
+  }
+  .input,
+  .select {
+    padding: 0.7rem 1.2rem;
+    font-size: 1rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .layout-main {
+    max-width: 1280px;
+  }
+}
+
+/* Onboarding desktop layout */
+.onboarding-shell {
+  min-height: 100vh;
+  background-color: var(--background);
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 1024px) {
+  .onboarding-shell {
+    grid-template-columns: 1.3fr 1fr;
+  }
+}
+
+.onboarding-hero {
+  background-color: var(--primary);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+}
+
+.onboarding-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.onboarding-hero-inner {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.onboarding-content-inner {
+  width: 100%;
+  max-width: 480px;
+}

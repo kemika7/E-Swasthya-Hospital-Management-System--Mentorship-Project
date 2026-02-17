@@ -7,6 +7,7 @@ import AuthLayout from '../components/AuthLayout';
 import BrandingHeader from '../components/BrandingHeader';
 import loginIllustration from '../assets/images/login.png';
 import homepageIllustration from '../assets/images/homepage1.png';
+import { sanitizeInput } from '../utils/sanitize';
 
 const Login = () => {
   const { login } = useAuth();
@@ -25,7 +26,7 @@ const Login = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    setForm((prev) => ({ ...prev, [name]: sanitizeInput(value) }));
   };
 
   const handleRoleClick = (role) => {

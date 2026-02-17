@@ -51,13 +51,11 @@ const DocumentLocker = () => {
   if (!isUnlocked) {
     return (
       <main
+        className="layout-main"
         style={{
           minHeight: '100vh',
           backgroundColor: 'var(--background)',
-          padding: '1rem',
           paddingBottom: '2rem',
-          maxWidth: 600,
-          margin: '0 auto',
         }}
       >
         {/* TOP HEADER BAR */}
@@ -310,13 +308,11 @@ const DocumentLocker = () => {
   // STATE 2: UNLOCKED LOCKER (DOCUMENT VIEW)
   return (
     <main
+      className="layout-main"
       style={{
         minHeight: '100vh',
         backgroundColor: 'var(--background)',
-        padding: '1rem',
         paddingBottom: '2rem',
-        maxWidth: 600,
-        margin: '0 auto',
       }}
     >
       {/* TOP HEADER BAR */}

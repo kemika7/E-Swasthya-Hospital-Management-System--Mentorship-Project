@@ -69,12 +69,10 @@ const CategoriesPage = () => {
 
   return (
     <div
+      className="layout-main"
       style={{
         minHeight: '100vh',
         backgroundColor: 'var(--background)',
-        padding: '1rem',
-        maxWidth: 600,
-        margin: '0 auto',
       }}
     >
       {/* Header */}
@@ -152,14 +150,7 @@ const CategoriesPage = () => {
       </div>
 
       {/* Categories Grid */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(2, 1fr)',
-          gap: '1rem',
-          paddingBottom: '2rem',
-        }}
-      >
+      <div className="grid grid-cols-3" style={{ gap: '1rem', paddingBottom: '2rem' }}>
         {filteredCategories.map((category) => {
           const IconComponent = iconMap[category.icon] || MdLocalHospital;
           return (

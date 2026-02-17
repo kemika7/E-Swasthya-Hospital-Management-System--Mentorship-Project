@@ -4,6 +4,7 @@ import { FcGoogle } from 'react-icons/fc';
 import AuthLayout from '../components/AuthLayout';
 import BrandingHeader from '../components/BrandingHeader';
 import homepageIllustration from '../assets/images/homepage1.png';
+import { sanitizeInput } from '../utils/sanitize';
 import { useAuth } from '../context/AuthContext';
 
 const CreateAccountPatient = () => {
@@ -20,7 +21,7 @@ const CreateAccountPatient = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    setForm((prev) => ({ ...prev, [name]: sanitizeInput(value) }));
   };
 
   const handleSubmit = (e) => {

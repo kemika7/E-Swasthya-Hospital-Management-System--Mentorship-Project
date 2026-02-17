@@ -89,13 +89,11 @@ const PatientDashboard = () => {
 
   return (
     <div
+      className="layout-main"
       style={{
         minHeight: '100vh',
         backgroundColor: 'var(--background)',
-        paddingBottom: '80px', // Space for bottom nav
-        padding: '1rem',
-        maxWidth: 600,
-        margin: '0 auto',
+        paddingBottom: '80px',
       }}
     >
       {/* TOP HEADER SECTION */}
@@ -464,7 +462,7 @@ const PatientDashboard = () => {
           justifyContent: 'space-around',
           alignItems: 'center',
           zIndex: 100,
-          maxWidth: 600,
+          maxWidth: 1000,
           margin: '0 auto',
         }}
       >

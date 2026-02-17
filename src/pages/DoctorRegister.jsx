@@ -5,6 +5,7 @@ import BrandingHeader from '../components/BrandingHeader';
 import homepageIllustration from '../assets/images/homepage1.png';
 import { medicalCategories } from '../data/mockData';
 import { useAuth } from '../context/AuthContext';
+import { sanitizeInput } from '../utils/sanitize';
 
 const DoctorRegister = () => {
   const { login } = useAuth();
@@ -27,7 +28,7 @@ const DoctorRegister = () => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setForm((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    setForm((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : sanitizeInput(value) }));
   };
 
   const handleSubmit = (e) => {

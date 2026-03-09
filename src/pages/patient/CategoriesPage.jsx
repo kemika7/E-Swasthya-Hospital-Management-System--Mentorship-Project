@@ -69,88 +69,44 @@ const CategoriesPage = () => {
 
   return (
     <div
-      className="layout-main"
       style={{
-        minHeight: '100vh',
-        backgroundColor: 'var(--background)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 'var(--space-md)',
       }}
     >
-      {/* Header */}
-      <div
-        style={{
-          width: '100%',
-          backgroundColor: 'var(--primary)',
-          borderRadius: 16,
-          padding: '0.9rem 1rem',
-          marginBottom: '1.5rem',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
-        <button
-          type="button"
-          onClick={() => navigate('/patient/dashboard')}
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: '50%',
-            border: 'none',
-            backgroundColor: 'rgba(255,255,255,0.18)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-          }}
-        >
-          <FiArrowLeft size={20} style={{ color: 'var(--white)' }} />
-        </button>
-
+      <div className="page-header" style={{ marginBottom: 0 }}>
+        <h1 className="page-title">Medical Categories</h1>
         <div
           style={{
-            flex: 1,
-            textAlign: 'center',
-            color: 'var(--white)',
-            fontSize: '1.25rem',
-            fontWeight: 600,
+            position: 'relative',
+            width: '100%',
+            maxWidth: '400px',
           }}
         >
-          Medical Categories
+          <FiSearch
+            size={18}
+            style={{
+              position: 'absolute',
+              left: '1rem',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: 'var(--text-light)',
+            }}
+          />
+          <input
+            type="text"
+            placeholder="Search categories..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="input"
+            style={{ paddingLeft: '2.75rem' }}
+          />
         </div>
-        <div style={{ width: 40 }} />
-      </div>
-
-      {/* Search Bar Integration */}
-      <div
-        style={{
-          width: '100%',
-          marginBottom: '1.5rem',
-          backgroundColor: 'rgba(148,163,184,0.2)',
-          borderRadius: 12,
-          display: 'flex',
-          alignItems: 'center',
-          padding: '0.75rem 1rem',
-        }}
-      >
-        <FiSearch size={20} style={{ color: 'rgba(15,23,42,0.5)', marginRight: '0.5rem' }} />
-        <input
-          type="text"
-          placeholder="Search categories or specialties..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          style={{
-            flex: 1,
-            border: 'none',
-            outline: 'none',
-            backgroundColor: 'transparent',
-            fontSize: '0.95rem',
-            color: 'var(--text)',
-          }}
-        />
       </div>
 
       {/* Categories Grid */}
-      <div className="grid grid-cols-3" style={{ gap: '1rem', paddingBottom: '2rem' }}>
+      <div className="grid grid-cols-4" style={{ gap: 'var(--space-md)', paddingBottom: '2rem' }}>
         {filteredCategories.map((category) => {
           const IconComponent = iconMap[category.icon] || MdLocalHospital;
           return (

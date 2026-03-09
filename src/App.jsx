@@ -1,7 +1,7 @@
 import React, { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Navbar from './components/Navbar';
-import { PatientSidebar, DoctorSidebar, AdminSidebar } from './components/Sidebar';
+import DashboardLayout from './components/DashboardLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './context/AuthContext';
 
@@ -34,7 +34,7 @@ const AppointmentsManagement = lazy(() => import('./pages/admin/AppointmentsMana
 const TransactionsManagement = lazy(() => import('./pages/admin/TransactionsManagement'));
 
 const PatientLayout = () => (
-  <div style={{ width: '100%' }}>
+  <DashboardLayout>
     <Routes>
       <Route index element={<PatientDashboard />} />
       <Route path="dashboard" element={<PatientDashboard />} />
@@ -45,42 +45,36 @@ const PatientLayout = () => (
       <Route path="locker" element={<DocumentLocker />} />
       <Route path="*" element={<Navigate to="/patient" replace />} />
     </Routes>
-  </div>
+  </DashboardLayout>
 );
 
 const DoctorLayout = () => (
-  <div className="app-content">
-    <DoctorSidebar />
-    <div style={{ flex: 1 }}>
-      <Routes>
-        <Route index element={<DoctorDashboard />} />
-        <Route path="dashboard" element={<DoctorDashboard />} />
-        <Route path="analytics" element={<DoctorAnalytics />} />
-        <Route path="calendar" element={<DoctorCalendarPage />} />
-        <Route path="appointments" element={<DoctorAppointments />} />
-        <Route path="report" element={<DoctorReport />} />
-        <Route path="copilot" element={<DoctorCopilot />} />
-        <Route path="*" element={<Navigate to="/doctor" replace />} />
-      </Routes>
-    </div>
-  </div>
+  <DashboardLayout>
+    <Routes>
+      <Route index element={<DoctorDashboard />} />
+      <Route path="dashboard" element={<DoctorDashboard />} />
+      <Route path="analytics" element={<DoctorAnalytics />} />
+      <Route path="calendar" element={<DoctorCalendarPage />} />
+      <Route path="appointments" element={<DoctorAppointments />} />
+      <Route path="report" element={<DoctorReport />} />
+      <Route path="copilot" element={<DoctorCopilot />} />
+      <Route path="*" element={<Navigate to="/doctor" replace />} />
+    </Routes>
+  </DashboardLayout>
 );
 
 const AdminLayout = () => (
-  <div className="app-content">
-    <AdminSidebar />
-    <div style={{ flex: 1 }}>
-      <Routes>
-        <Route index element={<AdminDashboard />} />
-        <Route path="dashboard" element={<AdminDashboard />} />
-        <Route path="doctors" element={<DoctorsManagement />} />
-        <Route path="patients" element={<PatientsManagement />} />
-        <Route path="appointments" element={<AppointmentsManagement />} />
-        <Route path="transactions" element={<TransactionsManagement />} />
-        <Route path="*" element={<Navigate to="/admin" replace />} />
-      </Routes>
-    </div>
-  </div>
+  <DashboardLayout>
+    <Routes>
+      <Route index element={<AdminDashboard />} />
+      <Route path="dashboard" element={<AdminDashboard />} />
+      <Route path="doctors" element={<DoctorsManagement />} />
+      <Route path="patients" element={<PatientsManagement />} />
+      <Route path="appointments" element={<AppointmentsManagement />} />
+      <Route path="transactions" element={<TransactionsManagement />} />
+      <Route path="*" element={<Navigate to="/admin" replace />} />
+    </Routes>
+  </DashboardLayout>
 );
 
 const AppShell = () => {
@@ -90,13 +84,12 @@ const AppShell = () => {
     location.pathname === '/' ||
     location.pathname === '/login' ||
     location.pathname.startsWith('/create-account') ||
-    location.pathname.startsWith('/register/') ||
-    userRole === 'patient';
+    location.pathname.startsWith('/register/');
 
   return (
     <div className="app-shell">
-      {/* Visible top-level UI should render even while routes load */}
-      {!hideNavbar && <Navbar />}
+      {/* Navbar is now inside DashboardLayout for authenticated routes */}
+      {hideNavbar && location.pathname !== '/' && location.pathname !== '/login' && !isAuthenticated && <Navbar />}
 
       {/* IMPORTANT: Fallback must be visible; do NOT use null here */}
       {/* Replace this fallback with a branded loader if desired */}
@@ -118,93 +111,93 @@ const AppShell = () => {
         {/* Example placeholder:
             {isHydrating ? <div>Restoring session…</div> : <Routes>…</Routes>} */}
         <Routes>
-        <Route path="/" element={<Onboarding />} />
-        <Route
-          path="/login"
-          element={
-            isAuthenticated ? (
-              <Navigate to={`/${userRole}`} replace />
-            ) : (
-              <main style={{ flex: 1 }}>
-                <Login />
-              </main>
-            )
-          }
-        />
-        <Route
-          path="/create-account/patient"
-          element={
-            isAuthenticated ? (
-              <Navigate to={`/${userRole}`} replace />
-            ) : (
-              <main style={{ flex: 1 }}>
-                <CreateAccountPatient />
-              </main>
-            )
-          }
-        />
-        <Route
-          path="/register/doctor"
-          element={
-            isAuthenticated ? (
-              <Navigate to={`/${userRole}`} replace />
-            ) : (
-              <main style={{ flex: 1 }}>
-                <DoctorRegister />
-              </main>
-            )
-          }
-        />
+          <Route path="/" element={<Onboarding />} />
+          <Route
+            path="/login"
+            element={
+              isAuthenticated ? (
+                <Navigate to={`/${userRole}`} replace />
+              ) : (
+                <main style={{ flex: 1 }}>
+                  <Login />
+                </main>
+              )
+            }
+          />
+          <Route
+            path="/create-account/patient"
+            element={
+              isAuthenticated ? (
+                <Navigate to={`/${userRole}`} replace />
+              ) : (
+                <main style={{ flex: 1 }}>
+                  <CreateAccountPatient />
+                </main>
+              )
+            }
+          />
+          <Route
+            path="/register/doctor"
+            element={
+              isAuthenticated ? (
+                <Navigate to={`/${userRole}`} replace />
+              ) : (
+                <main style={{ flex: 1 }}>
+                  <DoctorRegister />
+                </main>
+              )
+            }
+          />
 
-        {/* Global Doctor and Appointment routes */}
-        <Route
-          path="/doctors/:doctorId"
-          element={
-            <ProtectedRoute role="patient">
-              <DoctorProfile />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/appointments"
-          element={
-            <ProtectedRoute role="patient">
-              <Appointments />
-            </ProtectedRoute>
-          }
-        />
+          {/* Global Doctor and Appointment routes */}
+          <Route
+            path="/doctors/:doctorId"
+            element={
+              <ProtectedRoute role="patient">
+                <DoctorProfile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/appointments"
+            element={
+              <ProtectedRoute role="patient">
+                <Appointments />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Patient Portal */}
-        <Route
-          path="/patient/*"
-          element={
-            <ProtectedRoute role="patient">
-              <PatientLayout />
-            </ProtectedRoute>
-          }
-        />
+          {/* Patient Portal */}
+          <Route
+            path="/patient/*"
+            element={
+              <ProtectedRoute role="patient">
+                <PatientLayout />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Doctor Portal */}
-        <Route
-          path="/doctor/*"
-          element={
-            <ProtectedRoute role="doctor">
-              <DoctorLayout />
-            </ProtectedRoute>
-          }
-        />
+          {/* Doctor Portal */}
+          <Route
+            path="/doctor/*"
+            element={
+              <ProtectedRoute role="doctor">
+                <DoctorLayout />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Admin Portal */}
-        <Route
-          path="/admin/*"
-          element={
-            <ProtectedRoute role="admin">
-              <AdminLayout />
-            </ProtectedRoute>
-          }
-        />
+          {/* Admin Portal */}
+          <Route
+            path="/admin/*"
+            element={
+              <ProtectedRoute role="admin">
+                <AdminLayout />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route path="*" element={<NotFound />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Suspense>
     </div>

@@ -132,10 +132,9 @@ const DoctorDashboard = () => {
   return (
     <div
       style={{
-        flex: 1,
-        padding: '1.25rem 1.5rem 1.75rem',
-        backgroundColor: 'var(--background)',
-        minHeight: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 'var(--space-lg)',
       }}
     >
       {/* GREETING CARD */}
@@ -144,8 +143,8 @@ const DoctorDashboard = () => {
           width: '100%',
           backgroundColor: 'var(--primary)',
           borderRadius: 16,
-          padding: '1.5rem 2rem',
-          marginBottom: '1.5rem',
+          padding: 'var(--space-md) var(--space-lg)',
+          marginBottom: 0,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -195,8 +194,8 @@ const DoctorDashboard = () => {
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '1rem',
-          marginBottom: '1.5rem',
+          gap: 'var(--space-md)',
+          marginBottom: 0,
         }}
       >
         {[
@@ -229,8 +228,8 @@ const DoctorDashboard = () => {
         style={{
           display: 'grid',
           gridTemplateColumns: '1fr 1fr 1fr',
-          gap: '1.25rem',
-          marginBottom: '1.25rem',
+          gap: 'var(--space-lg)',
+          marginBottom: 0,
         }}
       >
         {/* MY SCHEDULED EVENTS */}

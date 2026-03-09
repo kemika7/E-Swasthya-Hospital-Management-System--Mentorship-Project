@@ -34,34 +34,38 @@ const doctorLinkStyle = ({ isActive }) =>
 export const PatientSidebar = () => {
   return (
     <aside className="sidebar">
+      <div className="sidebar-header">
+        <img src={logo} alt="Logo" style={{ height: 32 }} />
+        <span>E-SWASTHYA</span>
+      </div>
       <ul className="sidebar-nav">
         <li>
           <NavLink to="/patient" end className={linkBaseStyle}>
-            <FiHome size={18} />
+            <FiHome size={20} />
             <span>Dashboard</span>
           </NavLink>
         </li>
         <li>
           <NavLink to="/patient/doctors" className={linkBaseStyle}>
-            <FiUsers size={18} />
+            <FiUsers size={20} />
             <span>Doctors</span>
           </NavLink>
         </li>
         <li>
           <NavLink to="/patient/appointments" className={linkBaseStyle}>
-            <FiCalendar size={18} />
+            <FiCalendar size={20} />
             <span>Appointments</span>
           </NavLink>
         </li>
         <li>
           <NavLink to="/patient/reports" className={linkBaseStyle}>
-            <FiFileText size={18} />
+            <FiFileText size={20} />
             <span>Reports</span>
           </NavLink>
         </li>
         <li>
           <NavLink to="/patient/locker" className={linkBaseStyle}>
-            <FiLock size={18} />
+            <FiLock size={20} />
             <span>Document Locker</span>
           </NavLink>
         </li>
@@ -74,7 +78,7 @@ export const DoctorSidebar = () => {
   return (
     <aside className="doctor-sidebar">
       <div className="doctor-sidebar-logo">
-        <img src={logo} alt="Hospital logo" style={{ height: 36, width: 'auto' }} />
+        <img src={logo} alt="Logo" style={{ height: 40 }} />
       </div>
       <ul className="doctor-sidebar-nav">
         <li>
@@ -115,34 +119,38 @@ export const DoctorSidebar = () => {
 export const AdminSidebar = () => {
   return (
     <aside className="sidebar">
+      <div className="sidebar-header">
+        <img src={logo} alt="Logo" style={{ height: 32 }} />
+        <span>Admin Panel</span>
+      </div>
       <ul className="sidebar-nav">
         <li>
           <NavLink to="/admin" end className={linkBaseStyle}>
-            <FiHome size={18} />
+            <FiHome size={20} />
             <span>Dashboard</span>
           </NavLink>
         </li>
         <li>
           <NavLink to="/admin/doctors" className={linkBaseStyle}>
-            <FiUsers size={18} />
+            <FiUsers size={20} />
             <span>Doctors</span>
           </NavLink>
         </li>
         <li>
           <NavLink to="/admin/patients" className={linkBaseStyle}>
-            <FiUser size={18} />
+            <FiUser size={20} />
             <span>Patients</span>
           </NavLink>
         </li>
         <li>
           <NavLink to="/admin/appointments" className={linkBaseStyle}>
-            <FiCalendar size={18} />
+            <FiCalendar size={20} />
             <span>Appointments</span>
           </NavLink>
         </li>
         <li>
           <NavLink to="/admin/transactions" className={linkBaseStyle}>
-            <FiDollarSign size={18} />
+            <FiDollarSign size={20} />
             <span>Transactions</span>
           </NavLink>
         </li>

@@ -89,108 +89,18 @@ const PatientDashboard = () => {
 
   return (
     <div
-      className="layout-main"
       style={{
-        minHeight: '100vh',
-        backgroundColor: 'var(--background)',
-        paddingBottom: '80px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 'var(--space-lg)',
       }}
     >
-      {/* TOP HEADER SECTION */}
-      <div
-        style={{
-          width: '100%',
-          backgroundColor: 'var(--primary)',
-          borderRadius: 16,
-          padding: '1.25rem',
-          marginBottom: '1.25rem',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          {/* Circular Avatar */}
-          <div
-            style={{
-              width: 56,
-              height: 56,
-              borderRadius: '50%',
-              backgroundColor: 'var(--white)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <FiUser size={24} style={{ color: 'var(--primary)' }} />
-          </div>
-
-          {/* Text Content */}
-          <div>
-            <div style={{ fontSize: '0.85rem', color: 'var(--white)', opacity: 0.9 }}>
-              Hi,
-            </div>
-            <div
-              style={{
-                fontSize: '1.25rem',
-                fontWeight: 700,
-                color: 'var(--white)',
-                marginTop: '0.15rem',
-              }}
-            >
-              {patientName}
-            </div>
-          </div>
-        </div>
-
-        {/* Right Side Actions: Notification & Logout */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          {/* Notification Icon */}
-          <button
-            type="button"
-            style={{
-              border: 'none',
-              background: 'transparent',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '0.5rem',
-            }}
-          >
-            <FiBell size={24} style={{ color: 'var(--white)' }} />
-          </button>
-
-          {/* Logout Button */}
-          <button
-            onClick={logout}
-            style={{
-              border: 'none',
-              background: 'rgba(255, 255, 255, 0.2)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.5rem 0.75rem',
-              borderRadius: '8px',
-              color: 'var(--white)',
-              fontSize: '0.9rem',
-              fontWeight: 500,
-            }}
-          >
-            <FiLogOut size={18} />
-            <span>Logout</span>
-          </button>
-        </div>
-      </div>
-
       {/* SEARCH BAR SECTION */}
       <div
         style={{
           width: '100%',
-          marginBottom: '1.5rem',
           display: 'flex',
-          gap: '0.75rem',
+          gap: 'var(--space-sm)',
           alignItems: 'center',
         }}
       >
@@ -198,23 +108,25 @@ const PatientDashboard = () => {
           style={{
             flex: 1,
             position: 'relative',
-            backgroundColor: 'rgba(148,163,184,0.2)',
+            backgroundColor: 'var(--white)',
             borderRadius: 12,
             display: 'flex',
             alignItems: 'center',
-            padding: '0.75rem 1rem',
+            padding: '0.75rem 1.25rem',
+            boxShadow: 'var(--shadow-soft)',
+            border: '1px solid rgba(15, 23, 42, 0.05)',
           }}
         >
-          <FiSearch size={20} style={{ color: 'rgba(15,23,42,0.5)', marginRight: '0.5rem' }} />
+          <FiSearch size={20} style={{ color: 'var(--text-light)', marginRight: '0.75rem' }} />
           <input
             type="text"
-            placeholder="Search anything"
+            placeholder="Search for doctors, specialties, or reports..."
             style={{
               flex: 1,
               border: 'none',
               outline: 'none',
               backgroundColor: 'transparent',
-              fontSize: '0.95rem',
+              fontSize: '1rem',
               color: 'var(--text)',
             }}
           />
@@ -233,6 +145,7 @@ const PatientDashboard = () => {
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
+            boxShadow: 'var(--shadow-soft)',
           }}
         >
           <FiFilter size={20} style={{ color: 'var(--white)' }} />
@@ -240,62 +153,86 @@ const PatientDashboard = () => {
       </div>
 
       {/* UPCOMING APPOINTMENTS SECTION */}
-      <div style={{ marginBottom: '1.75rem' }}>
-        <h2
+      <div>
+        <div
           style={{
-            fontSize: '1.35rem',
-            fontWeight: 700,
-            color: 'var(--text)',
-            marginBottom: '1rem',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 'var(--space-sm)',
           }}
         >
-          Upcoming Appointments
-        </h2>
+          <h2
+            style={{
+              fontSize: '1.25rem',
+              fontWeight: 700,
+              color: 'var(--text)',
+            }}
+          >
+            Upcoming Appointments
+          </h2>
+          <button
+            onClick={() => navigate('/patient/appointments')}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--primary)',
+              fontWeight: 600,
+              cursor: 'pointer',
+              fontSize: '0.9rem',
+            }}
+          >
+            View Schedule
+          </button>
+        </div>
 
         <div
           style={{
             width: '100%',
             backgroundColor: 'var(--primary)',
-            borderRadius: 16,
-            padding: '1.25rem',
+            borderRadius: 20,
+            padding: 'var(--space-lg)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
+            boxShadow: '0 12px 30px rgba(82, 178, 191, 0.25)',
+            backgroundImage: 'linear-gradient(135deg, var(--primary) 0%, #469ea9 100%)',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
             {/* Doctor Profile Image */}
             <div
               style={{
-                width: 64,
-                height: 64,
+                width: 70,
+                height: 70,
                 borderRadius: '50%',
-                backgroundColor: 'rgba(255,255,255,0.2)',
+                backgroundColor: 'rgba(255,255,255,0.25)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <FiUser size={32} style={{ color: 'var(--white)' }} />
+              <FiUser size={36} style={{ color: 'var(--white)' }} />
             </div>
 
             {/* Doctor Info */}
             <div>
               <div
                 style={{
-                  fontSize: '1.1rem',
-                  fontWeight: 600,
+                  fontSize: '1.25rem',
+                  fontWeight: 700,
                   color: 'var(--white)',
-                  marginBottom: '0.25rem',
+                  marginBottom: '0.35rem',
                 }}
               >
                 {upcomingAppointment.doctorName}
               </div>
               <div
                 style={{
-                  fontSize: '0.9rem',
+                  fontSize: '1rem',
                   color: 'var(--white)',
                   opacity: 0.9,
+                  fontWeight: 500,
                 }}
               >
                 {upcomingAppointment.specialty}
@@ -306,26 +243,26 @@ const PatientDashboard = () => {
           {/* Date & Time Info */}
           <div
             style={{
-              backgroundColor: 'rgba(255,255,255,0.15)',
-              borderRadius: 12,
-              padding: '0.75rem',
+              backgroundColor: 'rgba(255,255,255,0.2)',
+              borderRadius: 16,
+              padding: '1rem 1.25rem',
               display: 'flex',
               flexDirection: 'column',
-              gap: '0.5rem',
+              gap: '0.75rem',
             }}
           >
             {/* Date Row */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <FiCalendar size={16} style={{ color: 'var(--white)' }} />
-              <span style={{ fontSize: '0.85rem', color: 'var(--white)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <FiCalendar size={18} style={{ color: 'var(--white)' }} />
+              <span style={{ fontSize: '0.95rem', color: 'var(--white)', fontWeight: 600 }}>
                 {upcomingAppointment.date}
               </span>
             </div>
 
             {/* Time Row */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <FiClock size={16} style={{ color: 'var(--white)' }} />
-              <span style={{ fontSize: '0.85rem', color: 'var(--white)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <FiClock size={18} style={{ color: 'var(--white)' }} />
+              <span style={{ fontSize: '0.95rem', color: 'var(--white)', fontWeight: 600 }}>
                 {upcomingAppointment.time}
               </span>
             </div>
@@ -334,23 +271,23 @@ const PatientDashboard = () => {
       </div>
 
       {/* CATEGORIES SECTION */}
-      <div style={{ marginBottom: '1.5rem' }}>
+      <div>
         <div
           style={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            marginBottom: '1rem',
+            marginBottom: 'var(--space-sm)',
           }}
         >
           <h2
             style={{
-              fontSize: '1.35rem',
+              fontSize: '1.25rem',
               fontWeight: 700,
               color: 'var(--text)',
             }}
           >
-            Categories
+            Medical Categories
           </h2>
           <button
             type="button"
@@ -360,83 +297,72 @@ const PatientDashboard = () => {
               background: 'transparent',
               color: 'var(--primary)',
               fontSize: '0.9rem',
-              fontWeight: 500,
+              fontWeight: 600,
               cursor: 'pointer',
             }}
           >
-            View all
+            See all
           </button>
         </div>
 
-        {/* Horizontally Scrollable Categories */}
+        {/* Categories Grid (Standardized for Desktop) */}
         <div
+          className="grid grid-cols-4"
           style={{
-            display: 'flex',
-            gap: '1rem',
-            overflowX: 'auto',
-            overflowY: 'hidden',
-            paddingBottom: '0.5rem',
-            scrollbarWidth: 'none', // Firefox
-            msOverflowStyle: 'none', // IE/Edge
-          }}
-          onWheel={(e) => {
-            e.preventDefault();
-            e.currentTarget.scrollLeft += e.deltaY;
+            gap: 'var(--space-md)',
           }}
         >
-          <style>
-            {`
-              div::-webkit-scrollbar {
-                display: none;
-              }
-            `}
-          </style>
-          {medicalCategories.map((category) => {
+          {medicalCategories.slice(0, 8).map((category) => {
             const IconComponent = iconMap[category.icon] || FiActivity;
             return (
               <div
                 key={category.id}
                 onClick={() => navigate(`/patient/category/${category.id}`)}
+                className="card"
                 style={{
-                  minWidth: 100,
-                  width: 100,
-                  height: 100,
-                  backgroundColor: 'rgba(148,163,184,0.15)',
-                  borderRadius: 16,
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '0.5rem',
+                  gap: '1rem',
                   cursor: 'pointer',
-                  position: 'relative',
+                  padding: 'var(--space-lg) var(--space-md)',
+                  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                  textAlign: 'center',
+                  border: '1px solid transparent',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-4px)';
+                  e.currentTarget.style.borderColor = 'var(--primary-light)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.borderColor = 'transparent';
                 }}
               >
                 <div
                   style={{
-                    zIndex: 1,
-                    position: 'relative',
+                    width: 56,
+                    height: 56,
+                    borderRadius: '16px',
+                    backgroundColor: 'var(--primary-light)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
                 >
                   <IconComponent
-                    size={32}
+                    size={28}
                     style={{
-                      color: 'var(--text)',
+                      color: 'var(--primary)',
                     }}
                   />
                 </div>
                 <div
                   style={{
-                    fontSize: '0.75rem',
-                    fontWeight: 400,
+                    fontSize: '0.95rem',
+                    fontWeight: 600,
                     color: 'var(--text)',
-                    textAlign: 'center',
-                    zIndex: 1,
-                    position: 'relative',
-                    padding: '0 0.5rem',
                   }}
                 >
                   {category.title}
@@ -445,62 +371,6 @@ const PatientDashboard = () => {
             );
           })}
         </div>
-      </div>
-
-      {/* BOTTOM NAVIGATION BAR */}
-      <div
-        style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          backgroundColor: 'var(--primary)',
-          borderTopLeftRadius: 20,
-          borderTopRightRadius: 20,
-          padding: '0.75rem 0.5rem',
-          display: 'flex',
-          justifyContent: 'space-around',
-          alignItems: 'center',
-          zIndex: 100,
-          maxWidth: 1000,
-          margin: '0 auto',
-        }}
-      >
-        {bottomNavItems.map((item) => {
-          const Icon = item.icon;
-          const active = isActive(item.path);
-          return (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => navigate(item.path)}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '0.25rem',
-                border: 'none',
-                background: 'transparent',
-                cursor: 'pointer',
-                padding: '0.25rem 0.5rem',
-                opacity: active ? 1 : 0.7,
-                transform: active ? 'scale(1.05)' : 'scale(1)',
-                transition: 'all 0.2s ease',
-              }}
-            >
-              <Icon size={20} style={{ color: 'var(--white)' }} />
-              <span
-                style={{
-                  fontSize: '0.7rem',
-                  color: 'var(--white)',
-                  fontWeight: active ? 600 : 400,
-                }}
-              >
-                {item.label}
-              </span>
-            </button>
-          );
-        })}
       </div>
     </div>
   );

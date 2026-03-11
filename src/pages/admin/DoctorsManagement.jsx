@@ -7,7 +7,7 @@ const DoctorsManagement = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDoctor, setEditingDoctor] = useState(null);
   const [formData, setFormData] = useState({
-    doctorId: '',
+    id: '',
     name: '',
     category: '',
     subcategory: '',
@@ -29,7 +29,7 @@ const DoctorsManagement = () => {
     } else {
       setEditingDoctor(null);
       setFormData({
-        doctorId: '',
+        id: '',
         name: '',
         category: '',
         subcategory: '',
@@ -50,7 +50,7 @@ const DoctorsManagement = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (editingDoctor) {
-      updateDoctor(editingDoctor.doctorId, formData);
+      updateDoctor(editingDoctor.id, formData);
     } else {
       addDoctor(formData);
     }
@@ -68,19 +68,19 @@ const DoctorsManagement = () => {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
         {doctors.map(doctor => (
-          <div key={doctor.doctorId} className="card" style={{ padding: '1.5rem' }}>
+          <div key={doctor.id} className="card" style={{ padding: '1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
               <div>
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>{doctor.name}</h3>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{doctor.specialization}</p>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>{doctor.category} • {doctor.subcategory}</p>
               </div>
-              <span style={{ 
-                padding: '0.25rem 0.5rem', 
-                borderRadius: '999px', 
-                backgroundColor: 'rgba(82,178,191,0.1)', 
+              <span style={{
+                padding: '0.25rem 0.5rem',
+                borderRadius: '999px',
+                backgroundColor: 'rgba(82,178,191,0.1)',
                 color: 'var(--primary)',
-                fontSize: '0.8rem' 
+                fontSize: '0.8rem'
               }}>
                 {doctor.experience}
               </span>
@@ -93,7 +93,7 @@ const DoctorsManagement = () => {
               <button className="btn btn-outline" onClick={() => handleOpenModal(doctor)} style={{ padding: '0.5rem' }}>
                 <FiEdit2 size={16} />
               </button>
-              <button className="btn btn-outline" style={{ color: '#ef4444', borderColor: '#ef4444', padding: '0.5rem' }} onClick={() => deleteDoctor(doctor.doctorId)}>
+              <button className="btn btn-outline" style={{ color: '#ef4444', borderColor: '#ef4444', padding: '0.5rem' }} onClick={() => deleteDoctor(doctor.id)}>
                 <FiTrash2 size={16} />
               </button>
             </div>

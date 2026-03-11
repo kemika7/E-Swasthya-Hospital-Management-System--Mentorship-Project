@@ -123,15 +123,15 @@ const Appointments = () => {
 
                 <div style={{ marginTop: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end' }}>
                   <button
-                     style={{
-                       padding: '0.5rem 1rem',
-                       borderRadius: 8,
-                       border: '1px solid #e2e8f0',
-                       backgroundColor: 'transparent',
-                       color: '#64748b',
-                       fontSize: '0.8rem',
-                       cursor: 'pointer',
-                     }}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      borderRadius: 8,
+                      border: '1px solid #e2e8f0',
+                      backgroundColor: 'transparent',
+                      color: '#64748b',
+                      fontSize: '0.8rem',
+                      cursor: 'pointer',
+                    }}
                   >
                     Cancel Appointment
                   </button>

@@ -13,37 +13,55 @@ import {
   FiMessageSquare,
   FiChevronDown,
 } from 'react-icons/fi';
-import { useAdmin } from '../../context/AdminContext';
+import { apiFetch } from '../../services/apiClient';
 import { useAppointment } from '../../context/AppointmentContext';
 
 const DoctorProfile = () => {
   const { doctorId } = useParams();
   const navigate = useNavigate();
   const { updateAppointmentDetails, bookAppointment } = useAppointment();
-  const { doctors } = useAdmin();
 
   const [doctor, setDoctor] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('schedules');
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
 
   // Calendar state
-  const [currentMonth, setCurrentMonth] = useState(new Date(2026, 1)); // Feb 2026 as requested
+  const [currentMonth, setCurrentMonth] = useState(new Date());
 
   useEffect(() => {
-    const doc = doctors.find((d) => String(d.doctorId) === String(doctorId));
-    if (doc) {
-      setDoctor(doc);
-    } else {
-      setDoctor(null);
+    const fetchDoctor = async () => {
+      setLoading(true);
+      try {
+        const data = await apiFetch(`/doctors/${doctorId}`);
+        setDoctor(data);
+      } catch (err) {
+        console.error('Failed to fetch doctor:', err);
+        setDoctor(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (doctorId) {
+      fetchDoctor();
     }
-  }, [doctorId, doctors]);
+  }, [doctorId]);
+
+  if (loading) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text)', minHeight: '100vh', backgroundColor: '#0f172a' }}>
+        <div style={{ color: 'white' }}>Loading doctor profile...</div>
+      </div>
+    );
+  }
 
   if (!doctor) {
     return (
-      <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text)' }}>
-        Doctor not found
+      <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text)', minHeight: '100vh', backgroundColor: '#0f172a' }}>
+        <div style={{ color: 'white' }}>Doctor not found</div>
       </div>
     );
   }
@@ -52,14 +70,14 @@ const DoctorProfile = () => {
   const getDaysInMonth = (year, month) => {
     return new Date(year, month + 1, 0).getDate();
   };
-  
+
   const getFirstDayOfMonth = (year, month) => {
     return new Date(year, month, 1).getDay();
   };
 
   const daysInMonth = getDaysInMonth(currentMonth.getFullYear(), currentMonth.getMonth());
   const firstDay = getFirstDayOfMonth(currentMonth.getFullYear(), currentMonth.getMonth());
-  
+
   const calendarDays = [];
   for (let i = 0; i < firstDay; i++) {
     calendarDays.push(null);
@@ -97,22 +115,25 @@ const DoctorProfile = () => {
   };
 
   const handleConfirmBooking = () => {
+    // Format date string correctly YYYY-MM-DD
+    const dateStr = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(selectedDate).padStart(2, '0')}`;
+
     // Update context
     updateAppointmentDetails({
-      doctorId: String(doctor.doctorId),
-      doctorName: doctor.name,
-      specialty: doctor.specialization,
-      date: `${String(selectedDate).padStart(2, '0')}.${String(currentMonth.getMonth() + 1).padStart(2, '0')}.${currentMonth.getFullYear()}`,
+      doctorId: String(doctor.id),
+      doctorName: doctor.doctor_name,
+      specialty: doctor.specialty_name || doctor.specialization,
+      date: dateStr,
       time: selectedTime,
       location: doctor.location,
-      status: 'Upcoming',
+      status: 'Scheduled', // Must match our new schema standard
     });
-    
+
     // Book it
     bookAppointment();
-    
+
     // Navigate
-    navigate('/appointments');
+    navigate('/patient/appointments');
   };
 
   return (
@@ -201,33 +222,33 @@ const DoctorProfile = () => {
                   flexShrink: 0,
                 }}
               />
-              
+
               {/* Right: Details */}
               <div style={{ flex: 1 }}>
                 <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.25rem' }}>
-                  {doctor.name}
+                  {doctor.doctor_name}
                 </h2>
                 <div style={{ fontSize: '0.95rem', color: '#64748b', marginBottom: '0.5rem' }}>
-                  {doctor.specialization}
+                  {doctor.specialty_name || doctor.specialization}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem', color: '#64748b', marginBottom: '0.75rem' }}>
                   <FiMapPin size={14} />
                   <span>{doctor.location}</span>
                 </div>
-                
+
                 {/* Additional Info Row */}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', fontSize: '0.75rem', color: '#334155' }}>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ opacity: 0.7 }}>Date of Birth</span>
-                    <span style={{ fontWeight: 600 }}>{doctor.dateOfBirth}</span>
+                    <span style={{ opacity: 0.7 }}>Experience</span>
+                    <span style={{ fontWeight: 600 }}>{doctor.experience} Years</span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ opacity: 0.7 }}>Blood Group</span>
-                    <span style={{ fontWeight: 600 }}>{doctor.bloodGroup}</span>
+                    <span style={{ opacity: 0.7 }}>Hospital</span>
+                    <span style={{ fontWeight: 600 }}>{doctor.hospital || 'N/A'}</span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <span style={{ opacity: 0.7 }}>Working Hours</span>
-                    <span style={{ fontWeight: 600 }}>{doctor.workingHours}</span>
+                    <span style={{ fontWeight: 600 }}>{doctor.working_hours}</span>
                   </div>
                 </div>
               </div>
@@ -243,18 +264,18 @@ const DoctorProfile = () => {
               }}
             >
               <div style={{ textAlign: 'center', flex: 1 }}>
-                <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>{doctor.experience}</div>
-                <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Experience</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>{doctor.fee}</div>
+                <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Consultation Fee</div>
               </div>
               <div style={{ textAlign: 'center', flex: 1, borderLeft: '1px solid rgba(82, 178, 191, 0.2)', borderRight: '1px solid rgba(82, 178, 191, 0.2)' }}>
-                <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>{doctor.patientsCount}</div>
-                <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Patients</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>{doctor.experience}+</div>
+                <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Years Exp.</div>
               </div>
               <div style={{ textAlign: 'center', flex: 1 }}>
                 <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
-                  {doctor.reviews} <FiStar size={14} fill="#fbbf24" color="#fbbf24" />
+                  {doctor.rating || '4.5'} <FiStar size={14} fill="#fbbf24" color="#fbbf24" />
                 </div>
-                <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Reviews</div>
+                <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Rating</div>
               </div>
             </div>
           </div>
@@ -347,7 +368,7 @@ const DoctorProfile = () => {
               {/* CALENDAR SECTION */}
               <div style={{ marginBottom: '1.5rem' }}>
                 <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#0f172a', marginBottom: '1rem' }}>
-                  February 2026
+                  {currentMonth.toLocaleString('default', { month: 'long' })} {currentMonth.getFullYear()}
                 </h3>
                 <div
                   style={{
@@ -373,11 +394,16 @@ const DoctorProfile = () => {
                 >
                   {calendarDays.map((day, index) => {
                     const isSelected = selectedDate === day;
-                    // Mock disabled for past days (let's say days < 20 are past for this example)
-                    const isDisabled = day && day < 20; 
-                    
+                    // Disable past days in current month
+                    const today = new Date();
+                    const isPast = day &&
+                      currentMonth.getFullYear() === today.getFullYear() &&
+                      currentMonth.getMonth() === today.getMonth() &&
+                      day < today.getDate();
+                    const isDisabled = day && isPast;
+
                     if (!day) return <div key={`empty-${index}`} />;
-                    
+
                     return (
                       <button
                         key={day}
@@ -390,13 +416,13 @@ const DoctorProfile = () => {
                           backgroundColor: isSelected
                             ? 'var(--primary)'
                             : isDisabled
-                            ? 'transparent'
-                            : '#f1f5f9',
+                              ? 'transparent'
+                              : '#f1f5f9',
                           color: isSelected
                             ? 'var(--white)'
                             : isDisabled
-                            ? '#cbd5e1'
-                            : '#0f172a',
+                              ? '#cbd5e1'
+                              : '#0f172a',
                           fontSize: '0.9rem',
                           fontWeight: 500,
                           cursor: isDisabled ? 'default' : 'pointer',
@@ -427,7 +453,7 @@ const DoctorProfile = () => {
                   {timeSlots.map((time, index) => {
                     const isSelected = selectedTime === time;
                     // Mock unavailable slots
-                    const isUnavailable = index === 2 || index === 5; 
+                    const isUnavailable = index === 2 || index === 5;
 
                     return (
                       <button
@@ -441,13 +467,13 @@ const DoctorProfile = () => {
                           backgroundColor: isSelected
                             ? 'var(--primary)'
                             : isUnavailable
-                            ? '#f1f5f9' // light grey for disabled
-                            : '#e2e8f0', // darker grey for available
+                              ? '#f1f5f9' // light grey for disabled
+                              : '#e2e8f0', // darker grey for available
                           color: isSelected
                             ? 'var(--white)'
                             : isUnavailable
-                            ? '#cbd5e1'
-                            : '#0f172a',
+                              ? '#cbd5e1'
+                              : '#0f172a',
                           fontSize: '0.8rem',
                           fontWeight: 500,
                           cursor: isUnavailable ? 'default' : 'pointer',
@@ -461,31 +487,31 @@ const DoctorProfile = () => {
               </div>
             </div>
           )}
-          
+
           {activeTab === 'about' && (
-             <div style={{ padding: '1rem', color: '#64748b', lineHeight: 1.6 }}>
-               <p><strong>Category:</strong> {doctor.category}</p>
-               <p><strong>Subcategory:</strong> {doctor.subcategory}</p>
-               <p><strong>Specialization:</strong> {doctor.specialization}</p>
-               <p><strong>Location:</strong> {doctor.location}</p>
-             </div>
+            <div style={{ padding: '1rem', color: '#64748b', lineHeight: 1.6 }}>
+              <p><strong>Category:</strong> {doctor.category_name}</p>
+              <p><strong>Specialty:</strong> {doctor.specialty_name || doctor.specialization}</p>
+              <p><strong>Bio:</strong> {doctor.bio || 'No bio available.'}</p>
+              <p><strong>Location:</strong> {doctor.location}</p>
+            </div>
           )}
-          
+
           {activeTab === 'experience' && (
-             <div style={{ padding: '1rem', color: '#64748b' }}>
-               <p><strong>Total Experience:</strong> {doctor.experience}</p>
-               <p style={{ marginTop: '0.5rem' }}>Previous Affiliations: City Hospital, MedLife Clinic.</p>
-             </div>
+            <div style={{ padding: '1rem', color: '#64748b' }}>
+              <p><strong>Total Experience:</strong> {doctor.experience}</p>
+              <p style={{ marginTop: '0.5rem' }}>Previous Affiliations: City Hospital, MedLife Clinic.</p>
+            </div>
           )}
-          
+
           {activeTab === 'reviews' && (
-             <div style={{ padding: '1rem', color: '#64748b' }}>
-               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                 <FiStar fill="#fbbf24" color="#fbbf24" size={24} />
-                 <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>{doctor.reviews} reviews</span>
-               </div>
-               <p>Reviews not available in demo.</p>
-             </div>
+            <div style={{ padding: '1rem', color: '#64748b' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                <FiStar fill="#fbbf24" color="#fbbf24" size={24} />
+                <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>{doctor.rating || '4.5'} Rating</span>
+              </div>
+              <p>Reviews coming soon.</p>
+            </div>
           )}
         </div>
       </div>
@@ -535,8 +561,8 @@ const DoctorProfile = () => {
               Book Appointment?
             </h3>
             <p style={{ color: '#64748b', fontSize: '0.95rem', marginBottom: '1.5rem' }}>
-              {doctor.name}<br />
-              {selectedDate} Feb 2026 at {selectedTime}
+              {doctor.doctor_name}<br />
+              {selectedDate} {currentMonth.toLocaleString('default', { month: 'short' })} {currentMonth.getFullYear()} at {selectedTime}
             </p>
             <div style={{ display: 'flex', gap: '1rem' }}>
               <button
@@ -573,7 +599,7 @@ const DoctorProfile = () => {
           </div>
         </div>
       )}
-      
+
       <style>
         {`
           @keyframes fadeIn {

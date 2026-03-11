@@ -1,28 +1,76 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FiArrowLeft, FiStar, FiClock, FiFilter } from 'react-icons/fi';
-import { medicalCategories } from '../../data/mockData';
-import { useAdmin } from '../../context/AdminContext';
+import { apiFetch } from '../../services/apiClient';
 
 const DoctorListing = () => {
   const { categoryId } = useParams();
   const navigate = useNavigate();
   const [selectedSpecialty, setSelectedSpecialty] = useState('All');
-  const { doctors } = useAdmin();
+  const [selectedSpecialtyId, setSelectedSpecialtyId] = useState(null);
+  const [doctors, setDoctors] = useState([]);
+  const [specialties, setSpecialties] = useState([]);
+  const [categoryName, setCategoryName] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const category = medicalCategories.find((c) => c.id === categoryId);
-  
-  const categoryDoctors = doctors.filter((doc) => {
-    const matchCategory = doc.category === category.title;
-    const matchSpecialty = selectedSpecialty === 'All' || doc.subcategory === selectedSpecialty;
-    return matchCategory && matchSpecialty;
-  });
+  // Fetch specialties for this category
+  useEffect(() => {
+    const fetchCategoryData = async () => {
+      try {
+        // Fetch category name from categories list
+        const categories = await apiFetch('/doctors/categories');
+        const cat = categories.find((c) => String(c.id) === String(categoryId));
+        setCategoryName(cat ? cat.name : 'Doctors');
 
-  // If category not found, handle gracefully (redirect or show error)
-  if (!category) {
+        // Fetch specialties for this category
+        const specs = await apiFetch(`/doctors/specialties/${categoryId}`);
+        setSpecialties(specs);
+      } catch (err) {
+        console.error('Failed to fetch category data:', err);
+        setError('Failed to load category.');
+      }
+    };
+
+    if (categoryId) fetchCategoryData();
+  }, [categoryId]);
+
+  // Fetch doctors whenever category or specialty selection changes
+  useEffect(() => {
+    const fetchDoctors = async () => {
+      setLoading(true);
+      try {
+        let path = `/doctors?category_id=${categoryId}`;
+        if (selectedSpecialtyId) {
+          path += `&specialty_id=${selectedSpecialtyId}`;
+        }
+        const data = await apiFetch(path);
+        setDoctors(data);
+      } catch (err) {
+        console.error('Failed to fetch doctors:', err);
+        setDoctors([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (categoryId) fetchDoctors();
+  }, [categoryId, selectedSpecialtyId]);
+
+  const handleSpecialtyClick = (spec) => {
+    if (spec === 'All') {
+      setSelectedSpecialty('All');
+      setSelectedSpecialtyId(null);
+    } else {
+      setSelectedSpecialty(spec.name);
+      setSelectedSpecialtyId(spec.id);
+    }
+  };
+
+  if (error) {
     return (
       <div style={{ padding: '2rem', textAlign: 'center' }}>
-        Category not found. <button onClick={() => navigate('/patient/doctors')}>Go Back</button>
+        {error} <button onClick={() => navigate('/patient/doctors')}>Go Back</button>
       </div>
     );
   }
@@ -79,10 +127,10 @@ const DoctorListing = () => {
             textOverflow: 'ellipsis',
           }}
         >
-          {category.title}
+          {categoryName || 'Doctors'}
         </div>
-        
-        {/* Filter button placeholder */}
+
+        {/* Filter button */}
         <button
           style={{
             width: 40,
@@ -109,10 +157,11 @@ const DoctorListing = () => {
           paddingBottom: '1rem',
           marginBottom: '0.5rem',
           scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
         }}
       >
         <button
-          onClick={() => setSelectedSpecialty('All')}
+          onClick={() => handleSpecialtyClick('All')}
           style={{
             padding: '0.4rem 1rem',
             borderRadius: 20,
@@ -127,10 +176,10 @@ const DoctorListing = () => {
         >
           All
         </button>
-        {category.specialties.map((spec) => (
+        {specialties.map((spec) => (
           <button
             key={spec.id}
-            onClick={() => setSelectedSpecialty(spec.name)}
+            onClick={() => handleSpecialtyClick(spec)}
             style={{
               padding: '0.4rem 1rem',
               borderRadius: 20,
@@ -149,11 +198,15 @@ const DoctorListing = () => {
 
       {/* Doctors List */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {categoryDoctors.length > 0 ? (
-          categoryDoctors.map((doc) => (
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>
+            Loading doctors...
+          </div>
+        ) : doctors.length > 0 ? (
+          doctors.map((doc) => (
             <div
-              key={doc.doctorId}
-              onClick={() => navigate(`/doctors/${doc.doctorId}`)}
+              key={doc.id}
+              onClick={() => navigate(`/doctors/${doc.id}`)}
               style={{
                 backgroundColor: 'var(--white)',
                 borderRadius: 16,
@@ -171,7 +224,7 @@ const DoctorListing = () => {
                   height: 70,
                   borderRadius: 12,
                   backgroundColor: '#f1f5f9',
-                  backgroundImage: `url(${doc.image})`,
+                  backgroundImage: `url(${doc.image || '/images/doctor-placeholder.png'})`,
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
                 }}
@@ -182,29 +235,29 @@ const DoctorListing = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
                     <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text)', marginBottom: '0.2rem' }}>
-                      {doc.name}
+                      {doc.doctor_name}
                     </h3>
                     <p style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 500 }}>
-                      {doc.specialization}
+                      {doc.specialty_name || doc.specialization}
                     </p>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', backgroundColor: '#f0fdf4', padding: '0.2rem 0.4rem', borderRadius: 4 }}>
                     <FiStar size={12} fill="#22c55e" color="#22c55e" />
-                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#15803d' }}>{doc.reviews}</span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#15803d' }}>{doc.rating || '4.5'}</span>
                   </div>
                 </div>
 
                 <div style={{ marginTop: '0.6rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', color: '#64748b' }}>
-                     <FiClock size={14} />
-                     <span>{doc.experience}</span>
-                   </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', color: '#64748b' }}>
+                    <FiClock size={14} />
+                    <span>{doc.experience} Years Experience</span>
+                  </div>
                 </div>
 
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    navigate(`/doctors/${doc.doctorId}`);
+                    navigate(`/doctors/${doc.id}`);
                   }}
                   style={{
                     width: '100%',
@@ -219,7 +272,7 @@ const DoctorListing = () => {
                     cursor: 'pointer',
                   }}
                 >
-                  Book Appointment
+                  Book Appointment - NPR {doc.fee || '500'}
                 </button>
               </div>
             </div>

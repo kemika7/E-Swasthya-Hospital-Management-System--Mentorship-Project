@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   FiArrowLeft,
@@ -8,22 +8,30 @@ import {
   FiSmile,
   FiUser,
 } from 'react-icons/fi';
-import { MdOutlineHealing } from 'react-icons/md';
-import { specialistCategories } from '../../data/mockData';
+import { MdLocalHospital } from 'react-icons/md';
+import { apiFetch } from '../../services/apiClient';
 import doctorPlaceholder from '../../assets/images/doctor-placeholder.png';
-
-// Category icons mapping using react-icons
-const categoryIcons = {
-  Neurologist: FiActivity,
-  Dentist: MdOutlineHealing,
-  Cardiologist: FiHeart,
-  Psychologist: FiSmile,
-  Dermatologist: FiUser,
-};
 
 const Doctors = () => {
   const navigate = useNavigate();
-  const [selectedCategory, setSelectedCategory] = useState('Dentist');
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const data = await apiFetch('/doctors/categories');
+        setCategories(data);
+        if (data.length > 0) setSelectedCategory(data[0].id);
+      } catch (err) {
+        console.error('Failed to fetch categories:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   return (
     <main
@@ -78,93 +86,8 @@ const Doctors = () => {
           Doctors
         </div>
 
-        {/* Right spacer to balance layout */}
         <div style={{ width: 40 }} />
       </div>
-
-      {/* RECENTLY BOOKED DOCTORS SECTION */}
-      <section style={{ marginBottom: '1.75rem' }}>
-        <h2
-          style={{
-            fontSize: '1.1rem',
-            fontWeight: 700,
-            color: 'var(--text)',
-            marginBottom: '0.9rem',
-          }}
-        >
-          Recently Booked Doctors
-        </h2>
-
-        <div
-          style={{
-            width: '100%',
-            backgroundColor: 'var(--white)',
-            borderRadius: 16,
-            padding: '0.9rem',
-            boxShadow: 'var(--shadow-soft)',
-            display: 'flex',
-            gap: '0.75rem',
-          }}
-        >
-          {/* Doctor image container */}
-          <div
-            style={{
-              width: 96,
-              height: 96,
-              borderRadius: 16,
-              overflow: 'hidden',
-              backgroundColor: 'var(--background)',
-              flexShrink: 0,
-            }}
-          >
-            <img
-              src={doctorPlaceholder}
-              alt="Dr. Manoj Thapa"
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-              }}
-            />
-          </div>
-
-          {/* Doctor info */}
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              gap: '0.3rem',
-            }}
-          >
-            <div
-              style={{
-                fontSize: '1rem',
-                fontWeight: 600,
-                color: 'var(--text)',
-              }}
-            >
-              Dr. Manoj Thapa
-            </div>
-            <div style={{ fontSize: '0.9rem', color: 'var(--text)', opacity: 0.8 }}>
-              Dentist
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.35rem',
-                fontSize: '0.85rem',
-                color: 'var(--text)',
-                opacity: 0.8,
-              }}
-            >
-              <FiMapPin size={14} />
-              <span>Kathmandu, Nepal</span>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* CATEGORIES SECTION */}
       <section>
@@ -183,10 +106,11 @@ const Doctors = () => {
               color: 'var(--text)',
             }}
           >
-            Categories
+            Medical Categories
           </h2>
           <button
             type="button"
+            onClick={() => navigate('/patient/categories')}
             style={{
               border: 'none',
               background: 'transparent',
@@ -201,53 +125,40 @@ const Doctors = () => {
         </div>
 
         {/* Horizontally scrollable categories */}
-        <div
-          style={{
-            display: 'flex',
-            gap: '0.9rem',
-            overflowX: 'auto',
-            overflowY: 'hidden',
-            paddingBottom: '0.5rem',
-            msOverflowStyle: 'none',
-            scrollbarWidth: 'none',
-          }}
-          onWheel={(e) => {
-            if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-              e.preventDefault();
-              e.currentTarget.scrollLeft += e.deltaY;
-            }
-          }}
-        >
-          <style>
-            {`
-              div::-webkit-scrollbar {
-                display: none;
+        {loading ? (
+          <div style={{ color: 'var(--text-secondary)', padding: '1rem 0' }}>Loading categories...</div>
+        ) : (
+          <div
+            style={{
+              display: 'flex',
+              gap: '0.9rem',
+              overflowX: 'auto',
+              overflowY: 'hidden',
+              paddingBottom: '0.5rem',
+              msOverflowStyle: 'none',
+              scrollbarWidth: 'none',
+            }}
+            onWheel={(e) => {
+              if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+                e.preventDefault();
+                e.currentTarget.scrollLeft += e.deltaY;
               }
-            `}
-          </style>
-
-          {specialistCategories
-            .filter((c) =>
-              ['Neurologist', 'Dentist', 'Cardiologist', 'Psychologist', 'Dermatologist'].includes(
-                c
-              )
-            )
-            .map((category) => {
-              const IconComponent = categoryIcons[category] || FiActivity;
-              const isSelected = selectedCategory === category;
-
+            }}
+          >
+            {categories.map((category) => {
+              const isSelected = selectedCategory === category.id;
               return (
                 <button
-                  key={category}
+                  key={category.id}
                   type="button"
-                  onClick={() => setSelectedCategory(category)}
+                  onClick={() => navigate(`/patient/category/${category.id}`)}
                   style={{
                     minWidth: 96,
                     width: 96,
                     height: 96,
                     borderRadius: 16,
                     border: 'none',
-                    backgroundColor: 'var(--white)',
+                    backgroundColor: isSelected ? 'var(--primary)' : 'var(--white)',
                     boxShadow: 'var(--shadow-soft)',
                     display: 'flex',
                     flexDirection: 'column',
@@ -255,51 +166,34 @@ const Doctors = () => {
                     justifyContent: 'center',
                     gap: '0.35rem',
                     cursor: 'pointer',
-                    position: 'relative',
                     padding: '0.5rem',
                   }}
                 >
-                  {/* Highlight for Dentist specifically */}
-                  {category === 'Dentist' && (
-                    <div
-                      style={{
-                        position: 'absolute',
-                        width: 48,
-                        height: 48,
-                        borderRadius: '50%',
-                        backgroundColor: 'var(--primary)',
-                        opacity: 0.12,
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                      }}
-                    />
-                  )}
-                  <IconComponent
+                  <MdLocalHospital
                     size={26}
                     style={{
-                      color: isSelected ? 'var(--primary)' : 'var(--text)',
-                      zIndex: 1,
+                      color: isSelected ? 'var(--white)' : 'var(--text)',
                     }}
                   />
                   <span
                     style={{
-                      fontSize: '0.75rem',
+                      fontSize: '0.65rem',
                       fontWeight: isSelected ? 600 : 400,
-                      color: 'var(--text)',
-                      zIndex: 1,
+                      color: isSelected ? 'var(--white)' : 'var(--text)',
+                      textAlign: 'center',
+                      lineHeight: '1.2',
                     }}
                   >
-                    {category}
+                    {category.name}
                   </span>
                 </button>
               );
             })}
-        </div>
+          </div>
+        )}
       </section>
     </main>
   );
 };
 
 export default Doctors;
-

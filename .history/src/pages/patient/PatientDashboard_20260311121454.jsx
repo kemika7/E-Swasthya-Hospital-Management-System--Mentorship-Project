@@ -38,6 +38,7 @@ import {
 } from 'react-icons/fa';
 import { GiStomach } from 'react-icons/gi';
 import { useAuth } from '../../context/AuthContext';
+import { upcomingAppointment, medicalCategories } from '../../data/mockData';
 
 // Map icon strings to components
 const iconMap = {
@@ -96,6 +97,7 @@ const PatientDashboard = () => {
     { id: 'doctors', label: 'Doctors', icon: FiUsers, path: '/patient/doctors' },
     { id: 'appointment', label: 'Appointment', icon: FiCalendar, path: '/patient/appointments' },
     { id: 'report-tracking', label: 'Report Tracking', icon: FiFileText, path: '/patient/reports' },
+    { id: 'report', label: 'Report', icon: FiFileText, path: '/patient/reports' },
     { id: 'locker', label: 'Locker', icon: FiLock, path: '/patient/locker' },
   ];
 
@@ -205,6 +207,87 @@ const PatientDashboard = () => {
           </button>
         </div>
 
+<<<<<<< Updated upstream
+        <div
+          style={{
+            width: '100%',
+            backgroundColor: 'var(--primary)',
+            borderRadius: 20,
+            padding: 'var(--space-lg)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            boxShadow: '0 12px 30px rgba(82, 178, 191, 0.25)',
+            backgroundImage: 'linear-gradient(135deg, var(--primary) 0%, #469ea9 100%)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+            {/* Doctor Profile Image */}
+            <div
+              style={{
+                width: 70,
+                height: 70,
+                borderRadius: '50%',
+                backgroundColor: 'rgba(255,255,255,0.25)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <FiUser size={36} style={{ color: 'var(--white)' }} />
+            </div>
+
+            {/* Doctor Info */}
+            <div>
+              <div
+                style={{
+                  fontSize: '1.25rem',
+                  fontWeight: 700,
+                  color: 'var(--white)',
+                  marginBottom: '0.35rem',
+                }}
+              >
+                {upcomingAppointment.doctorName}
+              </div>
+              <div
+                style={{
+                  fontSize: '1rem',
+                  color: 'var(--white)',
+                  opacity: 0.9,
+                  fontWeight: 500,
+                }}
+              >
+                {upcomingAppointment.specialty}
+              </div>
+            </div>
+          </div>
+
+          {/* Date & Time Info */}
+          <div
+            style={{
+              backgroundColor: 'rgba(255,255,255,0.2)',
+              borderRadius: 16,
+              padding: '1rem 1.25rem',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.75rem',
+            }}
+          >
+            {/* Date Row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <FiCalendar size={18} style={{ color: 'var(--white)' }} />
+              <span style={{ fontSize: '0.95rem', color: 'var(--white)', fontWeight: 600 }}>
+                {upcomingAppointment.date}
+              </span>
+            </div>
+
+            {/* Time Row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <FiClock size={18} style={{ color: 'var(--white)' }} />
+              <span style={{ fontSize: '0.95rem', color: 'var(--white)', fontWeight: 600 }}>
+                {upcomingAppointment.time}
+              </span>
+=======
         {dashboardData.upcomingAppointment ? (
           <div
             style={{
@@ -218,7 +301,6 @@ const PatientDashboard = () => {
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              {/* Doctor Profile Image */}
               <div
                 style={{
                   width: 64,
@@ -232,8 +314,6 @@ const PatientDashboard = () => {
               >
                 <FiUser size={32} style={{ color: 'var(--white)' }} />
               </div>
-
-              {/* Doctor Info */}
               <div>
                 <div
                   style={{
@@ -245,19 +325,12 @@ const PatientDashboard = () => {
                 >
                   {dashboardData.upcomingAppointment.doctorName}
                 </div>
-                <div
-                  style={{
-                    fontSize: '0.9rem',
-                    color: 'var(--white)',
-                    opacity: 0.9,
-                  }}
-                >
+                <div style={{ fontSize: '0.9rem', color: 'var(--white)', opacity: 0.9 }}>
                   {dashboardData.upcomingAppointment.specialty}
                 </div>
               </div>
             </div>
 
-            {/* Date & Time Info */}
             <div
               style={{
                 backgroundColor: 'rgba(255,255,255,0.15)',
@@ -268,21 +341,19 @@ const PatientDashboard = () => {
                 gap: '0.5rem',
               }}
             >
-              {/* Date Row */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <FiCalendar size={16} style={{ color: 'var(--white)' }} />
                 <span style={{ fontSize: '0.85rem', color: 'var(--white)' }}>
-                  {dashboardData.upcomingAppointment.date}
+                  {dashboardData.upcomingAppointment.appointment_date}
                 </span>
               </div>
-
-              {/* Time Row */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <FiClock size={16} style={{ color: 'var(--white)' }} />
                 <span style={{ fontSize: '0.85rem', color: 'var(--white)' }}>
-                  {dashboardData.upcomingAppointment.time}
+                  {dashboardData.upcomingAppointment.appointment_time}
                 </span>
               </div>
+>>>>>>> Stashed changes
             </div>
           </div>
         ) : (
@@ -327,17 +398,53 @@ const PatientDashboard = () => {
           </button>
         </div>
 
-        {/* Horizontally Scrollable Categories */}
+<<<<<<< Updated upstream
+        {/* Categories Grid (Standardized for Desktop) */}
+=======
+>>>>>>> Stashed changes
         <div
           className="grid grid-cols-4"
           style={{
+<<<<<<< Updated upstream
+            gap: 'var(--space-md)',
+          }}
+        >
+          {medicalCategories.slice(0, 8).map((category) => {
+            const IconComponent = iconMap[category.icon] || FiActivity;
+            return (
+              <div
+                key={category.id}
+                onClick={() => navigate(`/patient/category/${category.id}`)}
+                className="card"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '1rem',
+                  cursor: 'pointer',
+                  padding: 'var(--space-lg) var(--space-md)',
+                  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                  textAlign: 'center',
+                  border: '1px solid transparent',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-4px)';
+                  e.currentTarget.style.borderColor = 'var(--primary-light)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.borderColor = 'transparent';
+                }}
+              >
+=======
             display: 'flex',
             gap: '1rem',
             overflowX: 'auto',
             overflowY: 'hidden',
             paddingBottom: '0.5rem',
-            scrollbarWidth: 'none', // Firefox
-            msOverflowStyle: 'none', // IE/Edge
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
           }}
           onWheel={(e) => {
             e.preventDefault();
@@ -351,59 +458,88 @@ const PatientDashboard = () => {
               }
             `}
           </style>
-          {(dashboardData.categories?.length > 0 ? dashboardData.categories : []).map((category) => {
-            const IconComponent = iconMap[category.icon] || FiActivity;
-            return (
-              <div
-                key={category.id}
-                onClick={() => navigate(`/patient/category/${category.id}`)}
-                style={{
-                  minWidth: 100,
-                  width: 100,
-                  height: 100,
-                  backgroundColor: 'rgba(148,163,184,0.15)',
-                  borderRadius: 16,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                  cursor: 'pointer',
-                  position: 'relative',
-                }}
-              >
+          {loading ? (
+            <div style={{ padding: '1rem', color: 'var(--text-secondary)' }}>Loading categories...</div>
+          ) : (
+            (dashboardData.categories.length > 0 ? dashboardData.categories : medicalCategories).map((category) => {
+              const IconComponent = iconMap[category.icon] || FiActivity;
+              return (
+>>>>>>> Stashed changes
                 <div
+                  key={category.id}
+                  onClick={() => navigate(`/patient/category/${category.id}`)}
                   style={{
-                    zIndex: 1,
-                    position: 'relative',
+<<<<<<< Updated upstream
+                    width: 56,
+                    height: 56,
+                    borderRadius: '16px',
+                    backgroundColor: 'var(--primary-light)',
+=======
+                    minWidth: 100,
+                    width: 100,
+                    height: 100,
+                    backgroundColor: 'rgba(148,163,184,0.15)',
+                    borderRadius: 16,
+>>>>>>> Stashed changes
                     display: 'flex',
+                    flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
+<<<<<<< Updated upstream
                   }}
                 >
                   <IconComponent
-                    size={32}
+                    size={28}
                     style={{
-                      color: 'var(--text)',
+                      color: 'var(--primary)',
                     }}
                   />
                 </div>
                 <div
                   style={{
-                    fontSize: '0.75rem',
-                    fontWeight: 400,
+                    fontSize: '0.95rem',
+                    fontWeight: 600,
                     color: 'var(--text)',
-                    textAlign: 'center',
-                    zIndex: 1,
+=======
+                    gap: '0.5rem',
+                    cursor: 'pointer',
                     position: 'relative',
-                    padding: '0 0.5rem',
+>>>>>>> Stashed changes
                   }}
                 >
-                  {category.title || category.name}
+                  <div
+                    style={{
+                      zIndex: 1,
+                      position: 'relative',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <IconComponent
+                      size={32}
+                      style={{
+                        color: 'var(--text)',
+                      }}
+                    />
+                  </div>
+                  <div
+                    style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 400,
+                      color: 'var(--text)',
+                      textAlign: 'center',
+                      zIndex: 1,
+                      position: 'relative',
+                      padding: '0 0.5rem',
+                    }}
+                  >
+                    {category.title}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       </div>
     </div>

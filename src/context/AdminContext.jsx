@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useState } from 'react';
-import { 
-  doctors as initialDoctors, 
-  doctorPatients as initialPatients, 
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import {
+  doctors as initialDoctors,
+  doctorPatients as initialPatients,
   adminAnnouncements as initialAnnouncements,
   adminKpis as initialKpis
 } from '../data/mockData';
@@ -17,129 +17,208 @@ export const useAdmin = () => {
 };
 
 export const AdminProvider = ({ children }) => {
-  // --- State Initialization ---
-  const [doctors, setDoctors] = useState(initialDoctors);
-  const [patients, setPatients] = useState(initialPatients.map(p => ({
-    ...p,
-    room: Math.floor(Math.random() * 100) + 100,
-    ward: ['General', 'Private', 'ICU'][Math.floor(Math.random() * 3)],
-    status: 'Admitted'
-  })));
-  const [announcements, setAnnouncements] = useState(initialAnnouncements);
-  const [appointments, setAppointments] = useState([
-    // Mocking some appointments for admin view since mockData might be limited
-    { id: 1, patientName: 'Aarav Khanna', doctorName: 'Dr. Maya Sharma', date: '2026-02-10', time: '09:00 AM', status: 'Scheduled', type: 'Check-up' },
-    { id: 2, patientName: 'Sara Khan', doctorName: 'Dr. Arjun Mehta', date: '2026-02-11', time: '10:30 AM', status: 'Completed', type: 'Consultation' },
-    { id: 3, patientName: 'Vikram Singh', doctorName: 'Dr. Riya Patel', date: '2026-02-12', time: '02:00 PM', status: 'Pending', type: 'Follow-up' },
-  ]);
+  const [doctors, setDoctors] = useState([]);
+  const [patients, setPatients] = useState([]); // This would need its own API or be part of dashboard
+  const [announcements, setAnnouncements] = useState([]);
+  const [appointments, setAppointments] = useState([]);
   const [beds, setBeds] = useState({
     general: { total: 50, occupied: 32 },
     icu: { total: 10, occupied: 4 },
     private: { total: 20, occupied: 15 },
   });
+  const [transactions, setTransactions] = useState([]);
+  const [kpis, setKpis] = useState(initialKpis);
+  const [loading, setLoading] = useState(true);
 
-  const [transactions, setTransactions] = useState([
-    { id: 1, patient: 'Aarav Khanna', amount: 150, date: '2026-02-10', status: 'Completed', method: 'Credit Card' },
-    { id: 2, patient: 'Sara Khan', amount: 75, date: '2026-02-11', status: 'Pending', method: 'Insurance' },
-    { id: 3, patient: 'Vikram Singh', amount: 500, date: '2026-02-09', status: 'Completed', method: 'Cash' },
-    { id: 4, patient: 'Rohan Gupta', amount: 200, date: '2026-02-12', status: 'Failed', method: 'Online Transfer' },
-  ]);
+  // --- Fetch Initial Data ---
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        const { apiFetch } = await import('../services/apiClient');
+        const data = await apiFetch('/dashboard/admin');
+        setKpis(data.kpis);
+        setAnnouncements(data.announcements);
+        setAppointments(data.appointments);
+        // doctors list might need its own mapping if we want full objects
+        setDoctors(data.topDoctors);
+        setBeds(data.beds);
+      } catch (err) {
+        console.error('Failed to fetch admin dashboard:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDashboard();
+  }, []);
 
   // --- Actions ---
 
   // Doctors
-  const addDoctor = (doctor) => {
-    setDoctors([...doctors, doctor]);
+  const addDoctor = async (doctor) => {
+    try {
+      const { apiFetch } = await import('../services/apiClient');
+      await apiFetch('/doctors', {
+        method: 'POST',
+        body: JSON.stringify(doctor)
+      });
+      // Refresh doctors list if we had one, or just refresh dashboard
+    } catch (err) {
+      console.error('Failed to add doctor:', err);
+    }
   };
 
-  const updateDoctor = (doctorId, updatedData) => {
-    setDoctors(doctors.map(doc => doc.doctorId === doctorId ? { ...doc, ...updatedData } : doc));
+  const updateDoctor = async (id, data) => {
+    try {
+      const { apiFetch } = await import('../services/apiClient');
+      await apiFetch(`/doctors/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data)
+      });
+    } catch (err) {
+      console.error('Failed to update doctor:', err);
+    }
   };
 
-  const deleteDoctor = (doctorId) => {
-    setDoctors(doctors.filter(doc => doc.doctorId !== doctorId));
+  const deleteDoctor = async (id) => {
+    try {
+      const { apiFetch } = await import('../services/apiClient');
+      await apiFetch(`/doctors/${id}`, { method: 'DELETE' });
+      setDoctors(prev => prev.filter(d => d.id !== id));
+    } catch (err) {
+      console.error('Failed to delete doctor:', err);
+    }
   };
 
   // Patients
-  const addPatient = (patient) => {
-    const newPatient = { ...patient, id: Date.now() };
-    setPatients([...patients, newPatient]);
+  const addPatient = async (patient) => {
+    try {
+      const { apiFetch } = await import('../services/apiClient');
+      await apiFetch('/patients', {
+        method: 'POST',
+        body: JSON.stringify(patient)
+      });
+    } catch (err) {
+      console.error('Failed to add patient:', err);
+    }
   };
 
-  const updatePatient = (id, updatedData) => {
-    setPatients(patients.map(p => p.id === id ? { ...p, ...updatedData } : p));
+  const updatePatient = async (id, updatedData) => {
+    try {
+      const { apiFetch } = await import('../services/apiClient');
+      await apiFetch(`/patients/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(updatedData)
+      });
+      setPatients(prev => prev.map(p => p.id === id ? { ...p, ...updatedData } : p));
+    } catch (err) {
+      console.error('Failed to update patient:', err);
+    }
   };
 
-  const deletePatient = (id) => {
-    setPatients(patients.filter(p => p.id !== id));
+  const deletePatient = async (id) => {
+    try {
+      const { apiFetch } = await import('../services/apiClient');
+      await apiFetch(`/patients/${id}`, { method: 'DELETE' });
+      setPatients(prev => prev.filter(p => p.id !== id));
+    } catch (err) {
+      console.error('Failed to delete patient:', err);
+    }
   };
 
   // Appointments
-  const updateAppointment = (id, updatedData) => {
-    setAppointments(appointments.map(app => app.id === id ? { ...app, ...updatedData } : app));
+  const addAppointment = async (appointmentData) => {
+    try {
+      const { apiFetch } = await import('../services/apiClient');
+      await apiFetch('/appointments', {
+        method: 'POST',
+        body: JSON.stringify(appointmentData)
+      });
+      // Refresh
+      const data = await apiFetch('/dashboard/admin');
+      setAppointments(data.appointments);
+      setKpis(data.kpis);
+    } catch (err) {
+      console.error('Failed to add appointment:', err);
+    }
   };
 
-  const deleteAppointment = (id) => {
-    setAppointments(appointments.filter(app => app.id !== id));
+  const updateAppointment = async (id, updatedData) => {
+    try {
+      const { apiFetch } = await import('../services/apiClient');
+      await apiFetch(`/appointments/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(updatedData)
+      });
+      setAppointments(prev => prev.map(app => app.id === id ? { ...app, ...updatedData } : app));
+    } catch (err) {
+      console.error('Failed to update appointment:', err);
+    }
+  };
+
+  const deleteAppointment = async (id) => {
+    try {
+      const { apiFetch } = await import('../services/apiClient');
+      await apiFetch(`/appointments/${id}`, { method: 'DELETE' });
+      setAppointments(prev => prev.filter(a => a.id !== id));
+    } catch (err) {
+      console.error('Failed to delete appointment:', err);
+    }
   };
 
   // Announcements
-  const addAnnouncement = (announcement) => {
-    const newAnnouncement = { 
-      ...announcement, 
-      id: Date.now(), 
-      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) 
-    };
-    setAnnouncements([newAnnouncement, ...announcements]);
+  const addAnnouncement = async (announcement) => {
+    try {
+      const { apiFetch } = await import('../services/apiClient');
+      await apiFetch('/announcements', {
+        method: 'POST',
+        body: JSON.stringify(announcement)
+      });
+      const data = await apiFetch('/dashboard/admin');
+      setAnnouncements(data.announcements);
+    } catch (err) {
+      console.error('Failed to add announcement:', err);
+    }
   };
 
-  const deleteAnnouncement = (id) => {
-    setAnnouncements(announcements.filter(a => a.id !== id));
+  const deleteAnnouncement = async (id) => {
+    try {
+      const { apiFetch } = await import('../services/apiClient');
+      await apiFetch(`/announcements/${id}`, { method: 'DELETE' });
+      setAnnouncements(prev => prev.filter(a => a.id !== id));
+    } catch (err) {
+      console.error('Failed to delete announcement:', err);
+    }
   };
 
   // Bed Management
-  const updateBedCapacity = (type, change) => { // change can be { total: 55, occupied: 30 }
+  const updateBedCapacity = (type, change) => {
     setBeds(prev => ({
       ...prev,
       [type]: { ...prev[type], ...change }
     }));
   };
 
-  // Transactions
-  const updateTransaction = (id, updatedData) => {
-    setTransactions(transactions.map(t => t.id === id ? { ...t, ...updatedData } : t));
-  };
-
-  // KPIs (Derived)
-  const kpis = {
-    totalDoctors: doctors.length,
-    totalPatients: patients.length,
-    totalAppointmentsToday: appointments.filter(a => a.date === new Date().toISOString().split('T')[0]).length || 12, // fallback for demo
-    totalTransactions: transactions.length,
-    totalRevenue: transactions.reduce((acc, curr) => curr.status === 'Completed' ? acc + curr.amount : acc, 0),
-    ...initialKpis // keep other static kpis if needed
-  };
-
   const value = {
     doctors,
-    addDoctor,
-    updateDoctor,
-    deleteDoctor,
     patients,
-    addPatient,
-    updatePatient,
-    deletePatient,
     appointments,
-    updateAppointment,
-    deleteAppointment,
     announcements,
     addAnnouncement,
     deleteAnnouncement,
+    addAppointment,
+    updateAppointment,
+    deleteAppointment,
     beds,
     updateBedCapacity,
     transactions,
-    updateTransaction,
-    kpis
+    kpis,
+    loading,
+    updatePatient,
+    deletePatient,
+    addDoctor,
+    updateDoctor,
+    deleteDoctor,
+    addPatient
   };
 
   return <AdminContext.Provider value={value}>{children}</AdminContext.Provider>;

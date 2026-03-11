@@ -29,10 +29,10 @@ const AdminDashboard = () => {
   const [isAddingAnnouncement, setIsAddingAnnouncement] = useState(false);
 
   // Top Performing Doctors Logic
-  const topDoctors = doctors
+  const topDoctors = (doctors || [])
     .map(doc => ({
       ...doc,
-      score: (doc.rating * 20) + (Math.random() * 20) // Mock score calculation
+      score: ((doc.rating || 0) * 20) + (Math.random() * 20)
     }))
     .sort((a, b) => b.score - a.score)
     .slice(0, 3);
@@ -202,23 +202,23 @@ const AdminDashboard = () => {
 
       <div className="grid grid-cols-2" style={{ gap: '1.25rem', marginBottom: '1.25rem' }}>
         <Card title="Top Performing Doctors">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-            {topDoctors.map((doc, index) => (
-              <div key={doc.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', paddingBottom: '0.8rem', borderBottom: index < topDoctors.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
-                <div style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%', backgroundColor: '#e0f2fe', color: '#0369a1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600 }}>
-                  {index + 1}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 500 }}>{doc.name}</div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{doc.specialty}</div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontWeight: 600, color: '#22c55e' }}>{doc.rating.toFixed(1)}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Rating</div>
-                </div>
-              </div>
-            ))}
-          </div>
+           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+             {topDoctors.map((doc, index) => (
+               <div key={doc.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', paddingBottom: '0.8rem', borderBottom: index < topDoctors.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
+                  <div style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%', backgroundColor: '#e0f2fe', color: '#0369a1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600 }}>
+                    {index + 1}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 500 }}>{doc.name}</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{doc.specialty}</div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontWeight: 600, color: '#22c55e' }}>{doc.rating.toFixed(1)}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Rating</div>
+                  </div>
+               </div>
+             ))}
+           </div>
         </Card>
 
         <Card title="Recent Appointments">

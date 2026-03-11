@@ -6,21 +6,29 @@ const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
 
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userRole, setUserRole] = useState(null); // 'patient' | 'doctor' | 'admin'
-  const [userProfile, setUserProfile] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
+  const [userRole, setUserRole] = useState(localStorage.getItem('userRole'));
+  const [userProfile, setUserProfile] = useState(JSON.parse(localStorage.getItem('userProfile')));
 
-  const login = ({ name, email, role }) => {
+  const login = (userData) => {
+    const { token, user } = userData;
+    localStorage.setItem('token', token);
+    localStorage.setItem('userRole', user.role);
+    localStorage.setItem('userProfile', JSON.stringify(user));
+
     setIsAuthenticated(true);
-    setUserRole(role);
-    setUserProfile({ name, email, role });
+    setUserRole(user.role);
+    setUserProfile(user);
 
-    if (role === 'patient') navigate('/patient/dashboard');
-    if (role === 'doctor') navigate('/doctor/dashboard');
-    if (role === 'admin') navigate('/admin/dashboard');
+    if (user.role === 'patient') navigate('/patient/dashboard');
+    if (user.role === 'doctor') navigate('/doctor/dashboard');
+    if (user.role === 'admin') navigate('/admin/dashboard');
   };
 
   const logout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('userProfile');
     setIsAuthenticated(false);
     setUserRole(null);
     setUserProfile(null);

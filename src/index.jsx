@@ -8,6 +8,7 @@ import { LockerProvider } from './context/LockerContext';
 import { AdminProvider } from './context/AdminContext';
 import './styles/global.css';
 import ErrorBoundary from './components/ErrorBoundary';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 window.addEventListener('error', (event) => {
   console.error('Global error:', event.error || event.message);
 });
@@ -17,18 +18,20 @@ window.addEventListener('unhandledrejection', (event) => {
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <BrowserRouter>
-      <AuthProvider>
-        <AdminProvider>
-          <AppointmentProvider>
-            <LockerProvider>
-              <ErrorBoundary>
-                <App />
-              </ErrorBoundary>
-            </LockerProvider>
-          </AppointmentProvider>
-        </AdminProvider>
-      </AuthProvider>
-    </BrowserRouter>
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || "your-google-client-id"}>
+      <BrowserRouter>
+        <AuthProvider>
+          <AdminProvider>
+            <AppointmentProvider>
+              <LockerProvider>
+                <ErrorBoundary>
+                  <App />
+                </ErrorBoundary>
+              </LockerProvider>
+            </AppointmentProvider>
+          </AdminProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </GoogleOAuthProvider>
   </React.StrictMode>
 );

@@ -24,11 +24,28 @@ const CreateAccountPatient = () => {
     setForm((prev) => ({ ...prev, [name]: sanitizeInput(value) }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const emailValid = /\S+@\S+\.\S+/.test(form.email);
-    if (!form.name || !emailValid || !form.phone || !form.address || !form.dob || !form.password) return;
-    login({ name: form.name, email: form.email, role: 'patient' });
+    try {
+      const { apiFetch } = await import('../services/apiClient');
+      await apiFetch('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify(form),
+      });
+
+      // Auto-login after registration
+      const loginData = await apiFetch('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({
+          email: form.email,
+          password: form.password,
+          role: 'patient'
+        }),
+      });
+      login(loginData);
+    } catch (err) {
+      alert(err.message);
+    }
   };
 
   return (

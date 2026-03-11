@@ -80,6 +80,17 @@ const DoctorDashboard = () => {
   const pieChartRef = useRef(null);
   const pieInstanceRef = useRef(null);
 
+  const [loading, setLoading] = useState(true);
+  const [dashboardData, setDashboardData] = useState({
+    stats: { offline: 0, online: 0, laboratory: 0 },
+    scheduledEvents: { labels: [], values: [] },
+    todayCount: 0,
+    activities: []
+  });
+  const [fullProfile, setFullProfile] = useState(null);
+  const [calendarActivities, setCalendarActivities] = useState([]);
+  const [loadingCalendar, setLoadingCalendar] = useState(false);
+
   const doctorFullName = userProfile?.name || 'Doctor';
   const today = new Date();
   const currentDateStr = today.toLocaleDateString('en-US', {
@@ -93,10 +104,65 @@ const DoctorDashboard = () => {
   const [selectedDate, setSelectedDate] = useState(today);
   const weekDays = getWeekDays(today);
   const selectedDateKey = selectedDate.toDateString();
-  const activities = getActivitiesForDate(selectedDateKey);
+
+  // Fetch Dashboard Stats
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        const { apiFetch } = await import('../../services/apiClient');
+        const data = await apiFetch('/dashboard/doctor');
+        setDashboardData(data);
+        setCalendarActivities(data.activities);
+      } catch (err) {
+        console.error('Failed to fetch doctor dashboard:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const fetchProfile = async () => {
+      try {
+        const { apiFetch } = await import('../../services/apiClient');
+        const data = await apiFetch('/doctors/profile');
+        setFullProfile(data);
+      } catch (err) {
+        console.error('Failed to fetch doctor profile:', err);
+      }
+    };
+
+    fetchDashboard();
+    fetchProfile();
+  }, []);
+
+  // Fetch Appointments for Selected Date
+  useEffect(() => {
+    if (selectedDate.toDateString() === today.toDateString()) {
+      setCalendarActivities(dashboardData.activities);
+      return;
+    }
+
+    const fetchDayAppointments = async () => {
+      setLoadingCalendar(true);
+      try {
+        const { apiFetch } = await import('../../services/apiClient');
+        const dateStr = selectedDate.toISOString().split('T')[0];
+        const data = await apiFetch(`/appointments?date=${dateStr}`);
+        setCalendarActivities(data.map(a => ({
+          time: a.appointment_time,
+          title: `Consultation: ${a.patientName}`
+        })));
+      } catch (err) {
+        console.error('Failed to fetch calendar appointments:', err);
+      } finally {
+        setLoadingCalendar(false);
+      }
+    };
+
+    fetchDayAppointments();
+  }, [selectedDate, dashboardData.activities]);
 
   useEffect(() => {
-    if (!pieChartRef.current) return;
+    if (!pieChartRef.current || !dashboardData.scheduledEvents.labels.length) return;
 
     const ctx = pieChartRef.current.getContext('2d');
     if (pieInstanceRef.current) pieInstanceRef.current.destroy();
@@ -104,10 +170,10 @@ const DoctorDashboard = () => {
     pieInstanceRef.current = new Chart(ctx, {
       type: 'doughnut',
       data: {
-        labels: SCHEDULED_EVENTS_DATA.labels,
+        labels: dashboardData.scheduledEvents.labels,
         datasets: [
           {
-            data: SCHEDULED_EVENTS_DATA.values,
+            data: dashboardData.scheduledEvents.values,
             backgroundColor: ['var(--primary)', 'rgba(82,178,191,0.6)', 'rgba(82,178,191,0.3)'],
             borderWidth: 0,
           },
@@ -125,7 +191,7 @@ const DoctorDashboard = () => {
     return () => {
       if (pieInstanceRef.current) pieInstanceRef.current.destroy();
     };
-  }, [eventsFilter]);
+  }, [dashboardData.scheduledEvents]);
 
   const doctorImageSrc = getDoctorImageSrc();
 
@@ -199,9 +265,9 @@ const DoctorDashboard = () => {
         }}
       >
         {[
-          { title: 'Offline Work', count: 30, subtitle: 'Hospital Patients', Icon: MdLocalHospital },
-          { title: 'Online Work', count: 9, subtitle: 'Online Consultations', Icon: FiActivity },
-          { title: 'Laboratory Work', count: 10, subtitle: 'Laboratory Analysis', Icon: FiBarChart2 },
+          { title: 'Offline Work', count: dashboardData.stats.offline, subtitle: 'Total Appointments', Icon: MdLocalHospital },
+          { title: 'Online Work', count: dashboardData.stats.online, subtitle: 'Pending Consultations', Icon: FiActivity },
+          { title: 'Laboratory Work', count: dashboardData.stats.laboratory, subtitle: 'Laboratory Analysis', Icon: FiBarChart2 },
         ].map(({ title, count, subtitle, Icon }) => (
           <div
             key={title}
@@ -245,24 +311,13 @@ const DoctorDashboard = () => {
             <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text)', margin: 0 }}>
               My Scheduled Events
             </h2>
-            <select
-              value={eventsFilter}
-              onChange={(e) => setEventsFilter(e.target.value)}
-              style={{
-                padding: '0.4rem 0.75rem',
-                borderRadius: 8,
-                border: '1px solid rgba(23,23,16,0.12)',
-                fontSize: '0.85rem',
-                color: 'var(--text)',
-                background: 'var(--white)',
-              }}
-            >
-              <option value="Today">Today</option>
-              <option value="Week">Week</option>
-            </select>
           </div>
-          <div style={{ height: 220, position: 'relative' }}>
-            <canvas ref={pieChartRef} />
+          <div style={{ height: 220, position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {dashboardData.scheduledEvents.labels.length > 0 ? (
+              <canvas ref={pieChartRef} />
+            ) : (
+              <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>No scheduled events</div>
+            )}
           </div>
         </div>
 
@@ -279,21 +334,6 @@ const DoctorDashboard = () => {
             <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text)', margin: 0 }}>
               My Plans Done
             </h2>
-            <button
-              type="button"
-              style={{
-                padding: '0.35rem 0.65rem',
-                borderRadius: 8,
-                border: 'none',
-                backgroundColor: 'var(--primary)',
-                color: 'var(--white)',
-                fontSize: '0.8rem',
-                fontWeight: 500,
-                cursor: 'pointer',
-              }}
-            >
-              Add plan +
-            </button>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {PLANS.map(({ label, percent }) => (
@@ -343,20 +383,20 @@ const DoctorDashboard = () => {
           </div>
           <div style={{ fontSize: '0.9rem' }}>
             <div style={{ fontWeight: 600, color: 'var(--text)', marginBottom: '0.25rem' }}>Dr. {doctorFullName}</div>
-            <div style={{ color: 'var(--text)', opacity: 0.8, marginBottom: '0.5rem' }}>Cardiologist</div>
-            <div style={{ color: 'var(--text)', opacity: 0.8, marginBottom: '1rem' }}>Kathmandu, Nepal</div>
+            <div style={{ color: 'var(--text)', opacity: 0.8, marginBottom: '0.5rem' }}>{fullProfile?.specialization || 'Cardiologist'}</div>
+            <div style={{ color: 'var(--text)', opacity: 0.8, marginBottom: '1rem' }}>{fullProfile?.location || 'Kathmandu, Nepal'}</div>
             <div style={{ display: 'grid', gap: '0.35rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(23,23,16,0.1)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ opacity: 0.8 }}>Date of Birth</span>
-                <span>Jan 15, 1985</span>
+                <span>{fullProfile?.dob ? new Date(fullProfile.dob).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Jan 15, 1985'}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ opacity: 0.8 }}>Blood Group</span>
-                <span>O+</span>
+                <span>{fullProfile?.blood_group || 'O+'}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ opacity: 0.8 }}>Working Hours</span>
-                <span>9 AM - 5 PM</span>
+                <span>{fullProfile?.working_hours || '9 AM - 5 PM'}</span>
               </div>
             </div>
           </div>
@@ -403,27 +443,36 @@ const DoctorDashboard = () => {
           })}
         </div>
         <div>
-          <h3 style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text)', marginBottom: '0.75rem' }}>
-            Daily Activities – {selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
-          </h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+            <h3 style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text)', margin: 0 }}>
+              Daily Activities – {selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+            </h3>
+            {loadingCalendar && <span style={{ fontSize: '0.8rem', color: 'var(--primary)' }}>Loading...</span>}
+          </div>
           <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-            {activities.map((a, i) => (
-              <li
-                key={i}
-                style={{
-                  padding: '0.6rem 0.75rem',
-                  borderRadius: 8,
-                  backgroundColor: 'rgba(148,163,184,0.08)',
-                  marginBottom: '0.5rem',
-                  fontSize: '0.9rem',
-                  display: 'flex',
-                  gap: '0.75rem',
-                }}
-              >
-                <span style={{ fontWeight: 600, color: 'var(--primary)', minWidth: 70 }}>{a.time}</span>
-                <span style={{ color: 'var(--text)' }}>{a.title}</span>
+            {calendarActivities.length > 0 ? (
+              calendarActivities.map((a, i) => (
+                <li
+                  key={i}
+                  style={{
+                    padding: '0.6rem 0.75rem',
+                    borderRadius: 8,
+                    backgroundColor: 'rgba(148,163,184,0.08)',
+                    marginBottom: '0.5rem',
+                    fontSize: '0.9rem',
+                    display: 'flex',
+                    gap: '0.75rem',
+                  }}
+                >
+                  <span style={{ fontWeight: 600, color: 'var(--primary)', minWidth: 70 }}>{a.time}</span>
+                  <span style={{ color: 'var(--text)' }}>{a.title}</span>
+                </li>
+              ))
+            ) : (
+              <li style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', textAlign: 'center', padding: '1rem' }}>
+                No activities for this day.
               </li>
-            ))}
+            )}
           </ul>
         </div>
       </div>

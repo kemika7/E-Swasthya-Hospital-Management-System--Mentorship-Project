@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   FiSearch,
@@ -68,6 +68,27 @@ const PatientDashboard = () => {
   const { userProfile, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const [dashboardData, setDashboardData] = useState({
+    upcomingAppointment: null,
+    categories: []
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        const { apiFetch } = await import('../../services/apiClient');
+        const data = await apiFetch('/dashboard/patient');
+        setDashboardData(data);
+      } catch (err) {
+        console.error('Failed to fetch dashboard:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDashboard();
+  }, []);
 
   const patientName = userProfile?.name || 'Patient';
 
@@ -190,49 +211,46 @@ const PatientDashboard = () => {
           style={{
             width: '100%',
             backgroundColor: 'var(--primary)',
-            borderRadius: 20,
-            padding: 'var(--space-lg)',
+            borderRadius: 16,
+            padding: '1.25rem',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            boxShadow: '0 12px 30px rgba(82, 178, 191, 0.25)',
-            backgroundImage: 'linear-gradient(135deg, var(--primary) 0%, #469ea9 100%)',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             {/* Doctor Profile Image */}
             <div
               style={{
-                width: 70,
-                height: 70,
+                width: 64,
+                height: 64,
                 borderRadius: '50%',
-                backgroundColor: 'rgba(255,255,255,0.25)',
+                backgroundColor: 'rgba(255,255,255,0.2)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <FiUser size={36} style={{ color: 'var(--white)' }} />
+              <FiUser size={32} style={{ color: 'var(--white)' }} />
             </div>
 
             {/* Doctor Info */}
             <div>
               <div
                 style={{
-                  fontSize: '1.25rem',
-                  fontWeight: 700,
+                  fontSize: '1.1rem',
+                  fontWeight: 600,
                   color: 'var(--white)',
-                  marginBottom: '0.35rem',
+                  marginBottom: '0.25rem',
                 }}
               >
                 {upcomingAppointment.doctorName}
               </div>
               <div
                 style={{
-                  fontSize: '1rem',
+                  fontSize: '0.9rem',
                   color: 'var(--white)',
                   opacity: 0.9,
-                  fontWeight: 500,
                 }}
               >
                 {upcomingAppointment.specialty}
@@ -243,31 +261,35 @@ const PatientDashboard = () => {
           {/* Date & Time Info */}
           <div
             style={{
-              backgroundColor: 'rgba(255,255,255,0.2)',
-              borderRadius: 16,
-              padding: '1rem 1.25rem',
+              backgroundColor: 'rgba(255,255,255,0.15)',
+              borderRadius: 12,
+              padding: '0.75rem',
               display: 'flex',
               flexDirection: 'column',
-              gap: '0.75rem',
+              gap: '0.5rem',
             }}
           >
             {/* Date Row */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <FiCalendar size={18} style={{ color: 'var(--white)' }} />
-              <span style={{ fontSize: '0.95rem', color: 'var(--white)', fontWeight: 600 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <FiCalendar size={16} style={{ color: 'var(--white)' }} />
+              <span style={{ fontSize: '0.85rem', color: 'var(--white)' }}>
                 {upcomingAppointment.date}
               </span>
             </div>
 
             {/* Time Row */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <FiClock size={18} style={{ color: 'var(--white)' }} />
-              <span style={{ fontSize: '0.95rem', color: 'var(--white)', fontWeight: 600 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              <FiClock size={16} style={{ color: 'var(--white)' }} />
+              <span style={{ fontSize: '0.85rem', color: 'var(--white)' }}>
                 {upcomingAppointment.time}
               </span>
             </div>
           </div>
-        </div>
+        ) : (
+          <div style={{ padding: '2rem', textAlign: 'center', backgroundColor: 'rgba(148,163,184,0.1)', borderRadius: 16, color: 'var(--text-secondary)' }}>
+            No upcoming appointments found.
+          </div>
+        )}
       </div>
 
       {/* CATEGORIES SECTION */}
@@ -305,64 +327,76 @@ const PatientDashboard = () => {
           </button>
         </div>
 
-        {/* Categories Grid (Standardized for Desktop) */}
+        {/* Horizontally Scrollable Categories */}
         <div
           className="grid grid-cols-4"
           style={{
-            gap: 'var(--space-md)',
+            display: 'flex',
+            gap: '1rem',
+            overflowX: 'auto',
+            overflowY: 'hidden',
+            paddingBottom: '0.5rem',
+            scrollbarWidth: 'none', // Firefox
+            msOverflowStyle: 'none', // IE/Edge
+          }}
+          onWheel={(e) => {
+            e.preventDefault();
+            e.currentTarget.scrollLeft += e.deltaY;
           }}
         >
-          {medicalCategories.slice(0, 8).map((category) => {
+          <style>
+            {`
+              div::-webkit-scrollbar {
+                display: none;
+              }
+            `}
+          </style>
+          {medicalCategories.map((category) => {
             const IconComponent = iconMap[category.icon] || FiActivity;
             return (
               <div
                 key={category.id}
                 onClick={() => navigate(`/patient/category/${category.id}`)}
-                className="card"
                 style={{
+                  minWidth: 100,
+                  width: 100,
+                  height: 100,
+                  backgroundColor: 'rgba(148,163,184,0.15)',
+                  borderRadius: 16,
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: '1rem',
+                  gap: '0.5rem',
                   cursor: 'pointer',
-                  padding: 'var(--space-lg) var(--space-md)',
-                  transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                  textAlign: 'center',
-                  border: '1px solid transparent',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-4px)';
-                  e.currentTarget.style.borderColor = 'var(--primary-light)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.borderColor = 'transparent';
+                  position: 'relative',
                 }}
               >
                 <div
                   style={{
-                    width: 56,
-                    height: 56,
-                    borderRadius: '16px',
-                    backgroundColor: 'var(--primary-light)',
+                    zIndex: 1,
+                    position: 'relative',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
                 >
                   <IconComponent
-                    size={28}
+                    size={32}
                     style={{
-                      color: 'var(--primary)',
+                      color: 'var(--text)',
                     }}
                   />
                 </div>
                 <div
                   style={{
-                    fontSize: '0.95rem',
-                    fontWeight: 600,
+                    fontSize: '0.75rem',
+                    fontWeight: 400,
                     color: 'var(--text)',
+                    textAlign: 'center',
+                    zIndex: 1,
+                    position: 'relative',
+                    padding: '0 0.5rem',
                   }}
                 >
                   {category.title}

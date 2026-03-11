@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { FiMail, FiLock, FiUser, FiEye, FiEyeOff } from 'react-icons/fi';
 import { FcGoogle } from 'react-icons/fc';
 import { useAuth } from '../context/AuthContext';
+import { GoogleLogin } from '@react-oauth/google';
 import { useNavigate } from 'react-router-dom';
 import AuthLayout from '../components/AuthLayout';
 import BrandingHeader from '../components/BrandingHeader';
@@ -33,23 +34,37 @@ const Login = () => {
     setForm((prev) => ({ ...prev, role }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (form.role === 'patient') {
-      const emailValid = /\S+@\S+\.\S+/.test(form.email);
-      if (!form.username || !emailValid || !form.password) return;
-      login({ name: form.username, email: form.email, role: 'patient' });
-      return;
+    try {
+      const { apiFetch } = await import('../services/apiClient');
+      const data = await apiFetch('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({
+          email: form.role === 'patient' || form.role === 'doctor' ? form.email : form.username,
+          password: form.password,
+          role: form.role
+        }),
+      });
+      login(data);
+    } catch (err) {
+      alert(err.message);
     }
-    if (form.role === 'doctor') {
-      if (!form.name || !form.email || !form.password) return;
-      login({ name: form.name, email: form.email, role: 'doctor' });
-      return;
-    }
-    if (form.role === 'admin') {
-      if (!form.username || !form.password) return;
-      login({ name: form.username, email: null, role: 'admin' });
-      return;
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      const { apiFetch } = await import('../services/apiClient');
+      const data = await apiFetch('/auth/google-login', {
+        method: 'POST',
+        body: JSON.stringify({
+          credential: credentialResponse.credential
+        }),
+      });
+      login(data);
+    } catch (err) {
+      console.error('Google Login Error:', err);
+      alert(err.message || 'Google Login Failed');
     }
   };
 
@@ -283,27 +298,16 @@ const Login = () => {
             <div style={{ flex: 1, height: 1, backgroundColor: 'rgba(15,23,42,0.1)' }} />
           </div>
 
-          <button
-            type="button"
-            style={{
-              width: '100%',
-              padding: '0.875rem',
-              borderRadius: 12,
-              border: '1px solid rgba(15,23,42,0.15)',
-              backgroundColor: 'var(--white)',
-              color: 'var(--text)',
-              fontSize: '1rem',
-              fontWeight: 500,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5rem',
-            }}
-          >
-            <FcGoogle size={20} />
-            <span>Sign Up With Google</span>
-          </button>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => console.log('Login Failed')}
+              useOneTap
+              theme="outline"
+              size="large"
+              width="300"
+            />
+          </div>
         </form>
       ) : form.role === 'doctor' ? (
         <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '1.25rem' }}>

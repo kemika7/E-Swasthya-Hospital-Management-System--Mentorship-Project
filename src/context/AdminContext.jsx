@@ -42,6 +42,10 @@ export const AdminProvider = ({ children }) => {
         // doctors list might need its own mapping if we want full objects
         setDoctors(data.topDoctors);
         setBeds(data.beds);
+
+        // Fetch all patients for management
+        const patientsData = await apiFetch('/patients');
+        setPatients(patientsData);
       } catch (err) {
         console.error('Failed to fetch admin dashboard:', err);
       } finally {

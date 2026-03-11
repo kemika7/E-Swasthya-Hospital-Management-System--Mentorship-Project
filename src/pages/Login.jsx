@@ -116,41 +116,6 @@ const Login = () => {
       {isPatient ? (
         <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '1.1rem' }}>
           <label style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--text)' }}>
-            Username
-            <div
-              style={{
-                marginTop: '0.5rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                backgroundColor: 'var(--white)',
-                borderRadius: 12,
-                boxShadow: 'var(--shadow-soft)',
-                border: '1px solid rgba(15,23,42,0.12)',
-                padding: '0.75rem 1rem',
-              }}
-            >
-              <FiUser size={18} style={{ opacity: 0.5, color: 'var(--text)' }} />
-              <input
-                type="text"
-                name="username"
-                placeholder="Enter your username"
-                value={form.username}
-                onChange={handleChange}
-                required
-                style={{
-                  flex: 1,
-                  border: 'none',
-                  outline: 'none',
-                  fontSize: '0.95rem',
-                  color: 'var(--text)',
-                  backgroundColor: 'transparent',
-                }}
-              />
-            </div>
-          </label>
-
-          <label style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--text)' }}>
             Email Address
             <div
               style={{

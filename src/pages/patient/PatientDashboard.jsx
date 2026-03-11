@@ -38,7 +38,6 @@ import {
 } from 'react-icons/fa';
 import { GiStomach } from 'react-icons/gi';
 import { useAuth } from '../../context/AuthContext';
-import { upcomingAppointment, medicalCategories } from '../../data/mockData';
 
 // Map icon strings to components
 const iconMap = {
@@ -97,7 +96,6 @@ const PatientDashboard = () => {
     { id: 'doctors', label: 'Doctors', icon: FiUsers, path: '/patient/doctors' },
     { id: 'appointment', label: 'Appointment', icon: FiCalendar, path: '/patient/appointments' },
     { id: 'report-tracking', label: 'Report Tracking', icon: FiFileText, path: '/patient/reports' },
-    { id: 'report', label: 'Report', icon: FiFileText, path: '/patient/reports' },
     { id: 'locker', label: 'Locker', icon: FiLock, path: '/patient/locker' },
   ];
 
@@ -207,82 +205,84 @@ const PatientDashboard = () => {
           </button>
         </div>
 
-        <div
-          style={{
-            width: '100%',
-            backgroundColor: 'var(--primary)',
-            borderRadius: 16,
-            padding: '1.25rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            {/* Doctor Profile Image */}
-            <div
-              style={{
-                width: 64,
-                height: 64,
-                borderRadius: '50%',
-                backgroundColor: 'rgba(255,255,255,0.2)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <FiUser size={32} style={{ color: 'var(--white)' }} />
-            </div>
-
-            {/* Doctor Info */}
-            <div>
-              <div
-                style={{
-                  fontSize: '1.1rem',
-                  fontWeight: 600,
-                  color: 'var(--white)',
-                  marginBottom: '0.25rem',
-                }}
-              >
-                {upcomingAppointment.doctorName}
-              </div>
-              <div
-                style={{
-                  fontSize: '0.9rem',
-                  color: 'var(--white)',
-                  opacity: 0.9,
-                }}
-              >
-                {upcomingAppointment.specialty}
-              </div>
-            </div>
-          </div>
-
-          {/* Date & Time Info */}
+        {dashboardData.upcomingAppointment ? (
           <div
             style={{
-              backgroundColor: 'rgba(255,255,255,0.15)',
-              borderRadius: 12,
-              padding: '0.75rem',
+              width: '100%',
+              backgroundColor: 'var(--primary)',
+              borderRadius: 16,
+              padding: '1.25rem',
               display: 'flex',
-              flexDirection: 'column',
-              gap: '0.5rem',
+              alignItems: 'center',
+              justifyContent: 'space-between',
             }}
           >
-            {/* Date Row */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <FiCalendar size={16} style={{ color: 'var(--white)' }} />
-              <span style={{ fontSize: '0.85rem', color: 'var(--white)' }}>
-                {upcomingAppointment.date}
-              </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              {/* Doctor Profile Image */}
+              <div
+                style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: '50%',
+                  backgroundColor: 'rgba(255,255,255,0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <FiUser size={32} style={{ color: 'var(--white)' }} />
+              </div>
+
+              {/* Doctor Info */}
+              <div>
+                <div
+                  style={{
+                    fontSize: '1.1rem',
+                    fontWeight: 600,
+                    color: 'var(--white)',
+                    marginBottom: '0.25rem',
+                  }}
+                >
+                  {dashboardData.upcomingAppointment.doctorName}
+                </div>
+                <div
+                  style={{
+                    fontSize: '0.9rem',
+                    color: 'var(--white)',
+                    opacity: 0.9,
+                  }}
+                >
+                  {dashboardData.upcomingAppointment.specialty}
+                </div>
+              </div>
             </div>
 
-            {/* Time Row */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <FiClock size={16} style={{ color: 'var(--white)' }} />
-              <span style={{ fontSize: '0.85rem', color: 'var(--white)' }}>
-                {upcomingAppointment.time}
-              </span>
+            {/* Date & Time Info */}
+            <div
+              style={{
+                backgroundColor: 'rgba(255,255,255,0.15)',
+                borderRadius: 12,
+                padding: '0.75rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.5rem',
+              }}
+            >
+              {/* Date Row */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <FiCalendar size={16} style={{ color: 'var(--white)' }} />
+                <span style={{ fontSize: '0.85rem', color: 'var(--white)' }}>
+                  {dashboardData.upcomingAppointment.date}
+                </span>
+              </div>
+
+              {/* Time Row */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <FiClock size={16} style={{ color: 'var(--white)' }} />
+                <span style={{ fontSize: '0.85rem', color: 'var(--white)' }}>
+                  {dashboardData.upcomingAppointment.time}
+                </span>
+              </div>
             </div>
           </div>
         ) : (
@@ -351,7 +351,7 @@ const PatientDashboard = () => {
               }
             `}
           </style>
-          {medicalCategories.map((category) => {
+          {(dashboardData.categories?.length > 0 ? dashboardData.categories : []).map((category) => {
             const IconComponent = iconMap[category.icon] || FiActivity;
             return (
               <div
@@ -399,7 +399,7 @@ const PatientDashboard = () => {
                     padding: '0 0.5rem',
                   }}
                 >
-                  {category.title}
+                  {category.title || category.name}
                 </div>
               </div>
             );

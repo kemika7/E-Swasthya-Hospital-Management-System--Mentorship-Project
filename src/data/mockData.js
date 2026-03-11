@@ -13,228 +13,228 @@ export const specialistCategories = [
 
 export const medicalCategories = [
   {
-    id: 'primary-care',
+    id: 1,
     title: 'Primary Care & General',
     icon: 'MdLocalHospital',
     specialties: [
-      { id: 'gp', name: 'General Practitioner (GP)' },
-      { id: 'family-med', name: 'Family Medicine Physician' },
-      { id: 'internal-med', name: 'Internal Medicine Physician (Internist)' },
-      { id: 'pcp', name: 'Primary Care Physician' },
-      { id: 'preventive', name: 'Preventive Medicine Specialist' }
+      { id: 1, name: 'General Practitioner (GP)' },
+      { id: 2, name: 'Family Medicine Physician' },
+      { id: 3, name: 'Internal Medicine Physician (Internist)' },
+      { id: 4, name: 'Primary Care Physician' },
+      { id: 5, name: 'Preventive Medicine Specialist' }
     ]
   },
   {
-    id: 'brain-nerves',
+    id: 2,
     title: 'Brain, Nerves & Mental Health',
     icon: 'FiActivity',
     specialties: [
-      { id: 'neurologist', name: 'Neurologist' },
-      { id: 'neurosurgeon', name: 'Neurosurgeon' },
-      { id: 'psychiatrist', name: 'Psychiatrist' },
-      { id: 'psychologist', name: 'Psychologist' },
-      { id: 'child-psych', name: 'Child & Adolescent Psychiatrist' },
-      { id: 'behavioral', name: 'Behavioral Medicine Specialist' },
-      { id: 'neuropsychiatrist', name: 'Neuropsychiatrist' },
-      { id: 'sleep', name: 'Sleep Medicine Specialist' }
+      { id: 6, name: 'Neurologist' },
+      { id: 7, name: 'Neurosurgeon' },
+      { id: 8, name: 'Psychiatrist' },
+      { id: 9, name: 'Psychologist' },
+      { id: 10, name: 'Child & Adolescent Psychiatrist' },
+      { id: 11, name: 'Behavioral Medicine Specialist' },
+      { id: 12, name: 'Neuropsychiatrist' },
+      { id: 13, name: 'Sleep Medicine Specialist' }
     ]
   },
   {
-    id: 'heart-blood',
+    id: 3,
     title: 'Heart & Blood',
     icon: 'FiHeart',
     specialties: [
-      { id: 'cardiologist', name: 'Cardiologist' },
-      { id: 'interventional-cardio', name: 'Interventional Cardiologist' },
-      { id: 'electrophysiologist', name: 'Cardiac Electrophysiologist' },
-      { id: 'cardiothoracic', name: 'Cardiothoracic Surgeon' },
-      { id: 'vascular', name: 'Vascular Surgeon' },
-      { id: 'hematologist', name: 'Hematologist' }
+      { id: 14, name: 'Cardiologist' },
+      { id: 15, name: 'Interventional Cardiologist' },
+      { id: 16, name: 'Cardiac Electrophysiologist' },
+      { id: 17, name: 'Cardiothoracic Surgeon' },
+      { id: 18, name: 'Vascular Surgeon' },
+      { id: 19, name: 'Hematologist' }
     ]
   },
   {
-    id: 'lungs-breathing',
+    id: 4,
     title: 'Lungs & Breathing',
     icon: 'FaLungs',
     specialties: [
-      { id: 'pulmonologist', name: 'Pulmonologist' },
-      { id: 'critical-care', name: 'Critical Care Specialist (Intensivist)' },
-      { id: 'respiratory', name: 'Respiratory Medicine Specialist' },
-      { id: 'sleep-apnea', name: 'Sleep Apnea Specialist' }
+      { id: 20, name: 'Pulmonologist' },
+      { id: 21, name: 'Critical Care Specialist (Intensivist)' },
+      { id: 22, name: 'Respiratory Medicine Specialist' },
+      { id: 23, name: 'Sleep Apnea Specialist' }
     ]
   },
   {
-    id: 'digestive',
+    id: 5,
     title: 'Digestive System',
     icon: 'GiStomach',
     specialties: [
-      { id: 'gastroenterologist', name: 'Gastroenterologist' },
-      { id: 'hepatologist', name: 'Hepatologist' },
-      { id: 'colorectal', name: 'Colorectal Surgeon' },
-      { id: 'bariatric', name: 'Bariatric Surgeon' }
+      { id: 24, name: 'Gastroenterologist' },
+      { id: 25, name: 'Hepatologist' },
+      { id: 26, name: 'Colorectal Surgeon' },
+      { id: 27, name: 'Bariatric Surgeon' }
     ]
   },
   {
-    id: 'skin-hair',
+    id: 6,
     title: 'Skin, Hair & Nails',
     icon: 'FiUser',
     specialties: [
-      { id: 'dermatologist', name: 'Dermatologist' },
-      { id: 'dermatopathologist', name: 'Dermatopathologist' },
-      { id: 'cosmetic-derm', name: 'Cosmetic Dermatologist' },
-      { id: 'trichologist', name: 'Trichologist' }
+      { id: 28, name: 'Dermatologist' },
+      { id: 29, name: 'Dermatopathologist' },
+      { id: 30, name: 'Cosmetic Dermatologist' },
+      { id: 31, name: 'Trichologist' }
     ]
   },
   {
-    id: 'ent',
+    id: 7,
     title: 'Eyes, Ears, Nose & Throat',
     icon: 'FiEye',
     specialties: [
-      { id: 'ophthalmologist', name: 'Ophthalmologist' },
-      { id: 'optometrist', name: 'Optometrist' },
-      { id: 'ent', name: 'ENT Specialist' },
-      { id: 'audiologist', name: 'Audiologist' }
+      { id: 32, name: 'Ophthalmologist' },
+      { id: 33, name: 'Optometrist' },
+      { id: 34, name: 'ENT Specialist' },
+      { id: 35, name: 'Audiologist' }
     ]
   },
   {
-    id: 'bones-joints',
+    id: 8,
     title: 'Bones, Joints & Muscles',
     icon: 'FaBone',
     specialties: [
-      { id: 'orthopedic', name: 'Orthopedic Surgeon' },
-      { id: 'rheumatologist', name: 'Rheumatologist' },
-      { id: 'sports-med', name: 'Sports Medicine Doctor' },
-      { id: 'pmr', name: 'Physical Medicine & Rehabilitation' },
-      { id: 'chiropractor', name: 'Chiropractor' },
-      { id: 'osteopathic', name: 'Osteopathic Physician' }
+      { id: 36, name: 'Orthopedic Surgeon' },
+      { id: 37, name: 'Rheumatologist' },
+      { id: 38, name: 'Sports Medicine Doctor' },
+      { id: 39, name: 'Physical Medicine & Rehabilitation' },
+      { id: 40, name: 'Chiropractor' },
+      { id: 41, name: 'Osteopathic Physician' }
     ]
   },
   {
-    id: 'hormones',
+    id: 9,
     title: 'Hormones & Metabolism',
     icon: 'MdBloodtype',
     specialties: [
-      { id: 'endocrinologist', name: 'Endocrinologist' },
-      { id: 'diabetologist', name: 'Diabetologist' },
-      { id: 'metabolic', name: 'Metabolic Specialist' }
+      { id: 42, name: 'Endocrinologist' },
+      { id: 43, name: 'Diabetologist' },
+      { id: 44, name: 'Metabolic Specialist' }
     ]
   },
   {
-    id: 'kidneys',
+    id: 10,
     title: 'Kidneys & Urinary System',
-    icon: 'FaSyringe', // Fallback or find better
+    icon: 'FaSyringe',
     specialties: [
-      { id: 'nephrologist', name: 'Nephrologist' },
-      { id: 'urologist', name: 'Urologist' },
-      { id: 'urogynecologist', name: 'Urogynecologist' }
+      { id: 45, name: 'Nephrologist' },
+      { id: 46, name: 'Urologist' },
+      { id: 47, name: 'Urogynecologist' }
     ]
   },
   {
-    id: 'womens-health',
+    id: 11,
     title: 'Women’s Health',
     icon: 'FaFemale',
     specialties: [
-      { id: 'gynecologist', name: 'Gynecologist' },
-      { id: 'obstetrician', name: 'Obstetrician' },
-      { id: 'ob-gyn', name: 'OB-GYN' },
-      { id: 'reproductive-endo', name: 'Reproductive Endocrinologist' },
-      { id: 'mfm', name: 'Maternal–Fetal Medicine Specialist' }
+      { id: 48, name: 'Gynecologist' },
+      { id: 49, name: 'Obstetrician' },
+      { id: 50, name: 'OB-GYN' },
+      { id: 51, name: 'Reproductive Endocrinologist' },
+      { id: 52, name: 'Maternal–Fetal Medicine Specialist' }
     ]
   },
   {
-    id: 'childrens-health',
+    id: 12,
     title: 'Children’s Health',
     icon: 'MdChildCare',
     specialties: [
-      { id: 'pediatrician', name: 'Pediatrician' },
-      { id: 'pediatric-specialist', name: 'Pediatric Specialist' },
-      { id: 'neonatologist', name: 'Neonatologist' },
-      { id: 'pediatric-cardio', name: 'Pediatric Cardiologist' },
-      { id: 'pediatric-neuro', name: 'Pediatric Neurologist' },
-      { id: 'pediatric-surgeon', name: 'Pediatric Surgeon' }
+      { id: 53, name: 'Pediatrician' },
+      { id: 54, name: 'Pediatric Specialist' },
+      { id: 55, name: 'Neonatologist' },
+      { id: 56, name: 'Pediatric Cardiologist' },
+      { id: 57, name: 'Pediatric Neurologist' },
+      { id: 58, name: 'Pediatric Surgeon' }
     ]
   },
   {
-    id: 'cancer',
+    id: 13,
     title: 'Cancer & Specialized Care',
     icon: 'FaRibbon',
     specialties: [
-      { id: 'medical-oncologist', name: 'Medical Oncologist' },
-      { id: 'radiation-oncologist', name: 'Radiation Oncologist' },
-      { id: 'surgical-oncologist', name: 'Surgical Oncologist' },
-      { id: 'hem-onc', name: 'Hematology-Oncologist' },
-      { id: 'palliative', name: 'Palliative Care Specialist' }
+      { id: 59, name: 'Medical Oncologist' },
+      { id: 60, name: 'Radiation Oncologist' },
+      { id: 61, name: 'Surgical Oncologist' },
+      { id: 62, name: 'Hematology-Oncologist' },
+      { id: 63, name: 'Palliative Care Specialist' }
     ]
   },
   {
-    id: 'diagnostics',
+    id: 14,
     title: 'Diagnostics & Imaging',
     icon: 'FaXRay',
     specialties: [
-      { id: 'radiologist', name: 'Radiologist' },
-      { id: 'interventional-rad', name: 'Interventional Radiologist' },
-      { id: 'nuclear-med', name: 'Nuclear Medicine Specialist' },
-      { id: 'pathologist', name: 'Pathologist' },
-      { id: 'clinical-path', name: 'Clinical Pathologist' }
+      { id: 64, name: 'Radiologist' },
+      { id: 65, name: 'Interventional Radiologist' },
+      { id: 66, name: 'Nuclear Medicine Specialist' },
+      { id: 67, name: 'Pathologist' },
+      { id: 68, name: 'Clinical Pathologist' }
     ]
   },
   {
-    id: 'infectious',
+    id: 15,
     title: 'Infectious & Immune System',
     icon: 'FaViruses',
     specialties: [
-      { id: 'infectious-disease', name: 'Infectious Disease Specialist' },
-      { id: 'immunologist', name: 'Immunologist' },
-      { id: 'allergist', name: 'Allergist' },
-      { id: 'clinical-immuno', name: 'Clinical Immunologist' }
+      { id: 69, name: 'Infectious Disease Specialist' },
+      { id: 70, name: 'Immunologist' },
+      { id: 71, name: 'Allergist' },
+      { id: 72, name: 'Clinical Immunologist' }
     ]
   },
   {
-    id: 'pain',
+    id: 16,
     title: 'Pain & Anesthesia',
     icon: 'FaProcedures',
     specialties: [
-      { id: 'anesthesiologist', name: 'Anesthesiologist' },
-      { id: 'pain-mgmt', name: 'Pain Management Specialist' },
-      { id: 'palliative-med', name: 'Palliative Medicine Doctor' }
+      { id: 73, name: 'Anesthesiologist' },
+      { id: 74, name: 'Pain Management Specialist' },
+      { id: 75, name: 'Palliative Medicine Doctor' }
     ]
   },
   {
-    id: 'emergency',
+    id: 17,
     title: 'Emergency & Hospital Care',
     icon: 'FaAmbulance',
     specialties: [
-      { id: 'emergency-med', name: 'Emergency Medicine Physician' },
-      { id: 'trauma-surgeon', name: 'Trauma Surgeon' },
-      { id: 'hospitalist', name: 'Hospitalist' },
-      { id: 'critical-care-phys', name: 'Critical Care Physician' }
+      { id: 76, name: 'Emergency Medicine Physician' },
+      { id: 77, name: 'Trauma Surgeon' },
+      { id: 78, name: 'Hospitalist' },
+      { id: 79, name: 'Critical Care Physician' }
     ]
   },
   {
-    id: 'dental',
+    id: 18,
     title: 'Dental',
     icon: 'FaTooth',
     specialties: [
-      { id: 'general-dentist', name: 'General Dentist' },
-      { id: 'orthodontist', name: 'Orthodontist' },
-      { id: 'periodontist', name: 'Periodontist' },
-      { id: 'endodontist', name: 'Endodontist' },
-      { id: 'oral-surgeon', name: 'Oral & Maxillofacial Surgeon' },
-      { id: 'prosthodontist', name: 'Prosthodontist' },
-      { id: 'pediatric-dentist', name: 'Pediatric Dentist' }
+      { id: 80, name: 'General Dentist' },
+      { id: 81, name: 'Orthodontist' },
+      { id: 82, name: 'Periodontist' },
+      { id: 83, name: 'Endodontist' },
+      { id: 84, name: 'Oral & Maxillofacial Surgeon' },
+      { id: 85, name: 'Prosthodontist' },
+      { id: 86, name: 'Pediatric Dentist' }
     ]
   },
   {
-    id: 'other',
+    id: 19,
     title: 'Other & Preventive',
     icon: 'FaNotesMedical',
     specialties: [
-      { id: 'geriatrician', name: 'Geriatrician' },
-      { id: 'occupational-med', name: 'Occupational Medicine Physician' },
-      { id: 'public-health', name: 'Public Health Specialist' },
-      { id: 'travel-med', name: 'Travel Medicine Specialist' },
-      { id: 'lifestyle-med', name: 'Lifestyle Medicine Physician' },
-      { id: 'sexual-health', name: 'Sexual Health Specialist' }
+      { id: 87, name: 'Geriatrician' },
+      { id: 88, name: 'Occupational Medicine Physician' },
+      { id: 89, name: 'Public Health Specialist' },
+      { id: 90, name: 'Travel Medicine Specialist' },
+      { id: 91, name: 'Lifestyle Medicine Physician' },
+      { id: 92, name: 'Sexual Health Specialist' }
     ]
   }
 ];
@@ -476,7 +476,7 @@ export const doctors = [
     dateOfBirth: '30.07.1989',
     image: '/images/doctor1.png',
   },
-  
+
   // Primary Care & General
   {
     doctorId: 'gp-001',
@@ -721,7 +721,7 @@ export const doctors = [
     dateOfBirth: '25-12-1983',
     image: '/images/doctors/em-001.png',
   },
-  
+
   // Other & Preventive
   {
     doctorId: 'ger-001',

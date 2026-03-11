@@ -1,7 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  FiArrowLeft,
   FiActivity,
   FiHeart,
   FiUser,
@@ -28,7 +27,7 @@ import {
   FaNotesMedical,
 } from 'react-icons/fa';
 import { GiStomach } from 'react-icons/gi';
-import { medicalCategories } from '../../data/mockData';
+import { apiFetch } from '../../services/apiClient';
 
 // Map icon strings to components
 const iconMap = {
@@ -57,14 +56,26 @@ const iconMap = {
 const CategoriesPage = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = React.useState('');
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredCategories = medicalCategories.filter((category) => {
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const data = await apiFetch('/doctors/categories');
+        setCategories(data);
+      } catch (err) {
+        console.error('Failed to fetch categories:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCategories();
+  }, []);
+
+  const filteredCategories = categories.filter((category) => {
     const term = searchTerm.toLowerCase();
-    const matchesCategory = category.title.toLowerCase().includes(term);
-    const matchesSpecialty = category.specialties.some((s) =>
-      s.name.toLowerCase().includes(term)
-    );
-    return matchesCategory || matchesSpecialty;
+    return category.name.toLowerCase().includes(term);
   });
 
   return (
@@ -106,57 +117,64 @@ const CategoriesPage = () => {
       </div>
 
       {/* Categories Grid */}
-      <div className="grid grid-cols-4" style={{ gap: 'var(--space-md)', paddingBottom: '2rem' }}>
-        {filteredCategories.map((category) => {
-          const IconComponent = iconMap[category.icon] || MdLocalHospital;
-          return (
-            <div
-              key={category.id}
-              onClick={() => navigate(`/patient/category/${category.id}`)}
-              style={{
-                backgroundColor: 'var(--white)',
-                borderRadius: 16,
-                padding: '1.5rem',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textAlign: 'center',
-                gap: '0.75rem',
-                cursor: 'pointer',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-                transition: 'transform 0.2s ease',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.02)')}
-              onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-            >
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
+          Loading categories...
+        </div>
+      ) : (
+        <div className="grid grid-cols-4" style={{ gap: 'var(--space-md)', paddingBottom: '2rem' }}>
+          {filteredCategories.map((category) => {
+            // Use a default icon since DB categories don't have icon field
+            const IconComponent = iconMap[category.icon] || MdLocalHospital;
+            return (
               <div
+                key={category.id}
+                onClick={() => navigate(`/patient/category/${category.id}`)}
                 style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: '50%',
-                  backgroundColor: 'rgba(82,178,191,0.1)',
+                  backgroundColor: 'var(--white)',
+                  borderRadius: 16,
+                  padding: '1.5rem',
                   display: 'flex',
+                  flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  textAlign: 'center',
+                  gap: '0.75rem',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                  transition: 'transform 0.2s ease',
                 }}
+                onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.02)')}
+                onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
               >
-                <IconComponent size={28} style={{ color: 'var(--primary)' }} />
+                <div
+                  style={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: '50%',
+                    backgroundColor: 'rgba(82,178,191,0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <IconComponent size={28} style={{ color: 'var(--primary)' }} />
+                </div>
+                <div
+                  style={{
+                    fontSize: '0.95rem',
+                    fontWeight: 600,
+                    color: 'var(--text)',
+                    lineHeight: '1.3',
+                  }}
+                >
+                  {category.name}
+                </div>
               </div>
-              <div
-                style={{
-                  fontSize: '0.95rem',
-                  fontWeight: 600,
-                  color: 'var(--text)',
-                  lineHeight: '1.3',
-                }}
-              >
-                {category.title}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

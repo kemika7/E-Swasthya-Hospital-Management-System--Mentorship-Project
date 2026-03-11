@@ -148,7 +148,7 @@ const DoctorDashboard = () => {
         const dateStr = selectedDate.toISOString().split('T')[0];
         const data = await apiFetch(`/appointments?date=${dateStr}`);
         setCalendarActivities(data.map(a => ({
-          time: a.appointment_time,
+          time: a.time,
           title: `Consultation: ${a.patientName}`
         })));
       } catch (err) {

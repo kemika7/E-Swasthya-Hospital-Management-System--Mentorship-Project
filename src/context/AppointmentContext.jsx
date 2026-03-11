@@ -17,49 +17,80 @@ export const AppointmentProvider = ({ children }) => {
 
   const [lastBookedAppointment, setLastBookedAppointment] = useState(null);
   const [appointments, setAppointments] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchAppointments = async () => {
+    setLoading(true);
+    try {
+      const { apiFetch } = await import('../services/apiClient');
+      const data = await apiFetch('/appointments');
+      setAppointments(data);
+    } catch (err) {
+      console.error('Failed to fetch appointments:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const persisted = localStorage.getItem('appointments');
-    if (persisted) {
-      try {
-        const parsed = JSON.parse(persisted);
-        if (Array.isArray(parsed)) {
-          setAppointments(parsed);
-        }
-      } catch {}
-    }
+    fetchAppointments();
   }, []);
 
   const updateAppointmentDetails = (updates) => {
     setAppointmentDetails((prev) => ({ ...prev, ...updates }));
   };
 
-  const bookAppointment = () => {
-    const booked = {
-      doctorId: appointmentDetails.doctorId,
-      doctorName: appointmentDetails.doctorName,
-      specialty: appointmentDetails.specialty,
-      date: appointmentDetails.date,
-      time: appointmentDetails.time,
-      status: appointmentDetails.status || 'Upcoming',
-      location: appointmentDetails.location,
-      bookedAt: new Date().toISOString(),
-    };
-    setLastBookedAppointment(booked);
-    const next = [booked, ...appointments];
-    setAppointments(next);
+  const bookAppointment = async () => {
     try {
-      localStorage.setItem('appointments', JSON.stringify(next));
-    } catch {}
-    return booked;
+      const { apiFetch } = await import('../services/apiClient');
+      const payload = {
+        doctorId: appointmentDetails.doctorId,
+        date: appointmentDetails.date, // Format: YYYY-MM-DD
+        time: appointmentDetails.time,
+        appointment_type: appointmentDetails.appointmentType || 'Consultation',
+        notes: appointmentDetails.reasonToVisit || null,
+        duration: appointmentDetails.duration || 30,
+      };
+
+      const result = await apiFetch('/appointments', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+
+      setLastBookedAppointment(result);
+      // Refresh list
+      fetchAppointments();
+      return result;
+    } catch (err) {
+      console.error('Failed to book appointment:', err);
+      throw err;
+    }
+  };
+
+  const cancelAppointment = async (appointmentId) => {
+    try {
+      const { apiFetch } = await import('../services/apiClient');
+      await apiFetch(`/appointments/${appointmentId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ status: 'Cancelled' })
+      });
+      // Refresh list
+      fetchAppointments();
+    } catch (err) {
+      console.error('Failed to cancel appointment:', err);
+      throw err;
+    }
   };
 
   const value = {
     appointmentDetails,
     updateAppointmentDetails,
     bookAppointment,
+    cancelAppointment,
     lastBookedAppointment,
     appointments,
+    loading,
+    refreshAppointments: fetchAppointments
   };
 
   return (

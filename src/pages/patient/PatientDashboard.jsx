@@ -38,6 +38,7 @@ import {
 } from 'react-icons/fa';
 import { GiStomach } from 'react-icons/gi';
 import { useAuth } from '../../context/AuthContext';
+// No mock data imports here
 
 // Map icon strings to components
 const iconMap = {
@@ -104,6 +105,25 @@ const PatientDashboard = () => {
       return location.pathname === '/patient' || location.pathname === '/patient/dashboard';
     }
     return location.pathname === path;
+  };
+
+  const formatTime = (timeStr) => {
+    if (!timeStr) return '';
+    try {
+      const [hours, minutes] = timeStr.split(':');
+      let h = parseInt(hours, 10);
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      h = h % 12 || 12;
+      return `${h}:${minutes} ${ampm}`;
+    } catch (e) {
+      return timeStr;
+    }
+  };
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
   return (
@@ -272,7 +292,7 @@ const PatientDashboard = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <FiCalendar size={16} style={{ color: 'var(--white)' }} />
                 <span style={{ fontSize: '0.85rem', color: 'var(--white)' }}>
-                  {dashboardData.upcomingAppointment.date}
+                  {formatDate(dashboardData.upcomingAppointment.date)}
                 </span>
               </div>
 
@@ -280,7 +300,7 @@ const PatientDashboard = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <FiClock size={16} style={{ color: 'var(--white)' }} />
                 <span style={{ fontSize: '0.85rem', color: 'var(--white)' }}>
-                  {dashboardData.upcomingAppointment.time}
+                  {formatTime(dashboardData.upcomingAppointment.time)}
                 </span>
               </div>
             </div>

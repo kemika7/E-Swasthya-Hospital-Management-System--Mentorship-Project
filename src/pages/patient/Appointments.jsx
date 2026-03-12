@@ -5,7 +5,37 @@ import { useAppointment } from '../../context/AppointmentContext';
 
 const Appointments = () => {
   const navigate = useNavigate();
-  const { appointments } = useAppointment();
+  const { appointments, cancelAppointment } = useAppointment();
+
+  const handleCancel = async (id) => {
+    if (window.confirm('Are you sure you want to cancel this appointment?')) {
+      try {
+        await cancelAppointment(id);
+        alert('Appointment cancelled successfully');
+      } catch (err) {
+        alert('Failed to cancel appointment');
+      }
+    }
+  };
+
+  const formatTime = (timeStr) => {
+    if (!timeStr) return '';
+    try {
+      const [hours, minutes] = timeStr.split(':');
+      let h = parseInt(hours, 10);
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      h = h % 12 || 12;
+      return `${h}:${minutes} ${ampm}`;
+    } catch (e) {
+      return timeStr;
+    }
+  };
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
 
   return (
     <main
@@ -66,78 +96,89 @@ const Appointments = () => {
       <section>
         {appointments && appointments.length > 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {appointments.map((appointment, idx) => (
-              <div
-                key={`${appointment.bookedAt}-${idx}`}
-                style={{
-                  backgroundColor: 'var(--white)',
-                  borderRadius: 16,
-                  padding: '1.25rem',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '0.75rem',
-                  borderLeft: '5px solid var(--primary)',
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div>
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#0f172a', marginBottom: '0.25rem' }}>
-                      {appointment.doctorName}
-                    </h3>
-                    <p style={{ fontSize: '0.9rem', color: 'var(--primary)', fontWeight: 500 }}>
-                      {appointment.specialty}
-                    </p>
-                  </div>
+            {appointments
+              ?.filter((appointment) => appointment.status !== 'Cancelled')
+              .map((appointment, idx) => {
+                const isCancelled = appointment.status === 'Cancelled';
+                const isScheduled = appointment.status === 'Scheduled';
+
+                return (
                   <div
+                    key={`${appointment.bookedAt}-${idx}`}
                     style={{
-                      backgroundColor: '#dcfce7',
-                      color: '#166534',
-                      padding: '0.25rem 0.75rem',
-                      borderRadius: 20,
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
+                      backgroundColor: 'var(--white)',
+                      borderRadius: 16,
+                      padding: '1.25rem',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.75rem',
+                      borderLeft: `5px solid ${isCancelled ? '#ef4444' : 'var(--primary)'}`,
+                      opacity: isCancelled ? 0.8 : 1
                     }}
                   >
-                    {appointment.status}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#0f172a', marginBottom: '0.25rem' }}>
+                          {appointment.doctorName}
+                        </h3>
+                        <p style={{ fontSize: '0.9rem', color: isCancelled ? '#ef4444' : 'var(--primary)', fontWeight: 500 }}>
+                          {appointment.specialty}
+                        </p>
+                      </div>
+                      <div
+                        style={{
+                          backgroundColor: isCancelled ? '#fee2e2' : '#dcfce7',
+                          color: isCancelled ? '#991b1b' : '#166534',
+                          padding: '0.25rem 0.75rem',
+                          borderRadius: 20,
+                          fontSize: '0.75rem',
+                          fontWeight: 600,
+                        }}
+                      >
+                        {appointment.status}
+                      </div>
+                    </div>
+
+                    <div style={{ height: 1, backgroundColor: '#f1f5f9', margin: '0.25rem 0' }} />
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', fontSize: '0.9rem' }}>
+                        <FiCalendar color={isCancelled ? '#ef4444' : 'var(--primary)'} />
+                        <span>{formatDate(appointment.date)}</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', fontSize: '0.9rem' }}>
+                        <FiClock color={isCancelled ? '#ef4444' : 'var(--primary)'} />
+                        <span>{formatTime(appointment.time)}</span>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', fontSize: '0.9rem' }}>
+                      <FiMapPin color={isCancelled ? '#ef4444' : 'var(--primary)'} />
+                      <span>{appointment.location || 'Kathmandu, Nepal'}</span>
+                    </div>
+
+                    {isScheduled && (
+                      <div style={{ marginTop: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end' }}>
+                        <button
+                          onClick={() => handleCancel(appointment.id)}
+                          style={{
+                            padding: '0.5rem 1rem',
+                            borderRadius: 8,
+                            border: '1px solid #e2e8f0',
+                            backgroundColor: 'transparent',
+                            color: '#64748b',
+                            fontSize: '0.8rem',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Cancel Appointment
+                        </button>
+                      </div>
+                    )}
                   </div>
-                </div>
-
-                <div style={{ height: 1, backgroundColor: '#f1f5f9', margin: '0.25rem 0' }} />
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', fontSize: '0.9rem' }}>
-                    <FiCalendar color="var(--primary)" />
-                    <span>{appointment.date}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', fontSize: '0.9rem' }}>
-                    <FiClock color="var(--primary)" />
-                    <span>{appointment.time}</span>
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b', fontSize: '0.9rem' }}>
-                  <FiMapPin color="var(--primary)" />
-                  <span>{appointment.location || 'Kathmandu, Nepal'}</span>
-                </div>
-
-                <div style={{ marginTop: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end' }}>
-                  <button
-                    style={{
-                      padding: '0.5rem 1rem',
-                      borderRadius: 8,
-                      border: '1px solid #e2e8f0',
-                      backgroundColor: 'transparent',
-                      color: '#64748b',
-                      fontSize: '0.8rem',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Cancel Appointment
-                  </button>
-                </div>
-              </div>
-            ))}
+                );
+              })}
           </div>
         ) : (
           <div style={{ textAlign: 'center', padding: '3rem 1rem', color: '#94a3b8' }}>

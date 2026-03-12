@@ -1,10 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import {
-  doctors as initialDoctors,
-  doctorPatients as initialPatients,
-  adminAnnouncements as initialAnnouncements,
-  adminKpis as initialKpis
-} from '../data/mockData';
+
+// Mock data imports removed
 
 const AdminContext = createContext();
 
@@ -18,16 +14,23 @@ export const useAdmin = () => {
 
 export const AdminProvider = ({ children }) => {
   const [doctors, setDoctors] = useState([]);
-  const [patients, setPatients] = useState([]); // This would need its own API or be part of dashboard
+  const [patients, setPatients] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
   const [appointments, setAppointments] = useState([]);
   const [beds, setBeds] = useState({
-    general: { total: 50, occupied: 32 },
-    icu: { total: 10, occupied: 4 },
-    private: { total: 20, occupied: 15 },
+    general: { total: 0, occupied: 0 },
+    icu: { total: 0, occupied: 0 },
+    private: { total: 0, occupied: 0 },
   });
+  const [analytics, setAnalytics] = useState({ labels: [], data: [] });
   const [transactions, setTransactions] = useState([]);
-  const [kpis, setKpis] = useState(initialKpis);
+  const [kpis, setKpis] = useState({
+    totalPatients: 0,
+    totalDoctors: 0,
+    totalAppointmentsToday: 0,
+    totalTransactions: 0,
+    totalRevenue: 0
+  });
   const [loading, setLoading] = useState(true);
 
   // --- Fetch Initial Data ---
@@ -39,11 +42,10 @@ export const AdminProvider = ({ children }) => {
         setKpis(data.kpis);
         setAnnouncements(data.announcements);
         setAppointments(data.appointments);
-        // doctors list might need its own mapping if we want full objects
         setDoctors(data.topDoctors);
         setBeds(data.beds);
+        setAnalytics(data.analytics || { labels: [], data: [] });
 
-        // Fetch all patients for management
         const patientsData = await apiFetch('/patients');
         setPatients(patientsData);
       } catch (err) {
@@ -65,7 +67,10 @@ export const AdminProvider = ({ children }) => {
         method: 'POST',
         body: JSON.stringify(doctor)
       });
-      // Refresh doctors list if we had one, or just refresh dashboard
+      // Refresh
+      const data = await apiFetch('/dashboard/admin');
+      setDoctors(data.topDoctors);
+      setKpis(data.kpis);
     } catch (err) {
       console.error('Failed to add doctor:', err);
     }
@@ -78,6 +83,7 @@ export const AdminProvider = ({ children }) => {
         method: 'PUT',
         body: JSON.stringify(data)
       });
+      setDoctors(prev => prev.map(d => d.id === id ? { ...d, ...data } : d));
     } catch (err) {
       console.error('Failed to update doctor:', err);
     }
@@ -101,6 +107,8 @@ export const AdminProvider = ({ children }) => {
         method: 'POST',
         body: JSON.stringify(patient)
       });
+      const patientsData = await apiFetch('/patients');
+      setPatients(patientsData);
     } catch (err) {
       console.error('Failed to add patient:', err);
     }
@@ -137,7 +145,6 @@ export const AdminProvider = ({ children }) => {
         method: 'POST',
         body: JSON.stringify(appointmentData)
       });
-      // Refresh
       const data = await apiFetch('/dashboard/admin');
       setAppointments(data.appointments);
       setKpis(data.kpis);
@@ -222,7 +229,8 @@ export const AdminProvider = ({ children }) => {
     addDoctor,
     updateDoctor,
     deleteDoctor,
-    addPatient
+    addPatient,
+    analytics
   };
 
   return <AdminContext.Provider value={value}>{children}</AdminContext.Provider>;

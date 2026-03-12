@@ -1,18 +1,18 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
-import { FiBarChart2, FiEdit2, FiActivity } from 'react-icons/fi';
-import { MdLocalHospital } from 'react-icons/md';
 import {
-  Chart,
-  ArcElement,
-  DoughnutController,
-  Tooltip,
-  Legend,
-  CategoryScale,
-  LinearScale,
-  BarController,
-  BarElement,
+    ArcElement,
+    BarController,
+    BarElement,
+    CategoryScale,
+    Chart,
+    DoughnutController,
+    Legend,
+    LinearScale,
+    Tooltip,
 } from 'chart.js';
+import React, { useEffect, useRef, useState } from 'react';
+import { FiActivity, FiBarChart2, FiEdit2 } from 'react-icons/fi';
+import { MdLocalHospital } from 'react-icons/md';
+import { useAuth } from '../../context/AuthContext';
 
 Chart.register(
   ArcElement,

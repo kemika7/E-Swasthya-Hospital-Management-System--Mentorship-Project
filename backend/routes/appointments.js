@@ -47,6 +47,7 @@ router.get('/', authenticateToken, async (req, res) => {
 
 // Create an appointment (Patient or Admin)
 router.post('/', authenticateToken, async (req, res) => {
+    console.log('Backend [POST /appointments]: Booking attempt by user:', JSON.stringify(req.user));
     let { doctorId, patientId, date, time, duration, appointment_type, notes } = req.body;
 
     // If patient books, use their ID. If admin books, use provided patientId.
@@ -56,8 +57,14 @@ router.post('/', authenticateToken, async (req, res) => {
         return res.status(403).json({ message: 'Access denied' });
     }
 
-    if (!patientId || !doctorId) {
-        return res.status(400).json({ message: 'Patient ID and Doctor ID are required' });
+    // Ensure IDs are numbers
+    const finalPatientId = Number(patientId);
+    const finalDoctorId = Number(doctorId);
+
+    console.log(`Backend [POST /appointments]: Final Params -> patientId: ${finalPatientId}, doctorId: ${finalDoctorId}, date: ${date}, time: ${time}`);
+
+    if (!finalPatientId || !finalDoctorId) {
+        return res.status(400).json({ message: 'Valid Patient ID and Doctor ID are required' });
     }
 
     if (!date || !time) {
@@ -65,14 +72,22 @@ router.post('/', authenticateToken, async (req, res) => {
     }
 
     try {
+        console.log('Backend [POST /appointments]: Inserting into DB:', {
+            patient_id: finalPatientId,
+            doctor_id: finalDoctorId,
+            date,
+            time,
+            appointment_type: appointment_type || 'Consultation'
+        });
         const [result] = await db.execute(
             'INSERT INTO appointments (patient_id, doctor_id, date, time, duration, status, appointment_type, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            [patientId, doctorId, date, time, duration || 30, 'Scheduled', appointment_type || 'Consultation', notes || null]
+            [finalPatientId, finalDoctorId, date, time, duration || 30, 'Scheduled', appointment_type || 'Consultation', notes || null]
         );
+        console.log('Backend [POST /appointments]: Insert successful, ID:', result.insertId);
         res.status(201).json({ message: 'Appointment created successfully', appointmentId: result.insertId });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: 'Server error booking appointment' });
+        console.error('Backend [POST /appointments]: MySQL Error:', err);
+        res.status(500).json({ message: 'Server error booking appointment: ' + err.message });
     }
 });
 
@@ -96,13 +111,43 @@ router.get('/all', authenticateToken, async (req, res) => {
     }
 });
 
-// Update appointment status, date, time, notes (Admin/Doctor)
+// Update appointment status (Admin/Doctor/Patient for cancellation)
 router.put('/:id', authenticateToken, async (req, res) => {
     try {
         const { status, date, time, duration, appointment_type, notes } = req.body;
         const id = req.params.id;
 
-        if (req.user.role !== 'admin' && req.user.role !== 'doctor') {
+        console.log(`Backend: Update attempt for appointment ${id} by user:`, req.user);
+
+        // Fetch the appointment first to check ownership
+        const [rows] = await db.execute('SELECT * FROM appointments WHERE appointment_id = ?', [id]);
+        if (rows.length === 0) {
+            console.log(`Backend: Appointment ${id} not found`);
+            return res.status(404).json({ message: 'Appointment not found' });
+        }
+        const appointment = rows[0];
+        console.log(`Backend: Found appointment:`, appointment);
+
+        // Permission check:
+        // Admin can update anything.
+        // Doctor can update if it's their appointment.
+        // Patient can ONLY cancel if it's their appointment.
+        if (req.user.role === 'patient') {
+            if (Number(appointment.patient_id) !== Number(req.user.roleId)) {
+                console.log(`Backend: Access denied. appointment.patient_id (${appointment.patient_id}) !== req.user.roleId (${req.user.roleId})`);
+                return res.status(403).json({ message: 'Access denied: You can only update your own appointments' });
+            }
+            // Patients can only change status to 'Cancelled'
+            if (status !== 'Cancelled' || (Object.keys(req.body).length > 1 && (date || time || duration || appointment_type || notes))) {
+                console.log(`Backend: Access denied. Patient tried to update more than status=Cancelled`);
+                return res.status(403).json({ message: 'Access denied: Patients can only cancel their appointments' });
+            }
+        } else if (req.user.role === 'doctor') {
+            if (Number(appointment.doctor_id) !== Number(req.user.roleId)) {
+                return res.status(403).json({ message: 'Access denied: You can only update appointments assigned to you' });
+            }
+        }
+        else if (req.user.role !== 'admin') {
             return res.status(403).json({ message: 'Access denied' });
         }
 
@@ -116,11 +161,11 @@ router.put('/:id', authenticateToken, async (req, res) => {
         let setClauses = [];
 
         if (status) { setClauses.push('status = ?'); params.push(status); }
-        if (date) { setClauses.push('date = ?'); params.push(date); }
-        if (time) { setClauses.push('time = ?'); params.push(time); }
-        if (duration !== undefined) { setClauses.push('duration = ?'); params.push(duration); }
-        if (appointment_type) { setClauses.push('appointment_type = ?'); params.push(appointment_type); }
-        if (notes !== undefined) { setClauses.push('notes = ?'); params.push(notes); }
+        if (date && req.user.role !== 'patient') { setClauses.push('date = ?'); params.push(date); }
+        if (time && req.user.role !== 'patient') { setClauses.push('time = ?'); params.push(time); }
+        if (duration !== undefined && req.user.role !== 'patient') { setClauses.push('duration = ?'); params.push(duration); }
+        if (appointment_type && req.user.role !== 'patient') { setClauses.push('appointment_type = ?'); params.push(appointment_type); }
+        if (notes !== undefined && req.user.role !== 'patient') { setClauses.push('notes = ?'); params.push(notes); }
 
         if (setClauses.length === 0) {
             return res.status(400).json({ message: 'No fields to update' });

@@ -26,6 +26,7 @@ const DoctorProfile = () => {
   const [activeTab, setActiveTab] = useState('schedules');
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState(null);
+  const [appointmentType, setAppointmentType] = useState('Consultation');
   const [showBookingModal, setShowBookingModal] = useState(false);
 
   // Calendar state
@@ -114,26 +115,40 @@ const DoctorProfile = () => {
     }
   };
 
-  const handleConfirmBooking = () => {
-    // Format date string correctly YYYY-MM-DD
+  const handleConfirmBooking = async () => {
+    const convertTo24Hour = (timeStr) => {
+      const [time, modifier] = timeStr.split(' ');
+      let [hours, minutes] = time.split(':');
+      if (hours === '12') hours = '00';
+      if (modifier === 'PM') {
+        hours = parseInt(hours, 10) + 12;
+        if (hours === 24) hours = 12;
+      }
+      return `${String(hours).padStart(2, '0')}:${minutes}:00`;
+    };
+
     const dateStr = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(selectedDate).padStart(2, '0')}`;
 
-    // Update context
-    updateAppointmentDetails({
-      doctorId: String(doctor.id),
-      doctorName: doctor.doctor_name,
-      specialty: doctor.specialty_name || doctor.specialization,
-      date: dateStr,
-      time: selectedTime,
-      location: doctor.location,
-      status: 'Scheduled', // Must match our new schema standard
-    });
+    try {
+      const bookingData = {
+        doctorId: doctor.id,
+        doctorName: doctor.doctor_name,
+        specialty: doctor.specialty_name || doctor.specialization,
+        date: dateStr,
+        time: convertTo24Hour(selectedTime),
+        location: doctor.location,
+        appointmentType: appointmentType,
+        status: 'Scheduled',
+      };
 
-    // Book it
-    bookAppointment();
-
-    // Navigate
-    navigate('/patient/appointments');
+      updateAppointmentDetails(bookingData);
+      await bookAppointment(bookingData);
+      setShowBookingModal(false);
+      navigate('/patient/appointments');
+    } catch (err) {
+      console.error('Booking failed:', err);
+      alert('Failed to book: ' + (err.response?.data?.message || err.message));
+    }
   };
 
   return (
@@ -321,6 +336,35 @@ const DoctorProfile = () => {
           {/* TAB CONTENT */}
           {activeTab === 'schedules' && (
             <div style={{ animation: 'fadeIn 0.3s ease' }}>
+              {/* APPOINTMENT TYPE SELECTION */}
+              <div style={{ marginBottom: '1.5rem' }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#0f172a', marginBottom: '1rem' }}>
+                  Appointment Type
+                </h3>
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  {['Consultation', 'Follow-up', 'Check-up'].map((type) => (
+                    <button
+                      key={type}
+                      onClick={() => setAppointmentType(type)}
+                      style={{
+                        flex: 1,
+                        padding: '0.6rem 0.5rem',
+                        borderRadius: 12,
+                        border: appointmentType === type ? '2px solid var(--primary)' : '1px solid #e2e8f0',
+                        backgroundColor: appointmentType === type ? 'rgba(82, 178, 191, 0.1)' : 'white',
+                        color: appointmentType === type ? 'var(--primary)' : '#64748b',
+                        fontSize: '0.85rem',
+                        fontWeight: appointmentType === type ? 600 : 500,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Top Selectors */}
               <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
                 <div

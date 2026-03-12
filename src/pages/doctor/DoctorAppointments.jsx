@@ -1,10 +1,10 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import { useAdmin } from '../../context/AdminContext';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useAppointment } from '../../context/AppointmentContext';
 import { FiClock, FiCheck, FiX, FiEye } from 'react-icons/fi';
 
 const DoctorAppointments = () => {
-  const { appointments } = useAdmin();
+  const { appointments, updateAppointment } = useAppointment();
   const { userProfile } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
 
@@ -13,11 +13,37 @@ const DoctorAppointments = () => {
     return () => clearTimeout(t);
   }, []);
 
-  const doctorName = userProfile?.name || '';
+  const formatTime = (timeStr) => {
+    if (!timeStr) return '';
+    try {
+      const [hours, minutes] = timeStr.split(':');
+      let h = parseInt(hours, 10);
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      h = h % 12 || 12;
+      return `${h}:${minutes} ${ampm}`;
+    } catch (e) {
+      return timeStr;
+    }
+  };
 
-  const myAppointments = useMemo(() => {
-    return (appointments || []).filter(a => a.doctorName === doctorName);
-  }, [appointments, doctorName]);
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
+  const handleStatusUpdate = async (id, newStatus) => {
+    if (window.confirm(`Mark this appointment as ${newStatus}?`)) {
+      try {
+        await updateAppointment(id, { status: newStatus });
+        alert(`Status updated to ${newStatus}`);
+      } catch (err) {
+        alert('Failed to update status');
+      }
+    }
+  };
+
+  const myAppointments = appointments || [];
 
   return (
     <div className="layout-main">
@@ -56,8 +82,8 @@ const DoctorAppointments = () => {
                 {myAppointments.map(app => (
                   <tr key={app.id} style={{ borderTop: '1px solid #e2e8f0' }}>
                     <td style={{ padding: '0.75rem' }}>{app.patientName}</td>
-                    <td style={{ padding: '0.75rem' }}>{app.date}</td>
-                    <td style={{ padding: '0.75rem' }}>{app.time}</td>
+                    <td style={{ padding: '0.75rem' }}>{formatDate(app.date)}</td>
+                    <td style={{ padding: '0.75rem' }}>{formatTime(app.time)}</td>
                     <td style={{ padding: '0.75rem' }}>{app.type}</td>
                     <td style={{ padding: '0.75rem' }}>
                       <span style={{
@@ -72,10 +98,29 @@ const DoctorAppointments = () => {
                       </span>
                     </td>
                     <td style={{ padding: '0.75rem', textAlign: 'right' }}>
-                      <button className="btn btn-outline" style={{ padding: '0.4rem' }}>
-                        <FiEye size={14} />
-                        <span style={{ marginLeft: '0.35rem' }}>Manage</span>
-                      </button>
+                      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                        {app.status === 'Scheduled' && (
+                          <>
+                            <button
+                              className="btn btn-outline"
+                              style={{ padding: '0.4rem', color: '#22c55e', borderColor: '#22c55e' }}
+                              onClick={() => handleStatusUpdate(app.id, 'Completed')}
+                            >
+                              <FiCheck size={14} />
+                            </button>
+                            <button
+                              className="btn btn-outline"
+                              style={{ padding: '0.4rem', color: '#ef4444', borderColor: '#ef4444' }}
+                              onClick={() => handleStatusUpdate(app.id, 'Cancelled')}
+                            >
+                              <FiX size={14} />
+                            </button>
+                          </>
+                        )}
+                        <button className="btn btn-outline" style={{ padding: '0.4rem' }}>
+                          <FiEye size={14} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

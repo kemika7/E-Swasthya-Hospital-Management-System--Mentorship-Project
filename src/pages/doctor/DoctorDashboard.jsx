@@ -36,16 +36,9 @@ const getDoctorImageSrc = () => {
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-const PLANS = [
-  { label: 'Consultations', percent: 64 },
-  { label: 'Analysis', percent: 50 },
-  { label: 'Meetings', percent: 33 },
-];
+const PLANS = []; // Removing mock plans as requested
 
-const SCHEDULED_EVENTS_DATA = {
-  labels: ['Consultations', 'Lab Analysis', 'Meetings'],
-  values: [25, 10, 3],
-};
+// No mock data constants here
 
 const getWeekDays = (baseDate) => {
   const d = new Date(baseDate);
@@ -61,19 +54,7 @@ const getWeekDays = (baseDate) => {
   return days;
 };
 
-const getActivitiesForDate = (dateKey) => {
-  const activitiesByDay = {
-    [new Date().toDateString()]: [
-      { time: '2:00 pm', title: 'Meeting with Chief Physician' },
-      { time: '2:30 pm', title: 'Consultation with Patient' },
-      { time: '3:00 pm', title: 'Examination' },
-    ],
-  };
-  return activitiesByDay[dateKey] || [
-    { time: '9:00 am', title: 'Consultation' },
-    { time: '11:00 am', title: 'Lab Review' },
-  ];
-};
+// No mock activity generators
 
 const DoctorDashboard = () => {
   const { userProfile } = useAuth();
@@ -85,7 +66,8 @@ const DoctorDashboard = () => {
     stats: { offline: 0, online: 0, laboratory: 0 },
     scheduledEvents: { labels: [], values: [] },
     todayCount: 0,
-    activities: []
+    activities: [],
+    upcomingAppointments: []
   });
   const [fullProfile, setFullProfile] = useState(null);
   const [calendarActivities, setCalendarActivities] = useState([]);
@@ -159,7 +141,20 @@ const DoctorDashboard = () => {
     };
 
     fetchDayAppointments();
-  }, [selectedDate, dashboardData.activities]);
+  }, [selectedDate, today, dashboardData.activities]);
+
+  const formatTime = (timeStr) => {
+    if (!timeStr) return '';
+    try {
+      const [hours, minutes] = timeStr.split(':');
+      let h = parseInt(hours, 10);
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      h = h % 12 || 12;
+      return `${h}:${minutes} ${ampm}`;
+    } catch (e) {
+      return timeStr;
+    }
+  };
 
   useEffect(() => {
     if (!pieChartRef.current || !dashboardData.scheduledEvents.labels.length) return;
@@ -174,7 +169,7 @@ const DoctorDashboard = () => {
         datasets: [
           {
             data: dashboardData.scheduledEvents.values,
-            backgroundColor: ['var(--primary)', 'rgba(82,178,191,0.6)', 'rgba(82,178,191,0.3)'],
+            backgroundColor: ['#4f46e5', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4'],
             borderWidth: 0,
           },
         ],
@@ -267,7 +262,6 @@ const DoctorDashboard = () => {
         {[
           { title: 'Offline Work', count: dashboardData.stats.offline, subtitle: 'Total Appointments', Icon: MdLocalHospital },
           { title: 'Online Work', count: dashboardData.stats.online, subtitle: 'Pending Consultations', Icon: FiActivity },
-          { title: 'Laboratory Work', count: dashboardData.stats.laboratory, subtitle: 'Laboratory Analysis', Icon: FiBarChart2 },
         ].map(({ title, count, subtitle, Icon }) => (
           <div
             key={title}
@@ -464,13 +458,80 @@ const DoctorDashboard = () => {
                     gap: '0.75rem',
                   }}
                 >
-                  <span style={{ fontWeight: 600, color: 'var(--primary)', minWidth: 70 }}>{a.time}</span>
+                  <span style={{ fontWeight: 600, color: 'var(--primary)', minWidth: 70 }}>{formatTime(a.time)}</span>
                   <span style={{ color: 'var(--text)' }}>{a.title}</span>
                 </li>
               ))
             ) : (
               <li style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', textAlign: 'center', padding: '1rem' }}>
                 No activities for this day.
+              </li>
+            )}
+          </ul>
+        </div>
+      </div>
+
+      {/* UPCOMING APPOINTMENTS */}
+      <div
+        style={{
+          backgroundColor: 'var(--white)',
+          borderRadius: 16,
+          padding: '1.25rem',
+          boxShadow: 'var(--shadow-soft)',
+        }}
+      >
+        <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text)', margin: '0 0 1rem' }}>
+          Upcoming Appointments
+        </h2>
+        <div>
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+            {dashboardData.upcomingAppointments?.length > 0 ? (
+              dashboardData.upcomingAppointments.map((a, i) => (
+                <li
+                  key={a.id || i}
+                  style={{
+                    padding: '1rem',
+                    borderRadius: 12,
+                    backgroundColor: 'rgba(82,178,191,0.05)',
+                    marginBottom: '0.75rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    border: '1px solid rgba(82,178,191,0.1)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div
+                      style={{
+                        width: 48,
+                        height: 48,
+                        borderRadius: '50%',
+                        backgroundColor: 'var(--primary)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        fontWeight: 700,
+                      }}
+                    >
+                      {a.patientName?.charAt(0) || 'P'}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 600, color: 'var(--text)' }}>{a.patientName}</div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{a.type || 'Consultation'}</div>
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontWeight: 600, color: 'var(--primary)', fontSize: '0.9rem' }}>
+                      {new Date(a.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{formatTime(a.time)}</div>
+                  </div>
+                </li>
+              ))
+            ) : (
+              <li style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', textAlign: 'center', padding: '1rem' }}>
+                No upcoming appointments.
               </li>
             )}
           </ul>

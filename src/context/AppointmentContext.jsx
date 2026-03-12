@@ -40,17 +40,21 @@ export const AppointmentProvider = ({ children }) => {
     setAppointmentDetails((prev) => ({ ...prev, ...updates }));
   };
 
-  const bookAppointment = async () => {
+  const bookAppointment = async (details = null) => {
     try {
       const { apiFetch } = await import('../services/apiClient');
+
+      const source = details || appointmentDetails;
       const payload = {
-        doctorId: appointmentDetails.doctorId,
-        date: appointmentDetails.date, // Format: YYYY-MM-DD
-        time: appointmentDetails.time,
-        appointment_type: appointmentDetails.appointmentType || 'Consultation',
-        notes: appointmentDetails.reasonToVisit || null,
-        duration: appointmentDetails.duration || 30,
+        doctorId: source.doctorId,
+        date: source.date, // Format: YYYY-MM-DD
+        time: source.time,
+        appointment_type: source.appointmentType || 'Consultation',
+        notes: source.reasonToVisit || null,
+        duration: source.duration || 30,
       };
+
+      console.log('Context: Booking appointment with payload:', payload);
 
       const result = await apiFetch('/appointments', {
         method: 'POST',
@@ -59,33 +63,38 @@ export const AppointmentProvider = ({ children }) => {
 
       setLastBookedAppointment(result);
       // Refresh list
-      fetchAppointments();
+      await fetchAppointments();
       return result;
     } catch (err) {
-      console.error('Failed to book appointment:', err);
+      console.error('Context: Failed to book appointment:', err);
+      throw err;
+    }
+  };
+
+  const updateAppointment = async (appointmentId, data) => {
+    try {
+      console.log('Context: Updating appointment:', appointmentId, data);
+      const { apiFetch } = await import('../services/apiClient');
+      await apiFetch(`/appointments/${Number(appointmentId)}`, {
+        method: 'PUT',
+        body: JSON.stringify(data)
+      });
+      await fetchAppointments();
+    } catch (err) {
+      console.error('Failed to update appointment:', err);
       throw err;
     }
   };
 
   const cancelAppointment = async (appointmentId) => {
-    try {
-      const { apiFetch } = await import('../services/apiClient');
-      await apiFetch(`/appointments/${appointmentId}`, {
-        method: 'PUT',
-        body: JSON.stringify({ status: 'Cancelled' })
-      });
-      // Refresh list
-      fetchAppointments();
-    } catch (err) {
-      console.error('Failed to cancel appointment:', err);
-      throw err;
-    }
+    return updateAppointment(appointmentId, { status: 'Cancelled' });
   };
 
   const value = {
     appointmentDetails,
     updateAppointmentDetails,
     bookAppointment,
+    updateAppointment,
     cancelAppointment,
     lastBookedAppointment,
     appointments,

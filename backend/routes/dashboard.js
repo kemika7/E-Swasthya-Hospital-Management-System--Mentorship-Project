@@ -46,19 +46,16 @@ router.get('/doctor', authenticateToken, async (req, res) => {
                 SUM(CASE WHEN date = CURDATE() THEN 1 ELSE 0 END) as today,
                 SUM(CASE WHEN status = 'Scheduled' THEN 1 ELSE 0 END) as pending
             FROM appointments 
-            WHERE doctor_id = ?
+            WHERE doctor_id = ? AND status != 'Cancelled'
         `, [doctorId]);
 
-        // Scheduled events summary (for the pie chart)
+        // Scheduled events summary (Real data based on appointment types)
         const [events] = await db.execute(`
             SELECT 
-                'Consultations' as label, COUNT(*) as count
+                appointment_type as label, COUNT(*) as count
             FROM appointments 
             WHERE doctor_id = ? AND status = 'Scheduled'
-            UNION
-            SELECT 'Meetings' as label, 3 as count -- Mocking meetings for now
-            UNION
-            SELECT 'Lab Analysis' as label, 5 as count -- Mocking lab work for now
+            GROUP BY appointment_type
         `, [doctorId]);
 
         // Today's activities
@@ -66,15 +63,25 @@ router.get('/doctor', authenticateToken, async (req, res) => {
             SELECT a.time, p.name as title
             FROM appointments a
             JOIN patients p ON a.patient_id = p.patient_id
-            WHERE a.doctor_id = ? AND a.date = CURDATE()
+            WHERE a.doctor_id = ? AND a.date = CURDATE() AND a.status != 'Cancelled'
             ORDER BY a.time ASC
+        `, [doctorId]);
+
+        // Upcoming appointments
+        const [upcoming] = await db.execute(`
+            SELECT a.appointment_id as id, a.date, a.time, a.status, a.appointment_type, p.name as patientName
+            FROM appointments a
+            JOIN patients p ON a.patient_id = p.patient_id
+            WHERE a.doctor_id = ? AND (a.date > CURDATE() OR (a.date = CURDATE() AND a.time >= CURTIME()))
+            AND a.status = 'Scheduled'
+            ORDER BY a.date ASC, a.time ASC
+            LIMIT 5
         `, [doctorId]);
 
         res.json({
             stats: {
                 offline: stats[0].total,
-                online: stats[0].pending,
-                laboratory: 0
+                online: stats[0].pending
             },
             scheduledEvents: {
                 labels: events.map(e => e.label),
@@ -84,6 +91,13 @@ router.get('/doctor', authenticateToken, async (req, res) => {
             activities: activities.map(a => ({
                 time: a.time,
                 title: `Consultation: ${a.title}`
+            })),
+            upcomingAppointments: upcoming.map(u => ({
+                id: u.id,
+                date: u.date,
+                time: u.time,
+                type: u.appointment_type,
+                patientName: u.patientName
             }))
         });
     } catch (err) {
@@ -130,6 +144,17 @@ router.get('/admin', authenticateToken, async (req, res) => {
             SELECT * FROM announcements ORDER BY date DESC, created_at DESC LIMIT 5
         `);
 
+        // Patient Mix / Analytics (Real data: Counts by month)
+        const [analytics] = await db.execute(`
+            SELECT 
+                DATE_FORMAT(created_at, '%b') as month,
+                COUNT(*) as count
+            FROM patients
+            WHERE created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+            GROUP BY month, MONTH(created_at)
+            ORDER BY MONTH(created_at)
+        `);
+
         res.json({
             kpis: counts[0],
             topDoctors: topDoctors.map(d => ({
@@ -138,6 +163,10 @@ router.get('/admin', authenticateToken, async (req, res) => {
                 specialty: d.specialization,
                 rating: d.rating || 0
             })),
+            analytics: {
+                labels: analytics.map(a => a.month),
+                data: analytics.map(a => a.count)
+            },
             appointments: recentAppointments.map(a => ({
                 id: a.appointment_id,
                 patientName: a.patientName,

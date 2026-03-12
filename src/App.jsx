@@ -115,7 +115,7 @@ const AppShell = () => {
           <Route
             path="/login"
             element={
-              isAuthenticated ? (
+              isAuthenticated && userRole && userRole !== 'null' ? (
                 <Navigate to={`/${userRole}`} replace />
               ) : (
                 <main style={{ flex: 1 }}>
@@ -127,7 +127,7 @@ const AppShell = () => {
           <Route
             path="/create-account/patient"
             element={
-              isAuthenticated ? (
+              isAuthenticated && userRole && userRole !== 'null' ? (
                 <Navigate to={`/${userRole}`} replace />
               ) : (
                 <main style={{ flex: 1 }}>
@@ -139,7 +139,7 @@ const AppShell = () => {
           <Route
             path="/register/doctor"
             element={
-              isAuthenticated ? (
+              isAuthenticated && userRole && userRole !== 'null' ? (
                 <Navigate to={`/${userRole}`} replace />
               ) : (
                 <main style={{ flex: 1 }}>

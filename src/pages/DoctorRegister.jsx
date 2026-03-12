@@ -31,7 +31,7 @@ const DoctorRegister = () => {
     setForm((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : sanitizeInput(value) }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const emailValid = /\S+@\S+\.\S+/.test(form.email);
     const required =
@@ -45,7 +45,18 @@ const DoctorRegister = () => {
       form.password &&
       form.confirmAccurate;
     if (!required) return;
-    login({ name: form.name, email: form.email, role: 'doctor' });
+    
+    try {
+      const { apiFetch } = await import('../services/apiClient');
+      const data = await apiFetch('/auth/register-doctor', {
+        method: 'POST',
+        body: JSON.stringify(form),
+      });
+
+      login({ token: data.token, user: data.user });
+    } catch (err) {
+      alert(err.message);
+    }
   };
 
   return (

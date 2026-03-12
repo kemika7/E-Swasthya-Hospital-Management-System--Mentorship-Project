@@ -106,6 +106,12 @@ export const DoctorSidebar = () => {
           </NavLink>
         </li>
         <li>
+          <NavLink to="/doctor/profile" className={doctorLinkStyle}>
+            <FiUser size={22} />
+            <span>Profile</span>
+          </NavLink>
+        </li>
+        <li>
           <NavLink to="/doctor/report" className={doctorLinkStyle}>
             <FiFileText size={22} />
             <span>Report</span>

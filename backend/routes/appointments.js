@@ -133,17 +133,23 @@ router.put('/:id', authenticateToken, async (req, res) => {
         // Doctor can update if it's their appointment.
         // Patient can ONLY cancel if it's their appointment.
         if (req.user.role === 'patient') {
-            if (Number(appointment.patient_id) !== Number(req.user.roleId)) {
-                console.log(`Backend: Access denied. appointment.patient_id (${appointment.patient_id}) !== req.user.roleId (${req.user.roleId})`);
+            const patientId = Number(appointment.patient_id);
+            const userRoleId = Number(req.user.roleId);
+
+            if (patientId !== userRoleId) {
+                console.log(`Backend: Access denied. appointment.patient_id (${patientId}) !== req.user.roleId (${userRoleId})`);
                 return res.status(403).json({ message: 'Access denied: You can only update your own appointments' });
             }
             // Patients can only change status to 'Cancelled'
             if (status !== 'Cancelled' || (Object.keys(req.body).length > 1 && (date || time || duration || appointment_type || notes))) {
                 console.log(`Backend: Access denied. Patient tried to update more than status=Cancelled`);
-                return res.status(403).json({ message: 'Access denied: Patients can only cancel their appointments' });
+                return res.status(403).json({ message: 'Access denied: Patient action limited to cancellation' });
             }
         } else if (req.user.role === 'doctor') {
-            if (Number(appointment.doctor_id) !== Number(req.user.roleId)) {
+            const doctorId = Number(appointment.doctor_id);
+            const userRoleId = Number(req.user.roleId);
+            if (doctorId !== userRoleId) {
+                console.log(`Backend: Access denied. appointment.doctor_id (${doctorId}) !== req.user.roleId (${userRoleId})`);
                 return res.status(403).json({ message: 'Access denied: You can only update appointments assigned to you' });
             }
         }

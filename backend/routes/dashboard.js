@@ -43,8 +43,8 @@ router.get('/doctor', authenticateToken, async (req, res) => {
         const [stats] = await db.execute(`
             SELECT 
                 COUNT(*) as total,
-                SUM(CASE WHEN date = CURDATE() THEN 1 ELSE 0 END) as today,
-                SUM(CASE WHEN status = 'Scheduled' THEN 1 ELSE 0 END) as pending
+                IFNULL(SUM(CASE WHEN date = CURDATE() THEN 1 ELSE 0 END), 0) as today,
+                IFNULL(SUM(CASE WHEN status = 'Scheduled' THEN 1 ELSE 0 END), 0) as pending
             FROM appointments 
             WHERE doctor_id = ? AND status != 'Cancelled'
         `, [doctorId]);
@@ -72,10 +72,18 @@ router.get('/doctor', authenticateToken, async (req, res) => {
             SELECT a.appointment_id as id, a.date, a.time, a.status, a.appointment_type, p.name as patientName
             FROM appointments a
             JOIN patients p ON a.patient_id = p.patient_id
-            WHERE a.doctor_id = ? AND (a.date > CURDATE() OR (a.date = CURDATE() AND a.time >= CURTIME()))
+            WHERE a.doctor_id = ? 
+            AND (a.date > CURDATE() OR (a.date = CURDATE() AND a.time >= SUBTIME(CURTIME(), '00:30:00')))
             AND a.status = 'Scheduled'
             ORDER BY a.date ASC, a.time ASC
-            LIMIT 5
+            LIMIT 20
+        `, [doctorId]);
+
+        // Personal plans
+        const [plans] = await db.execute(`
+            SELECT * FROM doctor_plans 
+            WHERE doctor_id = ? AND date = CURDATE()
+            ORDER BY created_at DESC
         `, [doctorId]);
 
         res.json({
@@ -98,6 +106,11 @@ router.get('/doctor', authenticateToken, async (req, res) => {
                 time: u.time,
                 type: u.appointment_type,
                 patientName: u.patientName
+            })),
+            plans: plans.map(p => ({
+                id: p.id,
+                title: p.title,
+                status: p.status
             }))
         });
     } catch (err) {

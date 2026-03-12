@@ -38,6 +38,7 @@ import {
 } from 'react-icons/fa';
 import { GiStomach } from 'react-icons/gi';
 import { useAuth } from '../../context/AuthContext';
+import { useAppointment } from '../../context/AppointmentContext';
 // No mock data imports here
 
 // Map icon strings to components
@@ -66,6 +67,7 @@ const iconMap = {
 
 const PatientDashboard = () => {
   const { userProfile, logout } = useAuth();
+  const { lastModified } = useAppointment();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -88,7 +90,10 @@ const PatientDashboard = () => {
       }
     };
     fetchDashboard();
-  }, []);
+
+    const interval = setInterval(fetchDashboard, 15000);
+    return () => clearInterval(interval);
+  }, [lastModified]);
 
   const patientName = userProfile?.name || 'Patient';
 

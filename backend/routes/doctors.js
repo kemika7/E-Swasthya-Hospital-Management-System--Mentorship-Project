@@ -102,6 +102,41 @@ router.get('/profile', authenticateToken, async (req, res) => {
         res.status(500).json({ message: 'Server error fetching profile' });
     }
 });
+// Update logged in doctor profile
+router.put('/profile', authenticateToken, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { name, specialization, experience, hospital, bio, location, working_hours, fee } = req.body;
+
+        const connection = await db.getConnection();
+        await connection.beginTransaction();
+
+        try {
+            // Update name in users table
+            if (name) {
+                await connection.execute('UPDATE users SET name = ? WHERE id = ?', [name, userId]);
+            }
+
+            // Update doctor details
+            await connection.execute(`
+                UPDATE doctors 
+                SET specialization = ?, experience = ?, hospital = ?, bio = ?, location = ?, working_hours = ?, fee = ?
+                WHERE user_id = ?
+            `, [specialization, experience, hospital, bio, location, working_hours, fee, userId]);
+
+            await connection.commit();
+            res.json({ message: 'Profile updated successfully' });
+        } catch (err) {
+            await connection.rollback();
+            throw err;
+        } finally {
+            connection.release();
+        }
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server error updating profile' });
+    }
+});
 
 // Create doctor (Admin only)
 router.post('/', authenticateToken, async (req, res) => {

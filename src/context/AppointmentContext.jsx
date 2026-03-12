@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { apiFetch } from '../services/apiClient';
 
 const AppointmentContext = createContext(null);
 
@@ -17,12 +18,12 @@ export const AppointmentProvider = ({ children }) => {
 
   const [lastBookedAppointment, setLastBookedAppointment] = useState(null);
   const [appointments, setAppointments] = useState([]);
+  const [lastModified, setLastModified] = useState(0);
   const [loading, setLoading] = useState(false);
 
   const fetchAppointments = async () => {
     setLoading(true);
     try {
-      const { apiFetch } = await import('../services/apiClient');
       const data = await apiFetch('/appointments');
       setAppointments(data);
     } catch (err) {
@@ -42,8 +43,6 @@ export const AppointmentProvider = ({ children }) => {
 
   const bookAppointment = async (details = null) => {
     try {
-      const { apiFetch } = await import('../services/apiClient');
-
       const source = details || appointmentDetails;
       const payload = {
         doctorId: source.doctorId,
@@ -60,8 +59,10 @@ export const AppointmentProvider = ({ children }) => {
         method: 'POST',
         body: JSON.stringify(payload)
       });
+      console.log('Context: Booking successful');
 
       setLastBookedAppointment(result);
+      setLastModified(prev => prev + 1);
       // Refresh list
       await fetchAppointments();
       return result;
@@ -74,11 +75,11 @@ export const AppointmentProvider = ({ children }) => {
   const updateAppointment = async (appointmentId, data) => {
     try {
       console.log('Context: Updating appointment:', appointmentId, data);
-      const { apiFetch } = await import('../services/apiClient');
       await apiFetch(`/appointments/${Number(appointmentId)}`, {
         method: 'PUT',
         body: JSON.stringify(data)
       });
+      setLastModified(prev => prev + 1);
       await fetchAppointments();
     } catch (err) {
       console.error('Failed to update appointment:', err);
@@ -97,6 +98,7 @@ export const AppointmentProvider = ({ children }) => {
     updateAppointment,
     cancelAppointment,
     lastBookedAppointment,
+    lastModified,
     appointments,
     loading,
     refreshAppointments: fetchAppointments

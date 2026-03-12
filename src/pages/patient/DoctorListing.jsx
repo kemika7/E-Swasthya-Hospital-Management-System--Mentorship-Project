@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FiArrowLeft, FiStar, FiClock, FiFilter } from 'react-icons/fi';
+import { MdLocalHospital } from 'react-icons/md';
 import { apiFetch } from '../../services/apiClient';
 
 const DoctorListing = () => {
@@ -251,6 +252,13 @@ const DoctorListing = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', color: '#64748b' }}>
                     <FiClock size={14} />
                     <span>{doc.experience} Years Experience</span>
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <MdLocalHospital size={14} />
+                    <span>{doc.hospital}</span>
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                    📍 {doc.location}
                   </div>
                 </div>
 

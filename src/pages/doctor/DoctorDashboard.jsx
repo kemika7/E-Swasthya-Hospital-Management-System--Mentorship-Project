@@ -1,7 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useAppointment } from '../../context/AppointmentContext';
 import { FiBarChart2, FiEdit2, FiActivity } from 'react-icons/fi';
 import { MdLocalHospital } from 'react-icons/md';
+import { apiFetch } from '../../services/apiClient';
 import {
   Chart,
   ArcElement,
@@ -57,7 +60,9 @@ const getWeekDays = (baseDate) => {
 // No mock activity generators
 
 const DoctorDashboard = () => {
+  const navigate = useNavigate();
   const { userProfile } = useAuth();
+  const { lastModified } = useAppointment();
   const pieChartRef = useRef(null);
   const pieInstanceRef = useRef(null);
 
@@ -67,11 +72,34 @@ const DoctorDashboard = () => {
     scheduledEvents: { labels: [], values: [] },
     todayCount: 0,
     activities: [],
-    upcomingAppointments: []
+    upcomingAppointments: [],
+    plans: []
   });
   const [fullProfile, setFullProfile] = useState(null);
   const [calendarActivities, setCalendarActivities] = useState([]);
   const [loadingCalendar, setLoadingCalendar] = useState(false);
+  const [newPlanTitle, setNewPlanTitle] = useState('');
+
+  const fetchDashboard = async () => {
+    try {
+      const data = await apiFetch('/dashboard/doctor');
+      setDashboardData(data);
+      setCalendarActivities(data.activities);
+    } catch (err) {
+      console.error('Failed to fetch doctor dashboard:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchProfile = async () => {
+    try {
+      const data = await apiFetch('/doctors/profile');
+      setFullProfile(data);
+    } catch (err) {
+      console.error('Failed to fetch doctor profile:', err);
+    }
+  };
 
   const doctorFullName = userProfile?.name || 'Doctor';
   const today = new Date();
@@ -89,32 +117,15 @@ const DoctorDashboard = () => {
 
   // Fetch Dashboard Stats
   useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        const { apiFetch } = await import('../../services/apiClient');
-        const data = await apiFetch('/dashboard/doctor');
-        setDashboardData(data);
-        setCalendarActivities(data.activities);
-      } catch (err) {
-        console.error('Failed to fetch doctor dashboard:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const fetchProfile = async () => {
-      try {
-        const { apiFetch } = await import('../../services/apiClient');
-        const data = await apiFetch('/doctors/profile');
-        setFullProfile(data);
-      } catch (err) {
-        console.error('Failed to fetch doctor profile:', err);
-      }
-    };
-
     fetchDashboard();
     fetchProfile();
-  }, []);
+
+    const interval = setInterval(() => {
+      fetchDashboard();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [lastModified]);
 
   // Fetch Appointments for Selected Date
   useEffect(() => {
@@ -126,12 +137,17 @@ const DoctorDashboard = () => {
     const fetchDayAppointments = async () => {
       setLoadingCalendar(true);
       try {
-        const { apiFetch } = await import('../../services/apiClient');
-        const dateStr = selectedDate.toISOString().split('T')[0];
+        // Safer local date formatting instead of toISOString which can shift dates
+        const yyyy = selectedDate.getFullYear();
+        const mm = String(selectedDate.getMonth() + 1).padStart(2, '0');
+        const dd = String(selectedDate.getDate()).padStart(2, '0');
+        const dateStr = `${yyyy}-${mm}-${dd}`;
+
         const data = await apiFetch(`/appointments?date=${dateStr}`);
         setCalendarActivities(data.map(a => ({
           time: a.time,
-          title: `Consultation: ${a.patientName}`
+          id: a.id,
+          title: `Consultation: ${a.patientName || a.name || 'Patient'}`
         })));
       } catch (err) {
         console.error('Failed to fetch calendar appointments:', err);
@@ -142,6 +158,50 @@ const DoctorDashboard = () => {
 
     fetchDayAppointments();
   }, [selectedDate, today, dashboardData.activities]);
+
+  const handleAddPlan = async () => {
+    if (!newPlanTitle.trim()) return;
+    try {
+      await apiFetch('/plans', {
+        method: 'POST',
+        body: JSON.stringify({
+          title: newPlanTitle,
+          date: new Date().toISOString().split('T')[0]
+        })
+      });
+      setNewPlanTitle('');
+      fetchDashboard();
+    } catch (err) {
+      console.error('Failed to add plan:', err);
+      alert('Failed to add plan. Please try again.');
+    }
+  };
+
+  const handleTogglePlan = async (id, currentStatus) => {
+    try {
+      await apiFetch(`/plans/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          status: currentStatus === 'Completed' ? 'Pending' : 'Completed'
+        })
+      });
+      fetchDashboard();
+    } catch (err) {
+      console.error('Failed to toggle plan:', err);
+    }
+  };
+
+  const handleDeletePlan = async (id) => {
+    if (!window.confirm('Delete this plan?')) return;
+    try {
+      await apiFetch(`/plans/${id}`, {
+        method: 'DELETE'
+      });
+      fetchDashboard();
+    } catch (err) {
+      console.error('Failed to delete plan:', err);
+    }
+  };
 
   const formatTime = (timeStr) => {
     if (!timeStr) return '';
@@ -322,39 +382,107 @@ const DoctorDashboard = () => {
             borderRadius: 16,
             padding: '1.25rem',
             boxShadow: 'var(--shadow-soft)',
+            display: 'flex',
+            flexDirection: 'column',
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text)', margin: 0 }}>
-              My Plans Done
+              My Plans
             </h2>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {PLANS.map(({ label, percent }) => (
-              <div key={label}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.35rem' }}>
-                  <span style={{ color: 'var(--text)' }}>{label}</span>
-                  <span style={{ fontWeight: 600, color: 'var(--text)' }}>{percent}%</span>
-                </div>
+
+          {/* Add Plan Input */}
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+            <input
+              type="text"
+              placeholder="Add new plan..."
+              value={newPlanTitle}
+              onChange={(e) => setNewPlanTitle(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleAddPlan()}
+              style={{
+                flex: 1,
+                padding: '0.4rem 0.75rem',
+                borderRadius: 8,
+                border: '1px solid #e2e8f0',
+                fontSize: '0.85rem'
+              }}
+            />
+            <button
+              onClick={handleAddPlan}
+              style={{
+                padding: '0.4rem 0.75rem',
+                borderRadius: 8,
+                backgroundColor: 'var(--primary)',
+                color: 'white',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '0.85rem'
+              }}
+            >
+              Add
+            </button>
+          </div>
+
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.75rem',
+              overflowY: 'auto',
+              maxHeight: '200px'
+            }}
+          >
+            {dashboardData.plans && dashboardData.plans.length > 0 ? (
+              dashboardData.plans.map((plan) => (
                 <div
+                  key={plan.id}
                   style={{
-                    height: 8,
-                    backgroundColor: 'rgba(148,163,184,0.2)',
-                    borderRadius: 999,
-                    overflow: 'hidden',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '0.5rem',
+                    borderRadius: 8,
+                    backgroundColor: '#f8fafc',
+                    border: '1px solid #f1f5f9'
                   }}
                 >
-                  <div
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
+                    <input
+                      type="checkbox"
+                      checked={plan.status === 'Completed'}
+                      onChange={() => handleTogglePlan(plan.id, plan.status)}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span style={{
+                      fontSize: '0.85rem',
+                      color: 'var(--text)',
+                      textDecoration: plan.status === 'Completed' ? 'line-through' : 'none',
+                      opacity: plan.status === 'Completed' ? 0.5 : 1
+                    }}>
+                      {plan.title}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => handleDeletePlan(plan.id)}
                     style={{
-                      width: `${percent}%`,
-                      height: '100%',
-                      backgroundColor: 'var(--primary)',
-                      borderRadius: 999,
+                      padding: '0.2rem 0.4rem',
+                      color: '#ef4444',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '0.8rem'
                     }}
-                  />
+                  >
+                    Delete
+                  </button>
                 </div>
+              ))
+            ) : (
+              <div style={{ textAlign: 'center', padding: '1rem', color: '#94a3b8', fontSize: '0.85rem' }}>
+                No plans for today.
               </div>
-            ))}
+            )}
           </div>
         </div>
 
@@ -371,7 +499,11 @@ const DoctorDashboard = () => {
             <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text)', margin: 0 }}>
               My Profile
             </h2>
-            <button type="button" style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 4 }}>
+            <button
+              type="button"
+              onClick={() => navigate('/doctor/profile')}
+              style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 4 }}
+            >
               <FiEdit2 size={18} style={{ color: 'var(--primary)' }} />
             </button>
           </div>
@@ -406,9 +538,17 @@ const DoctorDashboard = () => {
           boxShadow: 'var(--shadow-soft)',
         }}
       >
-        <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text)', margin: '0 0 1rem' }}>
-          My Calendar
-        </h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text)', margin: 0 }}>
+            My Calendar
+          </h2>
+          <button
+            onClick={() => navigate('/doctor/calendar')}
+            style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 600, border: 'none', background: 'none', cursor: 'pointer' }}
+          >
+            Full Calendar
+          </button>
+        </div>
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
           {weekDays.map((d) => {
             const isSelected = d.toDateString() === selectedDateKey;
@@ -480,15 +620,21 @@ const DoctorDashboard = () => {
           boxShadow: 'var(--shadow-soft)',
         }}
       >
-        <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text)', margin: '0 0 1rem' }}>
-          Upcoming Appointments
-        </h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>Upcoming Appointments</h3>
+          <button
+            onClick={() => navigate('/doctor/appointments')}
+            style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 600, border: 'none', background: 'none', cursor: 'pointer' }}
+          >
+            View All
+          </button>
+        </div>
         <div>
           <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
             {dashboardData.upcomingAppointments?.length > 0 ? (
-              dashboardData.upcomingAppointments.map((a, i) => (
+              dashboardData.upcomingAppointments.map((appt, i) => (
                 <li
-                  key={a.id || i}
+                  key={appt.id || i}
                   style={{
                     padding: '1rem',
                     borderRadius: 12,
@@ -514,18 +660,20 @@ const DoctorDashboard = () => {
                         fontWeight: 700,
                       }}
                     >
-                      {a.patientName?.charAt(0) || 'P'}
+                      {appt.patientName?.charAt(0) || 'P'}
                     </div>
                     <div>
-                      <div style={{ fontWeight: 600, color: 'var(--text)' }}>{a.patientName}</div>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{a.type || 'Consultation'}</div>
+                      <div style={{ fontWeight: 600, color: '#0f172a' }}>{appt.patientName || appt.name || 'Patient'}</div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{appt.type || 'Consultation'}</div>
                     </div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontWeight: 600, color: 'var(--primary)', fontSize: '0.9rem' }}>
-                      {new Date(a.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      {appt.date && new Date(appt.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                     </div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{formatTime(a.time)}</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                      {formatTime(appt.time)}
+                    </div>
                   </div>
                 </li>
               ))

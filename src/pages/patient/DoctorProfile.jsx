@@ -240,10 +240,13 @@ const DoctorProfile = () => {
 
               {/* Right: Details */}
               <div style={{ flex: 1 }}>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.25rem' }}>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.1rem' }}>
                   {doctor.doctor_name}
                 </h2>
-                <div style={{ fontSize: '0.95rem', color: '#64748b', marginBottom: '0.5rem' }}>
+                <div style={{ fontSize: '0.9rem', color: 'var(--primary)', fontWeight: 600, marginBottom: '0.4rem' }}>
+                  {doctor.hospital || 'E-Swasthya General Hospital'}
+                </div>
+                <div style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '0.5rem' }}>
                   {doctor.specialty_name || doctor.specialization}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem', color: '#64748b', marginBottom: '0.75rem' }}>
@@ -382,7 +385,9 @@ const DoctorProfile = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <FiCalendar style={{ color: 'var(--primary)' }} />
                     <span style={{ fontSize: '0.9rem', color: '#0f172a' }}>
-                      {selectedDate ? `${selectedDate}.02.2026` : 'Select Date'}
+                      {selectedDate
+                        ? `${selectedDate} ${currentMonth.toLocaleString('default', { month: 'short' })} ${currentMonth.getFullYear()}`
+                        : 'Select Date'}
                     </span>
                   </div>
                   <FiChevronDown color="#94a3b8" />

@@ -10,12 +10,31 @@ const AppointmentsManagement = () => {
   };
 
   const getStatusColor = (status) => {
-    switch(status.toLowerCase()) {
+    switch (status.toLowerCase()) {
       case 'completed': return '#22c55e';
       case 'scheduled': return '#3b82f6';
       case 'cancelled': return '#ef4444';
       default: return '#f59e0b';
     }
+  };
+
+  const formatTime = (timeStr) => {
+    if (!timeStr) return '';
+    try {
+      const [hours, minutes] = timeStr.split(':');
+      let h = parseInt(hours, 10);
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      h = h % 12 || 12;
+      return `${h}:${minutes} ${ampm}`;
+    } catch (e) {
+      return timeStr;
+    }
+  };
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
   return (
@@ -42,13 +61,13 @@ const AppointmentsManagement = () => {
                 <td style={{ padding: '1rem' }}>{app.patientName}</td>
                 <td style={{ padding: '1rem' }}>{app.doctorName}</td>
                 <td style={{ padding: '1rem' }}>
-                  <div style={{ fontSize: '0.9rem' }}>{app.date}</div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{app.time}</div>
+                  <div style={{ fontSize: '0.9rem' }}>{formatDate(app.date)}</div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{formatTime(app.time)}</div>
                 </td>
                 <td style={{ padding: '1rem' }}>{app.type}</td>
                 <td style={{ padding: '1rem' }}>
-                  <span style={{ 
-                    color: getStatusColor(app.status), 
+                  <span style={{
+                    color: getStatusColor(app.status),
                     fontWeight: 500,
                     backgroundColor: `${getStatusColor(app.status)}15`,
                     padding: '0.25rem 0.5rem',
@@ -61,20 +80,20 @@ const AppointmentsManagement = () => {
                 <td style={{ padding: '1rem', textAlign: 'right' }}>
                   <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
                     {app.status !== 'Completed' && (
-                      <button 
-                        className="btn btn-outline" 
+                      <button
+                        className="btn btn-outline"
                         title="Mark Completed"
-                        style={{ color: '#22c55e', borderColor: '#22c55e', padding: '0.4rem' }} 
+                        style={{ color: '#22c55e', borderColor: '#22c55e', padding: '0.4rem' }}
                         onClick={() => handleStatusChange(app.id, 'Completed')}
                       >
                         <FiCheck size={14} />
                       </button>
                     )}
                     {app.status !== 'Cancelled' && (
-                      <button 
-                        className="btn btn-outline" 
+                      <button
+                        className="btn btn-outline"
                         title="Cancel"
-                        style={{ color: '#ef4444', borderColor: '#ef4444', padding: '0.4rem' }} 
+                        style={{ color: '#ef4444', borderColor: '#ef4444', padding: '0.4rem' }}
                         onClick={() => handleStatusChange(app.id, 'Cancelled')}
                       >
                         <FiX size={14} />

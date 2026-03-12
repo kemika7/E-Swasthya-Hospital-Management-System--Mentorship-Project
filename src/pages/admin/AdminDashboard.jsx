@@ -31,6 +31,25 @@ const AdminDashboard = () => {
   // Top Performing Doctors Logic
   const topDoctors = (doctors || []).slice(0, 3);
 
+  const formatTime = (timeStr) => {
+    if (!timeStr) return '';
+    try {
+      const [hours, minutes] = timeStr.split(':');
+      let h = parseInt(hours, 10);
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      h = h % 12 || 12;
+      return `${h}:${minutes} ${ampm}`;
+    } catch (e) {
+      return timeStr;
+    }
+  };
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
   const handleAppointmentAction = (id, action) => {
     if (action === 'cancel') {
       updateAppointment(id, { status: 'Cancelled' });
@@ -221,7 +240,9 @@ const AdminDashboard = () => {
               <div key={app.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', backgroundColor: '#f8fafc', borderRadius: '8px' }}>
                 <div>
                   <div style={{ fontWeight: 500, fontSize: '0.9rem' }}>{app.patientName}</div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{app.doctorName} • {app.time}</div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    {app.doctorName} • {formatDate(app.date)} {formatTime(app.time)}
+                  </div>
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   {app.status === 'Pending' || app.status === 'Scheduled' ? (

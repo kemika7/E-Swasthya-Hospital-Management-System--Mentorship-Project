@@ -26,6 +26,7 @@ const DoctorAnalytics = lazy(() => import('./pages/doctor/DoctorAnalytics'));
 const DoctorCalendarPage = lazy(() => import('./pages/doctor/DoctorCalendarPage'));
 const DoctorReport = lazy(() => import('./pages/doctor/DoctorReport'));
 const DoctorAppointments = lazy(() => import('./pages/doctor/DoctorAppointments'));
+const DoctorProfileEdit = lazy(() => import('./pages/doctor/DoctorProfileEdit'));
 
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
 const DoctorsManagement = lazy(() => import('./pages/admin/DoctorsManagement'));
@@ -56,6 +57,7 @@ const DoctorLayout = () => (
       <Route path="analytics" element={<DoctorAnalytics />} />
       <Route path="calendar" element={<DoctorCalendarPage />} />
       <Route path="appointments" element={<DoctorAppointments />} />
+      <Route path="profile" element={<DoctorProfileEdit />} />
       <Route path="report" element={<DoctorReport />} />
       <Route path="copilot" element={<DoctorCopilot />} />
       <Route path="*" element={<Navigate to="/doctor" replace />} />

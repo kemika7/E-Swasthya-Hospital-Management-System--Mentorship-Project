@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useAdmin } from '../../context/AdminContext';
+import { useAppointment } from '../../context/AppointmentContext';
 import { FiChevronLeft, FiChevronRight, FiCalendar, FiClock } from 'react-icons/fi';
 
 const DoctorCalendarPage = () => {
   const { userProfile } = useAuth();
-  const { appointments } = useAdmin();
+  const { appointments, refreshAppointments } = useAppointment();
   const doctorName = userProfile?.name || 'Doctor';
 
   const today = new Date();
@@ -73,9 +73,9 @@ const DoctorCalendarPage = () => {
 
   const myAppointmentsForDay = useMemo(() => {
     return (appointments || []).filter(
-      (a) => a.doctorName === doctorName && a.date === selectedDateIso
+      (a) => a.date === selectedDateIso
     );
-  }, [appointments, doctorName, selectedDateIso]);
+  }, [appointments, selectedDateIso]);
 
   return (
     <div className="layout-main">
@@ -217,14 +217,14 @@ const DoctorCalendarPage = () => {
                           a.status === 'Completed'
                             ? '#22c55e'
                             : a.status === 'Cancelled'
-                            ? '#ef4444'
-                            : '#3b82f6',
+                              ? '#ef4444'
+                              : '#3b82f6',
                         backgroundColor:
                           a.status === 'Completed'
                             ? '#22c55e15'
                             : a.status === 'Cancelled'
-                            ? '#ef444415'
-                            : '#3b82f615',
+                              ? '#ef444415'
+                              : '#3b82f615',
                         padding: '0.25rem 0.5rem',
                         borderRadius: 6,
                       }}

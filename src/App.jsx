@@ -8,6 +8,7 @@ import { useAuth } from './context/AuthContext';
 // Pages
 const Onboarding = lazy(() => import('./pages/Onboarding'));
 const Login = lazy(() => import('./pages/Login'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const CreateAccountPatient = lazy(() => import('./pages/CreateAccountPatient'));
 const DoctorRegister = lazy(() => import('./pages/DoctorRegister'));
 const NotFound = lazy(() => import('./pages/NotFound'));
@@ -83,6 +84,7 @@ const AppShell = () => {
   const hideNavbar =
     location.pathname === '/' ||
     location.pathname === '/login' ||
+    location.pathname === '/forgot-password' ||
     location.pathname.startsWith('/create-account') ||
     location.pathname.startsWith('/register/');
 
@@ -120,6 +122,18 @@ const AppShell = () => {
               ) : (
                 <main style={{ flex: 1 }}>
                   <Login />
+                </main>
+              )
+            }
+          />
+          <Route
+            path="/forgot-password"
+            element={
+              isAuthenticated && userRole && userRole !== 'null' ? (
+                <Navigate to={`/${userRole}`} replace />
+              ) : (
+                <main style={{ flex: 1 }}>
+                  <ForgotPassword />
                 </main>
               )
             }

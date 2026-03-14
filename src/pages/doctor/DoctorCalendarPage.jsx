@@ -72,9 +72,12 @@ const DoctorCalendarPage = () => {
   }, [selectedDate]);
 
   const myAppointmentsForDay = useMemo(() => {
-    return (appointments || []).filter(
-      (a) => a.doctorName === doctorName && a.date === selectedDateIso
-    );
+    return (appointments || []).filter((a) => {
+      // a.date might be a string like "2026-03-14" or an ISO string. 
+      // With dateStrings: true, it will be EXACTLY "2026-03-14".
+      const appointmentDateStr = typeof a.date === 'string' ? a.date.split('T')[0] : a.date;
+      return a.doctorName === doctorName && appointmentDateStr === selectedDateIso;
+    });
   }, [appointments, doctorName, selectedDateIso]);
 
   return (

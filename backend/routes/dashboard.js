@@ -78,6 +78,14 @@ router.get('/doctor', authenticateToken, async (req, res) => {
             LIMIT 5
         `, [doctorId]);
 
+        // Today's custom plans
+        const [doctorPlans] = await db.execute(`
+            SELECT id, title, status, date
+            FROM doctor_plans
+            WHERE doctor_id = ? AND date = CURDATE()
+            ORDER BY created_at ASC
+        `, [doctorId]);
+
         res.json({
             stats: {
                 offline: stats[0].total,
@@ -98,6 +106,12 @@ router.get('/doctor', authenticateToken, async (req, res) => {
                 time: u.time,
                 type: u.appointment_type,
                 patientName: u.patientName
+            })),
+            doctorPlans: doctorPlans.map(p => ({
+                id: p.id,
+                title: p.title,
+                status: p.status,
+                date: p.date
             }))
         });
     } catch (err) {

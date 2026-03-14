@@ -29,6 +29,7 @@ app.use('/api/appointments', require('./routes/appointments'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/announcements', require('./routes/announcements'));
 app.use('/api/patients', require('./routes/patients'));
+app.use('/api/plans', require('./routes/plans'));
 
 // Health Check
 app.get('/api/health', (req, res) => {
@@ -48,3 +49,4 @@ app.get('/api/db-test', async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
+// Nodemon re-trigger

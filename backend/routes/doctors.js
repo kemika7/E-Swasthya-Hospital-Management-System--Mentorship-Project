@@ -103,6 +103,8 @@ router.get('/profile', authenticateToken, async (req, res) => {
     }
 });
 
+
+
 // Create doctor (Admin only)
 router.post('/', authenticateToken, async (req, res) => {
     try {
@@ -143,6 +145,54 @@ router.post('/', authenticateToken, async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: 'Server error creating doctor' });
+    }
+});
+
+// Update logged in doctor profile (Doctor only)
+router.put('/profile', authenticateToken, async (req, res) => {
+    try {
+        if (req.user.role !== 'doctor') return res.status(403).json({ message: 'Access denied. Only doctors can update their own profile.' });
+
+        const userId = req.user.id;
+        const { name, specialization, location, dob, blood_group, working_hours } = req.body;
+
+        const connection = await db.getConnection();
+        await connection.beginTransaction();
+
+        try {
+            // Update name in users table if provided
+            if (name) {
+                await connection.execute('UPDATE users SET name = ? WHERE id = ?', [name, userId]);
+            }
+
+            // Define allowable fields for the doctors table
+            let doctorQuery = 'UPDATE doctors SET ';
+            let params = [];
+            let setClauses = [];
+
+            if (specialization !== undefined) { setClauses.push('specialization = ?'); params.push(specialization); }
+            if (location !== undefined) { setClauses.push('location = ?'); params.push(location); }
+            if (dob !== undefined) { setClauses.push('dob = ?'); params.push(dob); }
+            if (blood_group !== undefined) { setClauses.push('blood_group = ?'); params.push(blood_group); }
+            if (working_hours !== undefined) { setClauses.push('working_hours = ?'); params.push(working_hours); }
+
+            if (setClauses.length > 0) {
+                doctorQuery += setClauses.join(', ') + ' WHERE user_id = ?';
+                params.push(userId);
+                await connection.execute(doctorQuery, params);
+            }
+
+            await connection.commit();
+            res.json({ message: 'Profile updated successfully' });
+        } catch (err) {
+            await connection.rollback();
+            throw err;
+        } finally {
+            connection.release();
+        }
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server error updating profile' });
     }
 });
 

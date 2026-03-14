@@ -10,8 +10,9 @@ import {
     Tooltip,
 } from 'chart.js';
 import React, { useEffect, useRef, useState } from 'react';
-import { FiActivity, FiBarChart2, FiEdit2 } from 'react-icons/fi';
+import { FiActivity, FiBarChart2, FiEdit2, FiX } from 'react-icons/fi';
 import { MdLocalHospital } from 'react-icons/md';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 Chart.register(
@@ -35,8 +36,6 @@ const getDoctorImageSrc = () => {
 };
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
-const PLANS = []; // Removing mock plans as requested
 
 // No mock data constants here
 
@@ -72,6 +71,20 @@ const DoctorDashboard = () => {
   const [fullProfile, setFullProfile] = useState(null);
   const [calendarActivities, setCalendarActivities] = useState([]);
   const [loadingCalendar, setLoadingCalendar] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  
+  // Custom To-Do List State
+  const [todos, setTodos] = useState([]);
+  const [newTodoInput, setNewTodoInput] = useState('');
+
+  const [profileForm, setProfileForm] = useState({
+    name: '',
+    specialization: '',
+    location: '',
+    dob: '',
+    blood_group: '',
+    working_hours: ''
+  });
 
   const doctorFullName = userProfile?.name || 'Doctor';
   const today = new Date();
@@ -94,7 +107,35 @@ const DoctorDashboard = () => {
         const { apiFetch } = await import('../../services/apiClient');
         const data = await apiFetch('/dashboard/doctor');
         setDashboardData(data);
-        setCalendarActivities(data.activities);
+        setCalendarActivities(data.activities || []);
+        
+        // Merge custom plans and today's appointments for To-Do List
+        const mixedTodos = [];
+        if (data.activities && data.activities.length) {
+          data.activities.forEach(a => {
+            // Note: Appointment completion isn't fully robust here unless we fetch their exact statuses, 
+            // but for dashboard display context, we'll mark them pending by default unless their data says otherwise.
+            mixedTodos.push({
+               id: a.appointment_id || Date.now() + Math.random(), 
+               type: 'appointment',
+               title: a.title,
+               status: a.status || 'Pending',
+               time: a.time
+            });
+          });
+        }
+        if (data.doctorPlans && data.doctorPlans.length) {
+           data.doctorPlans.forEach(p => {
+             mixedTodos.push({
+                id: p.id,
+                type: 'plan',
+                title: p.title,
+                status: p.status
+             });
+           });
+        }
+        setTodos(mixedTodos);
+
       } catch (err) {
         console.error('Failed to fetch doctor dashboard:', err);
       } finally {
@@ -107,6 +148,14 @@ const DoctorDashboard = () => {
         const { apiFetch } = await import('../../services/apiClient');
         const data = await apiFetch('/doctors/profile');
         setFullProfile(data);
+        setProfileForm({
+          name: data.name || '',
+          specialization: data.specialization || '',
+          location: data.location || '',
+          dob: data.dob ? new Date(data.dob).toISOString().split('T')[0] : '',
+          blood_group: data.blood_group || '',
+          working_hours: data.working_hours || ''
+        });
       } catch (err) {
         console.error('Failed to fetch doctor profile:', err);
       }
@@ -127,7 +176,10 @@ const DoctorDashboard = () => {
       setLoadingCalendar(true);
       try {
         const { apiFetch } = await import('../../services/apiClient');
-        const dateStr = selectedDate.toISOString().split('T')[0];
+        const yy = selectedDate.getFullYear();
+        const mm = String(selectedDate.getMonth() + 1).padStart(2, '0');
+        const dd = String(selectedDate.getDate()).padStart(2, '0');
+        const dateStr = `${yy}-${mm}-${dd}`;
         const data = await apiFetch(`/appointments?date=${dateStr}`);
         setCalendarActivities(data.map(a => ({
           time: a.time,
@@ -142,6 +194,82 @@ const DoctorDashboard = () => {
 
     fetchDayAppointments();
   }, [selectedDate, today, dashboardData.activities]);
+
+  const handleProfileUpdate = async (e) => {
+    e.preventDefault();
+    try {
+      const { apiFetch } = await import('../../services/apiClient');
+      await apiFetch('/doctors/profile', {
+        method: 'PUT',
+        body: JSON.stringify(profileForm)
+      });
+      
+      setFullProfile(prev => ({
+        ...prev,
+        ...profileForm,
+      }));
+      setIsEditingProfile(false);
+    } catch (err) {
+      console.error('Failed to update profile:', err);
+      alert('Failed to update profile: ' + err.message);
+    }
+  };
+
+  const handleAddTodo = async (e) => {
+    e.preventDefault();
+    if (!newTodoInput.trim()) return;
+
+    try {
+      const { apiFetch } = await import('../../services/apiClient');
+      const todayISO = today.toISOString().split('T')[0];
+      const res = await apiFetch('/plans', {
+        method: 'POST',
+        body: JSON.stringify({ title: newTodoInput.trim(), date: todayISO })
+      });
+
+      setTodos([...todos, {
+        id: res.id,
+        type: 'plan',
+        title: res.title,
+        status: res.status
+      }]);
+      setNewTodoInput('');
+    } catch (err) {
+      console.error('Failed to add plan:', err);
+      alert('Failed to add plan: ' + err.message);
+    }
+  };
+
+  const handleToggleTodo = async (todoId, type, currentStatus) => {
+    try {
+      const { apiFetch } = await import('../../services/apiClient');
+      const newStatus = currentStatus === 'Pending' ? 'Completed' : 'Pending';
+      
+      if (type === 'plan') {
+         await apiFetch(`/plans/${todoId}`, {
+           method: 'PUT',
+           body: JSON.stringify({ status: newStatus })
+         });
+      } else if (type === 'appointment') {
+         // Optionally, uncomment if you want clicking an appointment to actually hit DB
+         // await apiFetch(`/appointments/${todoId}`, { method: 'PUT', body: JSON.stringify({ status: newStatus }) });
+      }
+
+      setTodos(todos.map(t => Math.floor(t.id) === Math.floor(todoId) ? { ...t, status: newStatus } : t));
+    } catch (err) {
+      console.error('Failed to toggle status:', err);
+    }
+  };
+
+  const handleDeleteTodo = async (todoId) => {
+    try {
+      const { apiFetch } = await import('../../services/apiClient');
+      await apiFetch(`/plans/${todoId}`, { method: 'DELETE' });
+      setTodos(todos.filter(t => t.id !== todoId));
+    } catch (err) {
+      console.error('Failed to delete plan:', err);
+    }
+  };
 
   const formatTime = (timeStr) => {
     if (!timeStr) return '';
@@ -315,13 +443,15 @@ const DoctorDashboard = () => {
           </div>
         </div>
 
-        {/* MY PLANS DONE */}
+        {/* MY PLANS DONE / TO-DO LIST */}
         <div
           style={{
             backgroundColor: 'var(--white)',
             borderRadius: 16,
             padding: '1.25rem',
             boxShadow: 'var(--shadow-soft)',
+            display: 'flex',
+            flexDirection: 'column',
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
@@ -329,32 +459,66 @@ const DoctorDashboard = () => {
               My Plans Done
             </h2>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {PLANS.map(({ label, percent }) => (
-              <div key={label}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.35rem' }}>
-                  <span style={{ color: 'var(--text)' }}>{label}</span>
-                  <span style={{ fontWeight: 600, color: 'var(--text)' }}>{percent}%</span>
+          
+          <form onSubmit={handleAddTodo} style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
+            <input 
+              type="text" 
+              placeholder="Add new task..." 
+              value={newTodoInput}
+              onChange={(e) => setNewTodoInput(e.target.value)}
+              style={{
+                flex: 1, padding: '0.5rem 0.75rem', borderRadius: 8, border: '1px solid rgba(23,23,16,0.1)', fontSize: '0.85rem'
+              }}
+            />
+            <button 
+              type="submit" 
+              style={{
+                backgroundColor: 'var(--primary)', color: 'white', border: 'none', borderRadius: 8, padding: '0 0.75rem', cursor: 'pointer', fontWeight: 600
+              }}
+            >
+              +
+            </button>
+          </form>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', overflowY: 'auto', flex: 1, maxHeight: '200px', paddingRight: '4px' }}>
+            {todos.length > 0 ? todos.map((todo) => {
+              const isDone = todo.status === 'Completed';
+              return (
+                <div key={todo.id} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem', borderRadius: 8, 
+                  backgroundColor: 'rgba(148,163,184,0.05)', border: '1px solid rgba(82,178,191,0.05)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', overflow: 'hidden' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={isDone} 
+                      onChange={() => handleToggleTodo(todo.id, todo.type, todo.status)}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                      <span style={{ 
+                        fontSize: '0.85rem', color: isDone ? 'var(--text-secondary)' : 'var(--text)',
+                        textDecoration: isDone ? 'line-through' : 'none',
+                        whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden'
+                      }}>
+                        {todo.title}
+                      </span>
+                      {todo.type === 'appointment' && (
+                        <span style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 600 }}>Appointment {todo.time ? `• ${formatTime(todo.time)}` : ''}</span>
+                      )}
+                    </div>
+                  </div>
+                  {todo.type === 'plan' && (
+                    <button 
+                      onClick={() => handleDeleteTodo(todo.id)}
+                      style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '1.2rem', cursor: 'pointer', padding: 0, lineHeight: 1 }}
+                    >×</button>
+                  )}
                 </div>
-                <div
-                  style={{
-                    height: 8,
-                    backgroundColor: 'rgba(148,163,184,0.2)',
-                    borderRadius: 999,
-                    overflow: 'hidden',
-                  }}
-                >
-                  <div
-                    style={{
-                      width: `${percent}%`,
-                      height: '100%',
-                      backgroundColor: 'var(--primary)',
-                      borderRadius: 999,
-                    }}
-                  />
-                </div>
-              </div>
-            ))}
+              );
+            }) : (
+              <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', textAlign: 'center', margin: 'auto 0' }}>No tasks for today!</div>
+            )}
           </div>
         </div>
 
@@ -371,12 +535,16 @@ const DoctorDashboard = () => {
             <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text)', margin: 0 }}>
               My Profile
             </h2>
-            <button type="button" style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 4 }}>
+            <button 
+              type="button" 
+              onClick={() => setIsEditingProfile(true)}
+              style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 4 }}
+            >
               <FiEdit2 size={18} style={{ color: 'var(--primary)' }} />
             </button>
           </div>
           <div style={{ fontSize: '0.9rem' }}>
-            <div style={{ fontWeight: 600, color: 'var(--text)', marginBottom: '0.25rem' }}>Dr. {doctorFullName}</div>
+            <div style={{ fontWeight: 600, color: 'var(--text)', marginBottom: '0.25rem' }}>Dr. {fullProfile?.name || doctorFullName}</div>
             <div style={{ color: 'var(--text)', opacity: 0.8, marginBottom: '0.5rem' }}>{fullProfile?.specialization || 'Cardiologist'}</div>
             <div style={{ color: 'var(--text)', opacity: 0.8, marginBottom: '1rem' }}>{fullProfile?.location || 'Kathmandu, Nepal'}</div>
             <div style={{ display: 'grid', gap: '0.35rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(23,23,16,0.1)' }}>
@@ -406,9 +574,14 @@ const DoctorDashboard = () => {
           boxShadow: 'var(--shadow-soft)',
         }}
       >
-        <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text)', margin: '0 0 1rem' }}>
-          My Calendar
-        </h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text)', margin: 0 }}>
+            My Calendar
+          </h2>
+          <Link to="/doctor/calendar" style={{ fontSize: '0.85rem', color: 'var(--primary)', textDecoration: 'none', fontWeight: 600 }}>
+            View All Calendar
+          </Link>
+        </div>
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
           {weekDays.map((d) => {
             const isSelected = d.toDateString() === selectedDateKey;
@@ -537,6 +710,82 @@ const DoctorDashboard = () => {
           </ul>
         </div>
       </div>
+
+      {/* EDIT PROFILE MODAL */}
+      {isEditingProfile && (
+        <div style={{
+          position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100
+        }}>
+          <div className="card" style={{ width: '100%', maxWidth: '500px', padding: '2rem', backgroundColor: 'var(--white)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+              <h3 style={{ margin: 0 }}>Edit Profile</h3>
+              <button onClick={() => setIsEditingProfile(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                <FiX size={24} />
+              </button>
+            </div>
+            <form onSubmit={handleProfileUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.85rem', fontWeight: 500 }}>Full Name</label>
+                <input 
+                  className="input-field" 
+                  value={profileForm.name} 
+                  onChange={e => setProfileForm({...profileForm, name: e.target.value})} 
+                  required 
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.85rem', fontWeight: 500 }}>Specialization</label>
+                <input 
+                  className="input-field" 
+                  value={profileForm.specialization} 
+                  onChange={e => setProfileForm({...profileForm, specialization: e.target.value})} 
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.85rem', fontWeight: 500 }}>Location</label>
+                <input 
+                  className="input-field" 
+                  value={profileForm.location} 
+                  onChange={e => setProfileForm({...profileForm, location: e.target.value})} 
+                />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.85rem', fontWeight: 500 }}>Date of Birth</label>
+                  <input 
+                    type="date"
+                    className="input-field" 
+                    value={profileForm.dob} 
+                    onChange={e => setProfileForm({...profileForm, dob: e.target.value})} 
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.85rem', fontWeight: 500 }}>Blood Group</label>
+                  <input 
+                    className="input-field" 
+                    value={profileForm.blood_group} 
+                    onChange={e => setProfileForm({...profileForm, blood_group: e.target.value})} 
+                  />
+                </div>
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.85rem', fontWeight: 500 }}>Working Hours</label>
+                <input 
+                  className="input-field" 
+                  value={profileForm.working_hours} 
+                  placeholder="e.g. 9 AM - 5 PM"
+                  onChange={e => setProfileForm({...profileForm, working_hours: e.target.value})} 
+                />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
+                <button type="button" className="btn btn-outline" onClick={() => setIsEditingProfile(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary">Save Changes</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

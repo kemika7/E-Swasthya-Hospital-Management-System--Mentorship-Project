@@ -9,6 +9,7 @@ import BrandingHeader from '../components/BrandingHeader';
 import loginIllustration from '../assets/images/login.png';
 import homepageIllustration from '../assets/images/homepage1.png';
 import { sanitizeInput } from '../utils/sanitize';
+import OtpVerificationModal from '../components/OtpVerificationModal';
 
 const Login = () => {
   const { login } = useAuth();
@@ -25,9 +26,14 @@ const Login = () => {
 
   const [showPassword, setShowPassword] = useState(false);
 
+  const [error, setError] = useState('');
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [unverifiedEmail, setUnverifiedEmail] = useState('');
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: sanitizeInput(value) }));
+    setError('');
   };
 
   const handleRoleClick = (role) => {
@@ -36,20 +42,35 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+
+    const loginEmail = form.role === 'patient' || form.role === 'doctor' ? form.email : form.username;
+
     try {
       const { apiFetch } = await import('../services/apiClient');
       const data = await apiFetch('/auth/login', {
         method: 'POST',
         body: JSON.stringify({
-          email: form.role === 'patient' || form.role === 'doctor' ? form.email : form.username,
+          email: loginEmail,
           password: form.password,
           role: form.role
         }),
       });
       login(data);
     } catch (err) {
-      alert(err.message);
+      // 403 Forbidden is what we return if unverified
+      if (err.message.includes('not verified') || err.message.includes('verify your email')) {
+          setUnverifiedEmail(loginEmail);
+          setShowOtpModal(true);
+      } else {
+          setError(err.message || 'Login failed.');
+      }
     }
+  };
+
+  const handleOtpSuccess = (data) => {
+    setShowOtpModal(false);
+    login(data); // Auto-login using the token provided upon OTP success
   };
 
   const handleGoogleSuccess = async (credentialResponse) => {
@@ -112,6 +133,12 @@ const Login = () => {
           </div>
         </div>
       </div>
+
+      {error && (
+        <div style={{ padding: '0.75rem', borderRadius: 12, backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', fontSize: '0.9rem', marginBottom: '1rem' }}>
+          {error}
+        </div>
+      )}
 
       {isPatient ? (
         <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '1.1rem' }}>
@@ -204,13 +231,13 @@ const Login = () => {
           </label>
 
           <div style={{ textAlign: 'right', marginTop: '-0.25rem' }}>
-            <a
-              href="#"
-              onClick={(e) => e.preventDefault()}
-              style={{ fontSize: '0.85rem', color: 'var(--primary)', textDecoration: 'none' }}
+            <button
+              type="button"
+              onClick={() => navigate('/forgot-password')}
+              style={{ background: 'transparent', border: 'none', padding: 0, fontSize: '0.85rem', color: 'var(--primary)', cursor: 'pointer', textDecoration: 'none' }}
             >
               Forgot Password?
-            </a>
+            </button>
           </div>
 
           <button
@@ -397,13 +424,13 @@ const Login = () => {
           </label>
 
           <div style={{ textAlign: 'right', marginTop: '-0.5rem' }}>
-            <a
-              href="#"
-              onClick={(e) => e.preventDefault()}
-              style={{ fontSize: '0.85rem', color: 'var(--primary)', textDecoration: 'none' }}
+            <button
+              type="button"
+              onClick={() => navigate('/forgot-password')}
+              style={{ background: 'transparent', border: 'none', padding: 0, fontSize: '0.85rem', color: 'var(--primary)', cursor: 'pointer', textDecoration: 'none' }}
             >
               Forgot Password?
-            </a>
+            </button>
           </div>
 
           <button
@@ -593,6 +620,15 @@ const Login = () => {
             Secure Login
           </button>
         </form>
+      )}
+
+      {showOtpModal && (
+        <OtpVerificationModal 
+          email={unverifiedEmail}
+          type="registration"
+          onClose={() => setShowOtpModal(false)}
+          onSuccess={handleOtpSuccess}
+        />
       )}
     </AuthLayout>
   );

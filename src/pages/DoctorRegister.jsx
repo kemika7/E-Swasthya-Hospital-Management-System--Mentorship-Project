@@ -55,6 +55,18 @@ const DoctorRegister = () => {
     if (type !== 'checkbox') setError('');
   };
 
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    if (name === 'name' && value.trim()) {
+      const formatted = value
+        .trim()
+        .split(/\s+/)
+        .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+        .join(' ');
+      setForm(prev => ({ ...prev, name: formatted }));
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -74,6 +86,11 @@ const DoctorRegister = () => {
     if (!required) {
         setError('Please fill in all required fields accurately.');
         return;
+    }
+
+    if (!form.name.trim().includes(' ')) {
+      setError('Please enter your full name (first and last name separated by a space).');
+      return;
     }
 
     if (form.password !== form.confirmPassword) {
@@ -151,9 +168,10 @@ const DoctorRegister = () => {
             <input
               type="text"
               name="name"
-              placeholder="Enter your full name"
+              placeholder="Enter your full name (e.g., Dr. John Doe)"
               value={form.name}
               onChange={handleChange}
+              onBlur={handleBlur}
               required
               style={{
                 flex: 1,

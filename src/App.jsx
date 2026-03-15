@@ -20,6 +20,8 @@ const Appointments = lazy(() => import('./pages/patient/Appointments'));
 const DoctorProfile = lazy(() => import('./pages/patient/DoctorProfile'));
 const Reports = lazy(() => import('./pages/patient/Reports'));
 const DocumentLocker = lazy(() => import('./pages/patient/DocumentLocker'));
+const HospitalsPage = lazy(() => import('./pages/patient/HospitalsPage'));
+const HospitalSpecializationsPage = lazy(() => import('./pages/patient/HospitalSpecializationsPage'));
 
 const DoctorDashboard = lazy(() => import('./pages/doctor/DoctorDashboard'));
 const DoctorCopilot = lazy(() => import('./pages/doctor/DoctorCopilot'));
@@ -41,6 +43,9 @@ const PatientLayout = () => (
       <Route path="dashboard" element={<PatientDashboard />} />
       <Route path="doctors" element={<CategoriesPage />} />
       <Route path="category/:categoryId" element={<DoctorListing />} />
+      <Route path="hospitals" element={<HospitalsPage />} />
+      <Route path="hospital/:hospitalId" element={<HospitalSpecializationsPage />} />
+      <Route path="hospital/:hospitalId/doctors" element={<DoctorListing />} />
       <Route path="appointments" element={<Appointments />} />
       <Route path="reports" element={<Reports />} />
       <Route path="locker" element={<DocumentLocker />} />

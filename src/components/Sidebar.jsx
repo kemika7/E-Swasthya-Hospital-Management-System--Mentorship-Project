@@ -46,6 +46,12 @@ export const PatientSidebar = () => {
           </NavLink>
         </li>
         <li>
+          <NavLink to="/patient/hospitals" className={linkBaseStyle}>
+            <FiActivity size={20} />
+            <span>Hospitals</span>
+          </NavLink>
+        </li>
+        <li>
           <NavLink to="/patient/doctors" className={linkBaseStyle}>
             <FiUsers size={20} />
             <span>Doctors</span>

@@ -6,7 +6,7 @@ const { authenticateToken } = require('../middleware/auth');
 // Get all doctors with filtering support
 router.get('/', async (req, res) => {
     try {
-        const { category_id, specialty_id } = req.query;
+        const { category_id, specialty_id, hospital_id } = req.query;
         let query = `
             SELECT d.*, u.name as doctor_name, u.email, 
                    s.name as specialty_name, c.name as category_name
@@ -25,6 +25,10 @@ router.get('/', async (req, res) => {
         if (specialty_id) {
             query += ' AND s.id = ?';
             params.push(specialty_id);
+        }
+        if (hospital_id) {
+            query += ' AND d.hospital_id = ?';
+            params.push(hospital_id);
         }
 
         const [doctors] = await db.execute(query, params);
@@ -54,6 +58,64 @@ router.get('/specialties/:categoryId', async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: 'Server error fetching specialties' });
+    }
+});
+
+// ─── Hospital Booking Flow Endpoints ───────────────────────────────
+
+// List all hospitals
+router.get('/hospitals', async (req, res) => {
+    try {
+        const [hospitals] = await db.execute('SELECT * FROM hospitals ORDER BY name');
+        res.json(hospitals);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server error fetching hospitals' });
+    }
+});
+
+// Get unique specializations for a hospital's doctors
+router.get('/hospitals/:hospitalId/specializations', async (req, res) => {
+    try {
+        const [rows] = await db.execute(
+            `SELECT DISTINCT d.specialization 
+             FROM doctors d 
+             WHERE d.hospital_id = ? AND d.specialization IS NOT NULL
+             ORDER BY d.specialization`,
+            [req.params.hospitalId]
+        );
+        res.json(rows.map(r => r.specialization));
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server error fetching specializations' });
+    }
+});
+
+// Get doctors for a hospital (optionally filtered by specialization)
+router.get('/hospitals/:hospitalId/doctors', async (req, res) => {
+    try {
+        const { specialization } = req.query;
+        let query = `
+            SELECT d.*, u.name as doctor_name, u.email,
+                   s.name as specialty_name
+            FROM doctors d
+            JOIN users u ON d.user_id = u.id
+            LEFT JOIN specialties s ON d.specialty_id = s.id
+            WHERE d.hospital_id = ?
+        `;
+        const params = [req.params.hospitalId];
+
+        if (specialization) {
+            query += ' AND d.specialization = ?';
+            params.push(specialization);
+        }
+
+        query += ' ORDER BY u.name';
+        const [doctors] = await db.execute(query, params);
+        res.json(doctors);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server error fetching hospital doctors' });
     }
 });
 

@@ -37,6 +37,7 @@ app.use('/api/plans', require('./routes/plans'));
 app.use('/api/chatbot', require('./routes/chatbot'));
 app.use('/api/locker', require('./routes/locker'));
 app.use('/api/reports', require('./routes/reports'));
+app.use('/api/health', require('./routes/health'));
 
 // Health Check
 app.get('/api/health', (req, res) => {
@@ -139,9 +140,86 @@ async function ensureHospitalSchema() {
   }
 }
 
+// Auto-patch: ensure patient_health_data table exists
+async function ensureHealthSchema() {
+  try {
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS patient_health_data (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        patient_id INT NOT NULL,
+        age INT,
+        gender VARCHAR(10),
+        blood_group VARCHAR(10),
+        height FLOAT,
+        weight FLOAT,
+        bmi FLOAT,
+        exercise BOOLEAN,
+        exercise_duration INT,
+        smoking BOOLEAN,
+        alcohol BOOLEAN,
+        sleep_hours FLOAT,
+        water_intake FLOAT,
+        chronic_conditions TEXT,
+        allergies TEXT,
+        past_surgeries TEXT,
+        medications TEXT,
+        blood_pressure_systolic INT,
+        blood_pressure_diastolic INT,
+        heart_rate INT,
+        glucose_level FLOAT,
+        cholesterol_hdl FLOAT,
+        cholesterol_ldl FLOAT,
+        spo2 FLOAT,
+        temperature FLOAT,
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NULL,
+        FOREIGN KEY (patient_id) REFERENCES patients(patient_id) ON DELETE CASCADE
+      )
+    `);
+    console.log('[DB] patient_health_data table ready.');
+  } catch (err) {
+    console.warn('[DB] Could not create patient_health_data table:', err.message);
+  }
+}
+
+// Auto-patch: ensure document_locker table exists
+async function ensureLockerSchema() {
+  try {
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS document_locker (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        patient_id INT NOT NULL,
+        mpin_hash VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NULL,
+        FOREIGN KEY (patient_id) REFERENCES patients(patient_id) ON DELETE CASCADE
+      )
+    `);
+    
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS patient_documents (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        patient_id INT NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        file_path VARCHAR(255) NOT NULL,
+        file_type VARCHAR(100),
+        size INT,
+        uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (patient_id) REFERENCES patients(patient_id) ON DELETE CASCADE
+      )
+    `);
+    console.log('[DB] document_locker and patient_documents tables ready.');
+  } catch (err) {
+    console.warn('[DB] Could not create locker tables:', err.message);
+  }
+}
+
 app.listen(PORT, async () => {
   console.log(`Server is running on port ${PORT}`);
   await ensurePatientSchema();
   await ensureHospitalSchema();
+  await ensureHealthSchema();
+  await ensureLockerSchema();
 });
 // Nodemon re-trigger

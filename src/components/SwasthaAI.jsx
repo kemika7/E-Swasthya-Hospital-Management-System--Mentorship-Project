@@ -4,14 +4,32 @@ import { Link } from 'react-router-dom';
 import { apiFetch } from '../services/apiClient';
 import '../styles/SwasthaAI.css';
 
+const QUICK_REPLIES = [
+  "I have a fever",
+  "I have chest pain",
+  "I have a headache",
+  "I need a skin doctor",
+  "My child is sick",
+];
+
 const SwasthaAI = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { role: 'model', content: "Hello! How can I help you today?" },
+    { role: 'model', content: "Hello! I'm Swastha AI. Describe your symptoms and I'll suggest the right doctor for you." },
   ]);
   const [inputVal, setInputVal] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showQuickReplies, setShowQuickReplies] = useState(true);
   const messagesEndRef = useRef(null);
+
+  // Lock body scroll on mobile when chat is open
+  useEffect(() => {
+    const isMobile = window.innerWidth <= 480;
+    if (isMobile) {
+      document.body.style.overflow = isOpen ? 'hidden' : '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isOpen]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -60,12 +78,13 @@ const SwasthaAI = () => {
     return parts.length > 0 ? parts : cleanText;
   };
 
-  const handleSend = async (e) => {
-    e.preventDefault();
-    if (!inputVal.trim()) return;
+  const handleSend = async (e, overrideMessage) => {
+    if (e) e.preventDefault();
+    const userMessage = overrideMessage || inputVal;
+    if (!userMessage.trim()) return;
 
-    const userMessage = inputVal;
     setInputVal('');
+    setShowQuickReplies(false);
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setIsLoading(true);
 
@@ -123,13 +142,22 @@ const SwasthaAI = () => {
                 </div>
               </div>
             )}
+            {showQuickReplies && !isLoading && (
+              <div className="swastha-ai-quick-replies">
+                {QUICK_REPLIES.map((qr) => (
+                  <button key={qr} className="quick-reply-chip" onClick={() => handleSend(null, qr)}>
+                    {qr}
+                  </button>
+                ))}
+              </div>
+            )}
             <div ref={messagesEndRef} />
           </div>
 
           <form className="swastha-ai-input-form" onSubmit={handleSend}>
             <input
               type="text"
-              placeholder="Ask anything..."
+              placeholder="Describe your symptoms..."
               value={inputVal}
               onChange={(e) => setInputVal(e.target.value)}
               disabled={isLoading}

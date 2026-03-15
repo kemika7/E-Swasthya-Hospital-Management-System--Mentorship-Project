@@ -92,10 +92,12 @@ router.post('/register-doctor', async (req, res) => {
     await connection.beginTransaction();
 
     try {
-        // Check if user exists
+        // Check if user exists in both users and patients tables to be thorough
         const [existingUser] = await connection.execute('SELECT * FROM users WHERE email = ?', [email]);
-        if (existingUser.length > 0) {
-            return res.status(400).json({ message: 'User already exists' });
+        const [existingPatient] = await connection.execute('SELECT * FROM patients WHERE email = ?', [email]);
+        
+        if (existingUser.length > 0 || existingPatient.length > 0) {
+            return res.status(400).json({ message: 'An account with this email already exists. Please use a different email or try logging in.' });
         }
 
         // Find specialty
@@ -140,8 +142,24 @@ router.post('/register-doctor', async (req, res) => {
 
     } catch (err) {
         await connection.rollback();
-        console.error(err);
-        res.status(500).json({ message: 'Server error during registration' });
+        
+        // If we created a user but the doctor insertion failed, clean up the orphaned user
+        if (err.code === 'ER_DUP_ENTRY' || err.message.includes('Duplicate')) {
+            try {
+                await connection.execute('DELETE FROM users WHERE email = ? AND role = ?', [email, 'doctor']);
+            } catch (cleanupErr) {
+                console.error('Cleanup error:', cleanupErr);
+            }
+        }
+        
+        console.error('[DOCTOR REGISTRATION ERROR]', err.message, err.code || '', err.sqlMessage || '');
+        
+        // Provide more specific error messages
+        if (err.code === 'ER_DUP_ENTRY') {
+            return res.status(400).json({ message: 'An account with this email already exists. Please use a different email.' });
+        }
+        
+        res.status(500).json({ message: 'Server error during registration. Please try again.' });
     } finally {
         connection.release();
     }

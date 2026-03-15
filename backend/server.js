@@ -46,7 +46,54 @@ app.get('/api/db-test', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
+// Auto-patch: ensure patients table has is_verified column
+async function ensurePatientSchema() {
+  try {
+    const [columns] = await db.execute('DESCRIBE patients');
+    const colNames = columns.map(c => c.Field);
+    if (!colNames.includes('is_verified')) {
+      await db.execute('ALTER TABLE patients ADD COLUMN is_verified BOOLEAN DEFAULT FALSE');
+      console.log('[DB] Added missing is_verified column to patients table.');
+    }
+  } catch (err) {
+    // patients table may not exist yet - that's okay
+    console.warn('[DB] Could not patch patients schema:', err.message);
+  }
+}
+
+// Auto-patch: ensure hospitals table exists and doctors have hospital_id
+async function ensureHospitalSchema() {
+  try {
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS hospitals (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        location VARCHAR(255) NOT NULL,
+        type ENUM('Government','Private','Teaching') DEFAULT 'Private',
+        phone VARCHAR(30),
+        description TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log('[DB] hospitals table ready.');
+  } catch (err) {
+    console.warn('[DB] Could not create hospitals table:', err.message);
+  }
+  try {
+    const [cols] = await db.execute('DESCRIBE doctors');
+    const colNames = cols.map(c => c.Field);
+    if (!colNames.includes('hospital_id')) {
+      await db.execute('ALTER TABLE doctors ADD COLUMN hospital_id INT NULL');
+      console.log('[DB] Added hospital_id column to doctors table.');
+    }
+  } catch (err) {
+    console.warn('[DB] Could not patch doctors schema:', err.message);
+  }
+}
+
+app.listen(PORT, async () => {
   console.log(`Server is running on port ${PORT}`);
+  await ensurePatientSchema();
+  await ensureHospitalSchema();
 });
 // Nodemon re-trigger

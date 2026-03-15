@@ -20,7 +20,7 @@ const generateOTP = () => {
     return otp;
 };
 
-// Register Patient
+// Register Patient (no OTP - direct registration)
 router.post('/register', async (req, res) => {
     const { name, email, password, phone, address, dob, age, gender, medical_history } = req.body;
 
@@ -37,37 +37,44 @@ router.post('/register', async (req, res) => {
         }
         if (phone && !validatePhone(phone)) return res.status(400).json({ message: 'Phone number must be exactly 10 digits.' });
 
-        // Check if patient exists in patients table
+        // Check if patient already exists
         const [existingPatient] = await db.execute('SELECT * FROM patients WHERE email = ?', [email]);
         if (existingPatient.length > 0) {
-            return res.status(400).json({ message: 'Patient already exists' });
+            return res.status(400).json({ message: 'An account with this email already exists.' });
         }
 
         // Hash password
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // Insert into patients table (Unverified)
+        // Insert patient as immediately verified - no OTP required
         const profile_pic = req.body.profile_pic || '/images/default-avatar.png';
-        const status = 'Active';
 
         const [result] = await db.execute(
-            'INSERT INTO patients (name, email, password, phone, age, gender, address, medical_history, status, profile_pic, is_verified) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, FALSE)',
-            [name, email, hashedPassword, phone || null, calculatedAge, gender || 'Other', address || null, medical_history || 'N/A', status, profile_pic]
+            'INSERT INTO patients (name, email, password, phone, age, gender, address, medical_history, status, profile_pic, is_verified) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE)',
+            [name, email, hashedPassword, phone || '', calculatedAge, gender || 'Other', address || '', medical_history || 'N/A', 'Active', profile_pic]
         );
 
-        // Generate and send OTP
-        const otp = generateOTP();
-        const expiresAt = new Date(Date.now() + 10 * 60000); // 10 minutes
-        await db.execute('INSERT INTO otps (email, otp, type, expires_at) VALUES (?, ?, ?, ?)', [email, otp, 'registration', expiresAt]);
-        await sendOTP(email, otp, 'registration');
+        const patientId = result.insertId;
 
-        res.status(201).json({ message: 'Registration initiated. Please verify your OTP sent to email.', requireOtp: true, email });
+        // Auto-login: issue JWT token so patient goes straight to dashboard
+        const token = jwt.sign(
+            { id: null, roleId: patientId, name, role: 'patient' },
+            process.env.JWT_SECRET || 'your_jwt_secret_key',
+            { expiresIn: '24h' }
+        );
+
+        res.status(201).json({
+            message: 'Registration successful! Welcome to E-Swasthya.',
+            token,
+            user: { id: null, roleId: patientId, name, email, role: 'patient' }
+        });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: 'Server error during registration' });
+        console.error('[REGISTER ERROR]', err.message, err.code || '', err.sqlMessage || '');
+        res.status(500).json({ message: 'Server error during registration', detail: err.message });
     }
 });
+
 
 // Register Doctor
 router.post('/register-doctor', async (req, res) => {

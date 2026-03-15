@@ -6,7 +6,6 @@ import BrandingHeader from '../components/BrandingHeader';
 import homepageIllustration from '../assets/images/homepage1.png';
 import { sanitizeInput } from '../utils/sanitize';
 import { useAuth } from '../context/AuthContext';
-import OtpVerificationModal from '../components/OtpVerificationModal';
 
 const validatePassword = (password) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/.test(password);
 
@@ -36,10 +35,7 @@ const CreateAccountPatient = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
-  
-  // OTP Modal State
-  const [showOtpModal, setShowOtpModal] = useState(false);
-  const [registeredEmail, setRegisteredEmail] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -57,7 +53,7 @@ const CreateAccountPatient = () => {
     }
     const passwordErrorMsg = getPasswordError(form.password);
     if (passwordErrorMsg) {
-      setError(`Password Error: ${passwordErrorMsg} (Entered password: ${form.password.replace(/./g, '*')})`);
+      setError(`Password Error: ${passwordErrorMsg}`);
       return;
     }
     if (form.phone.length !== 10 || !/^\d+$/.test(form.phone)) {
@@ -79,6 +75,7 @@ const CreateAccountPatient = () => {
     }
 
     try {
+      setLoading(true);
       const { apiFetch } = await import('../services/apiClient');
       
       // Exclude confirmPassword from the actual api payload
@@ -89,18 +86,13 @@ const CreateAccountPatient = () => {
         body: JSON.stringify(payload),
       });
 
-      if (res.requireOtp) {
-        setRegisteredEmail(res.email);
-        setShowOtpModal(true);
-      }
+      // Registration successful — auto-login the patient immediately
+      login(res);
     } catch (err) {
       setError(err.message || 'Error occurred during registration.');
+    } finally {
+      setLoading(false);
     }
-  };
-
-  const handleOtpSuccess = (data) => {
-    setShowOtpModal(false);
-    login(data); // Auto-login using the token provided upon OTP success
   };
 
   return (
@@ -418,9 +410,12 @@ const CreateAccountPatient = () => {
             cursor: 'pointer',
             boxShadow: '0 10px 25px rgba(82, 178, 191, 0.35)',
             marginTop: '0.25rem',
+          opacity: loading ? 0.7 : 1,
+          cursor: loading ? 'not-allowed' : 'pointer',
           }}
+          disabled={loading}
         >
-          Sign IN
+          {loading ? 'Creating Account...' : 'Create Account'}
         </button>
 
         <div
@@ -458,15 +453,6 @@ const CreateAccountPatient = () => {
           <span>Sign Up With Google</span>
         </button>
       </form>
-      
-      {showOtpModal && (
-        <OtpVerificationModal 
-          email={registeredEmail}
-          type="registration"
-          onClose={() => setShowOtpModal(false)}
-          onSuccess={handleOtpSuccess}
-        />
-      )}
     </AuthLayout>
   );
 };

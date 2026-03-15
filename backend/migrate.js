@@ -80,6 +80,7 @@ async function migrate() {
                 medical_history TEXT NOT NULL,
                 status VARCHAR(50) NOT NULL DEFAULT 'Active',
                 profile_pic VARCHAR(255) NOT NULL,
+                is_verified BOOLEAN DEFAULT FALSE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);

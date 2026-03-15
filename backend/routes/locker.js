@@ -43,7 +43,8 @@ const extractPatientId = (req, res, next) => {
     if (decoded.role !== 'patient') {
       return res.status(403).json({ message: 'Forbidden: Patients only' });
     }
-    req.patientId = decoded.id;
+    // For patients, roleId contains the patient_id from patients table
+    req.patientId = decoded.roleId;
     next();
   } catch (err) {
     return res.status(401).json({ message: 'Invalid token' });
@@ -53,10 +54,10 @@ const extractPatientId = (req, res, next) => {
 // 1. GET /status - Check if patient has MPIN
 router.get('/status', extractPatientId, async (req, res) => {
   try {
-    const [rows] = await db.execute('SELECT mpin FROM patients WHERE id = ?', [req.patientId]);
-    if (rows.length === 0) return res.status(404).json({ message: 'Patient not found' });
+    const [rows] = await db.execute('SELECT mpin_hash FROM document_locker WHERE patient_id = ?', [req.patientId]);
     
-    const hasPin = rows[0].mpin !== null && rows[0].mpin !== '';
+    // hasSetPin is true if there is a row with a hash
+    const hasPin = rows.length > 0 && !!rows[0].mpin_hash;
     res.json({ hasSetPin: hasPin });
   } catch (error) {
     console.error('Locker status error:', error);
@@ -68,10 +69,20 @@ router.get('/status', extractPatientId, async (req, res) => {
 router.post('/setup-pin', extractPatientId, async (req, res) => {
   try {
     const { mpin } = req.body;
-    if (!mpin || mpin.length !== 4) return res.status(400).json({ message: 'MPIN must be 4 digits' });
+    if (!mpin || mpin.length < 4 || mpin.length > 6) {
+      return res.status(400).json({ message: 'MPIN must be 4 to 6 digits' });
+    }
 
-    const hashedPin = await bcrypt.hash(mpin, 10);
-    await db.execute('UPDATE patients SET mpin = ? WHERE id = ?', [hashedPin, req.patientId]);
+    const mpin_hash = await bcrypt.hash(mpin, 10);
+    
+    // Check if entry exists
+    const [rows] = await db.execute('SELECT id FROM document_locker WHERE patient_id = ?', [req.patientId]);
+    
+    if (rows.length > 0) {
+      await db.execute('UPDATE document_locker SET mpin_hash = ? WHERE patient_id = ?', [mpin_hash, req.patientId]);
+    } else {
+      await db.execute('INSERT INTO document_locker (patient_id, mpin_hash) VALUES (?, ?)', [req.patientId, mpin_hash]);
+    }
     
     res.json({ message: 'MPIN setup successfully' });
   } catch (error) {
@@ -86,10 +97,10 @@ router.post('/verify-pin', extractPatientId, async (req, res) => {
     const { mpin } = req.body;
     if (!mpin) return res.status(400).json({ message: 'MPIN is required' });
 
-    const [rows] = await db.execute('SELECT mpin FROM patients WHERE id = ?', [req.patientId]);
-    if (rows.length === 0) return res.status(404).json({ message: 'Patient not found' });
+    const [rows] = await db.execute('SELECT mpin_hash FROM document_locker WHERE patient_id = ?', [req.patientId]);
+    if (rows.length === 0) return res.status(404).json({ message: 'Locker not found' });
 
-    const storedHash = rows[0].mpin;
+    const storedHash = rows[0].mpin_hash;
     if (!storedHash) return res.status(400).json({ message: 'MPIN not set up yet' });
 
     const isMatch = await bcrypt.compare(mpin, storedHash);

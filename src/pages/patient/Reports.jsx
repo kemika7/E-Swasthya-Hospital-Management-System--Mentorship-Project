@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { apiFetch } from '../../services/apiClient';
 import { 
   FiArrowLeft, 
   FiPlus, 
@@ -48,17 +49,82 @@ const Reports = () => {
   const [view, setView] = useState('dashboard'); // 'dashboard' or 'form'
   
   // Health Data State
-  const [healthData, setHealthData] = useState(() => {
-    const saved = localStorage.getItem('patient_health_data');
-    return saved ? JSON.parse(saved) : {
-      personal: { age: '', gender: '', bloodGroup: '', height: '', weight: '' },
-      lifestyle: { exercise: false, exerciseDuration: '', smoking: false, alcohol: false, sleepHours: '', waterIntake: '' },
-      medical: { conditions: '', allergies: '', surgeries: '', medications: '' },
-      vitals: { systolic: '', diastolic: '', bpm: '', sugar: '', hdl: '', ldl: '', spo2: '', temperature: '' },
-      notes: '',
-      history: []
-    };
+  const [healthData, setHealthData] = useState({
+    personal: { age: '', gender: '', bloodGroup: '', height: '', weight: '' },
+    lifestyle: { exercise: false, exerciseDuration: '', smoking: false, alcohol: false, sleepHours: '', waterIntake: '' },
+    medical: { conditions: '', allergies: '', surgeries: '', medications: '' },
+    vitals: { systolic: '', diastolic: '', bpm: '', sugar: '', hdl: '', ldl: '', spo2: '', temperature: '' },
+    notes: '',
+    history: []
   });
+  const [loading, setLoading] = useState(true);
+
+  // Load from database on mount
+  useEffect(() => {
+    const fetchHealthData = async () => {
+      try {
+        const data = await apiFetch('/health/my-health');
+        if (data && data.length > 0) {
+          // Sort by date to be sure
+          const sorted = [...data].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+          const latest = sorted[sorted.length - 1];
+
+          // Map backend fields to frontend state structure
+          setHealthData({
+            personal: {
+              age: latest.age || '',
+              gender: latest.gender || '',
+              bloodGroup: latest.blood_group || '',
+              height: latest.height || '',
+              weight: latest.weight || '',
+            },
+            lifestyle: {
+              exercise: latest.exercise === 1,
+              exerciseDuration: latest.exercise_duration || '',
+              smoking: latest.smoking === 1,
+              alcohol: latest.alcohol === 1,
+              sleepHours: latest.sleep_hours || '',
+              waterIntake: latest.water_intake || '',
+            },
+            medical: {
+              conditions: latest.chronic_conditions || '',
+              allergies: latest.allergies || '',
+              surgeries: latest.past_surgeries || '',
+              medications: latest.medications || '',
+            },
+            vitals: {
+              systolic: latest.blood_pressure_systolic || '',
+              diastolic: latest.blood_pressure_diastolic || '',
+              bpm: latest.heart_rate || '',
+              sugar: latest.glucose_level || '',
+              hdl: latest.cholesterol_hdl || '',
+              ldl: latest.cholesterol_ldl || '',
+              spo2: latest.spo2 || '',
+              temperature: latest.temperature || '',
+            },
+            notes: latest.notes || '',
+            // Map all database rows to the history trend
+            history: sorted.map(row => ({
+              date: new Date(row.created_at).toLocaleDateString(),
+              weight: row.weight,
+              bmi: row.bmi,
+              bpm: row.heart_rate,
+              bp: `${row.blood_pressure_systolic}/${row.blood_pressure_diastolic}`,
+              sugar: row.glucose_level,
+              water: row.water_intake,
+              sleep: row.sleep_hours,
+              exercise: row.exercise_duration
+            }))
+          });
+        }
+      } catch (err) {
+        console.error('Failed to fetch health data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchHealthData();
+  }, []);
 
   // Calculate BMI and Status
   const bmiInfo = useMemo(() => {
@@ -96,34 +162,77 @@ const Reports = () => {
     }));
   };
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    // Simple validation
     if (!healthData.personal.weight || !healthData.personal.height) {
         alert("Please enter height and weight for tracking.");
         return;
     }
 
-    const newData = { 
-      ...healthData, 
-      history: [
-        ...healthData.history, 
-        { 
-          date: new Date().toLocaleDateString(), 
-          weight: healthData.personal.weight,
-          bmi: bmiInfo?.bmi,
-          bpm: healthData.vitals.bpm,
-          bp: `${healthData.vitals.systolic}/${healthData.vitals.diastolic}`,
-          sugar: healthData.vitals.sugar,
-          water: healthData.lifestyle.waterIntake,
-          sleep: healthData.lifestyle.sleepHours,
-          exercise: healthData.lifestyle.exerciseDuration
-        }
-      ].slice(-14) // Keep last 14 entries
-    };
-    setHealthData(newData);
-    localStorage.setItem('patient_health_data', JSON.stringify(newData));
-    setView('dashboard');
+    try {
+      setLoading(true);
+      // Flatten data for backend
+      const payload = {
+        age: healthData.personal.age,
+        gender: healthData.personal.gender,
+        blood_group: healthData.personal.bloodGroup,
+        height: healthData.personal.height,
+        weight: healthData.personal.weight,
+        bmi: bmiInfo?.bmi,
+        exercise: healthData.lifestyle.exercise ? 1 : 0,
+        exercise_duration: healthData.lifestyle.exerciseDuration,
+        smoking: healthData.lifestyle.smoking ? 1 : 0,
+        alcohol: healthData.lifestyle.alcohol ? 1 : 0,
+        sleep_hours: healthData.lifestyle.sleepHours,
+        water_intake: healthData.lifestyle.waterIntake,
+        chronic_conditions: healthData.medical.conditions,
+        allergies: healthData.medical.allergies,
+        past_surgeries: healthData.medical.surgeries,
+        medications: healthData.medical.medications,
+        blood_pressure_systolic: healthData.vitals.systolic,
+        blood_pressure_diastolic: healthData.vitals.diastolic,
+        heart_rate: healthData.vitals.bpm,
+        glucose_level: healthData.vitals.sugar,
+        cholesterol_hdl: healthData.vitals.hdl,
+        cholesterol_ldl: healthData.vitals.ldl,
+        spo2: healthData.vitals.spo2,
+        temperature: healthData.vitals.temperature,
+        notes: healthData.notes
+      };
+
+      await apiFetch('/health/save', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+
+      // Refresh data after save
+      const data = await apiFetch('/health/my-health');
+      if (data && data.length > 0) {
+        const sorted = [...data].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+        setHealthData(prev => ({
+          ...prev,
+          history: sorted.map(row => ({
+            date: new Date(row.created_at).toLocaleDateString(),
+            weight: row.weight,
+            bmi: row.bmi,
+            bpm: row.heart_rate,
+            bp: `${row.blood_pressure_systolic}/${row.blood_pressure_diastolic}`,
+            sugar: row.glucose_level,
+            water: row.water_intake,
+            sleep: row.sleep_hours,
+            exercise: row.exercise_duration
+          }))
+        }));
+      }
+
+      setView('dashboard');
+      alert('Health record saved successfully!');
+    } catch (err) {
+      console.error('Failed to save health data:', err);
+      alert('Error saving health data. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Chart Configuration
@@ -162,7 +271,19 @@ const Reports = () => {
   });
 
   return (
-    <main className="layout-main" style={{ paddingBottom: '3rem' }}>
+    <main className="layout-main" style={{ paddingBottom: '3rem', position: 'relative' }}>
+      {loading && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+          backgroundColor: 'rgba(255,255,255,0.7)', zIndex: 9999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          backdropFilter: 'blur(4px)'
+        }}>
+          <div className="btn btn-primary" style={{ padding: '1rem 2rem', borderRadius: 30, pointerEvents: 'none' }}>
+            <FiActivity className="animate-spin" style={{ marginRight: 10 }} /> Processing...
+          </div>
+        </div>
+      )}
       {/* HEADER SECTION */}
       <div className="page-header" style={{ 
         backgroundColor: 'var(--primary)', borderRadius: 20, padding: '1.25rem', 

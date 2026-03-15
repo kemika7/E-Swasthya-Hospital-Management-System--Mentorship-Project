@@ -2,11 +2,13 @@ import React from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { FiLogOut, FiUser } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
+import { useHospital } from '../context/HospitalContext';
 import logo from '../assets/images/logo.png';
 
 const Navbar = () => {
   const location = useLocation();
   const { userProfile, logout, isAuthenticated } = useAuth();
+  const { selectedHospital } = useHospital();
 
   const isAuthPage = location.pathname === '/' || location.pathname === '/login';
 
@@ -25,8 +27,16 @@ const Navbar = () => {
         zIndex: 20,
       }}
     >
-      <div style={{ fontSize: '0.95rem', fontWeight: 500, color: 'var(--text-light)' }}>
-        Welcome back, <span style={{ color: 'var(--text)', fontWeight: 600 }}>{userProfile?.name}</span>
+      <div style={{ fontSize: '0.95rem', fontWeight: 500, color: 'var(--text-light)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <span>Welcome back, <span style={{ color: 'var(--text)', fontWeight: 600 }}>{userProfile?.name}</span></span>
+        {selectedHospital && (
+          <>
+            <span style={{ color: 'rgba(15,23,42,0.2)' }}>|</span>
+            <span style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 500 }}>
+              🏥 {selectedHospital.name}
+            </span>
+          </>
+        )}
       </div>
 
       {!isAuthPage && isAuthenticated && (

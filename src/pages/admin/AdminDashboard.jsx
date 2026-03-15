@@ -149,6 +149,14 @@ const AdminDashboard = () => {
             </div>
           </Card>
         </div>
+        <div style={{ cursor: 'pointer' }} onClick={() => navigate('/admin/reports')}>
+          <Card title="Report Tracking">
+            <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>Manage</div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
+              Patient reports progress
+            </div>
+          </Card>
+        </div>
       </div>
 
       <div className="grid grid-cols-2" style={{ gap: '1.25rem', marginBottom: '1.25rem' }}>

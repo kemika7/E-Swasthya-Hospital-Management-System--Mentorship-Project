@@ -37,6 +37,7 @@ const DoctorsManagement = lazy(() => import('./pages/admin/DoctorsManagement'));
 const PatientsManagement = lazy(() => import('./pages/admin/PatientsManagement'));
 const AppointmentsManagement = lazy(() => import('./pages/admin/AppointmentsManagement'));
 const TransactionsManagement = lazy(() => import('./pages/admin/TransactionsManagement'));
+const ReportsManagement = lazy(() => import('./pages/admin/ReportsManagement'));
 
 // Guard: patients without a hospital selection are redirected to select-hospital
 const RequireHospital = ({ children }) => {
@@ -90,6 +91,7 @@ const AdminLayout = () => (
       <Route path="patients" element={<PatientsManagement />} />
       <Route path="appointments" element={<AppointmentsManagement />} />
       <Route path="transactions" element={<TransactionsManagement />} />
+      <Route path="reports" element={<ReportsManagement />} />
       <Route path="*" element={<Navigate to="/admin" replace />} />
     </Routes>
   </DashboardLayout>
@@ -169,15 +171,7 @@ const AppShell = () => {
           />
           <Route
             path="/register/doctor"
-            element={
-              isAuthenticated && userRole && userRole !== 'null' ? (
-                <Navigate to={`/${userRole}`} replace />
-              ) : (
-                <main style={{ flex: 1 }}>
-                  <DoctorRegister />
-                </main>
-              )
-            }
+            element={<Navigate to="/login" replace />}
           />
 
           {/* Global Doctor and Appointment routes */}

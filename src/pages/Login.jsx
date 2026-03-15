@@ -9,7 +9,6 @@ import BrandingHeader from '../components/BrandingHeader';
 import loginIllustration from '../assets/images/login.png';
 import homepageIllustration from '../assets/images/homepage1.png';
 import { sanitizeInput } from '../utils/sanitize';
-import OtpVerificationModal from '../components/OtpVerificationModal';
 
 const Login = () => {
   const { login } = useAuth();
@@ -21,14 +20,11 @@ const Login = () => {
     password: '',
     role: 'patient',
     username: '',
-    otp: '',
   });
 
   const [showPassword, setShowPassword] = useState(false);
 
   const [error, setError] = useState('');
-  const [showOtpModal, setShowOtpModal] = useState(false);
-  const [unverifiedEmail, setUnverifiedEmail] = useState('');
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -58,20 +54,10 @@ const Login = () => {
       });
       login(data);
     } catch (err) {
-      // 403 Forbidden is what we return if unverified
-      if (err.message.includes('not verified') || err.message.includes('verify your email')) {
-          setUnverifiedEmail(loginEmail);
-          setShowOtpModal(true);
-      } else {
-          setError(err.message || 'Login failed.');
-      }
+      setError(err.message || 'Login failed.');
     }
   };
 
-  const handleOtpSuccess = (data) => {
-    setShowOtpModal(false);
-    login(data); // Auto-login using the token provided upon OTP success
-  };
 
   const handleGoogleSuccess = async (credentialResponse) => {
     try {
@@ -622,14 +608,6 @@ const Login = () => {
         </form>
       )}
 
-      {showOtpModal && (
-        <OtpVerificationModal 
-          email={unverifiedEmail}
-          type="registration"
-          onClose={() => setShowOtpModal(false)}
-          onSuccess={handleOtpSuccess}
-        />
-      )}
     </AuthLayout>
   );
 };

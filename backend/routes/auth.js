@@ -120,19 +120,22 @@ router.post('/register-doctor', async (req, res) => {
         `, [userId, specialty_id, specialization, hospital, address]);
         const doctorId = doctorResult.insertId;
 
-        // Generate and send OTP
-        const otp = generateOTP();
-        const expiresAt = new Date(Date.now() + 10 * 60000); // 10 minutes
-        await connection.execute('INSERT INTO otps (email, otp, type, expires_at) VALUES (?, ?, ?, ?)', [email, otp, 'registration', expiresAt]);
-        await sendOTP(email, otp, 'registration');
+        // Skip OTP - mark as verified immediately and auto-login
+        await connection.execute('UPDATE users SET is_verified = TRUE WHERE id = ?', [userId]);
 
         await connection.commit();
 
+        // Auto-login: issue JWT token so doctor goes straight to dashboard
+        const token = jwt.sign(
+            { id: userId, roleId: doctorId, name, role: 'doctor' },
+            process.env.JWT_SECRET || 'your_jwt_secret_key',
+            { expiresIn: '24h' }
+        );
+
         res.status(201).json({
-            message: 'Registration initiated. Please verify your OTP sent to email.',
-            requireOtp: true,
-            email,
-            role: 'doctor'
+            message: 'Registration successful! Welcome to E-Swasthya.',
+            token,
+            user: { id: userId, roleId: doctorId, name, email, role: 'doctor' }
         });
 
     } catch (err) {
@@ -167,11 +170,7 @@ router.post('/login', async (req, res) => {
             user = users[0];
         }
 
-        // Check if user is verified
-        if (!user.is_verified) {
-             // Resend OTP logic could go here, or we just prompt them
-             return res.status(403).json({ message: 'Account not verified. Please verify your email first.', requireOtp: true, email: user.email });
-        }
+        // OTP verification removed for easier login
 
         // Check password
         const isMatch = await bcrypt.compare(password, user.password);

@@ -21,6 +21,7 @@ const Appointments = lazy(() => import('./pages/patient/Appointments'));
 const DoctorProfile = lazy(() => import('./pages/patient/DoctorProfile'));
 const Reports = lazy(() => import('./pages/patient/Reports'));
 const DocumentLocker = lazy(() => import('./pages/patient/DocumentLocker'));
+
 const HospitalsPage = lazy(() => import('./pages/patient/HospitalsPage'));
 const HospitalSpecializationsPage = lazy(() => import('./pages/patient/HospitalSpecializationsPage'));
 const SelectHospitalPage = lazy(() => import('./pages/patient/SelectHospitalPage'));
@@ -62,6 +63,7 @@ const PatientLayout = () => (
       <Route path="appointments" element={<RequireHospital><Appointments /></RequireHospital>} />
       <Route path="reports" element={<RequireHospital><Reports /></RequireHospital>} />
       <Route path="locker" element={<RequireHospital><DocumentLocker /></RequireHospital>} />
+
       <Route path="*" element={<Navigate to="/patient/select-hospital" replace />} />
     </Routes>
   </DashboardLayout>

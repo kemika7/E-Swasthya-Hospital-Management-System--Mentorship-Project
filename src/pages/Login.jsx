@@ -1,5 +1,13 @@
 import React, { useState } from 'react';
-import { FiMail, FiLock, FiUser, FiEye, FiEyeOff } from 'react-icons/fi';
+import { FiMail, FiLock, FiUser, FiEye, FiEyeOff, FiActivity } from 'react-icons/fi';
+
+const HOSPITALS = [
+  { id: 1, name: 'City Hospital' },
+  { id: 2, name: 'Green Valley Hospital' },
+  { id: 3, name: 'Sunrise Medical Center' },
+  { id: 4, name: 'Lakeside Clinic' },
+  { id: 5, name: 'Royal Care Hospital' },
+];
 import { FcGoogle } from 'react-icons/fc';
 import { useAuth } from '../context/AuthContext';
 import { GoogleLogin } from '@react-oauth/google';
@@ -20,6 +28,7 @@ const Login = () => {
     password: '',
     role: 'patient',
     username: '',
+    hospitalId: '',
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -40,16 +49,27 @@ const Login = () => {
     e.preventDefault();
     setError('');
 
+    // Validate hospital for doctor login
+    if (form.role === 'doctor' && !form.hospitalId) {
+      setError('Please select a hospital to continue.');
+      return;
+    }
+
     const loginEmail = form.role === 'patient' || form.role === 'doctor' ? form.email : form.username;
 
     try {
       const { apiFetch } = await import('../services/apiClient');
+      const selectedHospital = HOSPITALS.find(h => h.id === Number(form.hospitalId));
       const data = await apiFetch('/auth/login', {
         method: 'POST',
         body: JSON.stringify({
           email: loginEmail,
           password: form.password,
-          role: form.role
+          role: form.role,
+          ...(form.role === 'doctor' && {
+            hospitalId: form.hospitalId,
+            hospitalName: selectedHospital?.name,
+          }),
         }),
       });
       login(data);
@@ -418,6 +438,49 @@ const Login = () => {
               Forgot Password?
             </button>
           </div>
+
+          {/* Hospital Dropdown */}
+          <label style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--text)' }}>
+            Select Hospital
+            <div
+              style={{
+                marginTop: '0.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                backgroundColor: 'var(--white)',
+                borderRadius: 8,
+                border: form.hospitalId === '' && error.includes('hospital')
+                  ? '1px solid #ef4444'
+                  : '1px solid rgba(15,23,42,0.15)',
+                padding: '0.75rem 1rem',
+                transition: 'border-color 0.2s',
+              }}
+            >
+              <FiActivity size={18} style={{ opacity: 0.5, color: 'var(--text)', flexShrink: 0 }} />
+              <select
+                name="hospitalId"
+                value={form.hospitalId}
+                onChange={handleChange}
+                aria-label="Select Hospital"
+                style={{
+                  flex: 1,
+                  border: 'none',
+                  outline: 'none',
+                  fontSize: '0.95rem',
+                  color: form.hospitalId ? 'var(--text)' : '#94a3b8',
+                  backgroundColor: 'transparent',
+                  cursor: 'pointer',
+                  appearance: 'auto',
+                }}
+              >
+                <option value="" disabled>Choose your hospital</option>
+                {HOSPITALS.map((h) => (
+                  <option key={h.id} value={h.id}>{h.name}</option>
+                ))}
+              </select>
+            </div>
+          </label>
 
           <button
             type="submit"

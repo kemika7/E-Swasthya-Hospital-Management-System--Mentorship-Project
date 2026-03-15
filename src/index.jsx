@@ -6,6 +6,7 @@ import { AuthProvider } from './context/AuthContext';
 import { AppointmentProvider } from './context/AppointmentContext';
 import { LockerProvider } from './context/LockerContext';
 import { AdminProvider } from './context/AdminContext';
+import { HospitalProvider } from './context/HospitalContext';
 import './styles/global.css';
 import ErrorBoundary from './components/ErrorBoundary';
 import { GoogleOAuthProvider } from '@react-oauth/google';
@@ -20,17 +21,19 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || "your-google-client-id"}>
       <BrowserRouter>
-        <AuthProvider>
-          <AdminProvider>
-            <AppointmentProvider>
-              <LockerProvider>
-                <ErrorBoundary>
-                  <App />
-                </ErrorBoundary>
-              </LockerProvider>
-            </AppointmentProvider>
-          </AdminProvider>
-        </AuthProvider>
+        <HospitalProvider>
+          <AuthProvider>
+            <AdminProvider>
+              <AppointmentProvider>
+                <LockerProvider>
+                  <ErrorBoundary>
+                    <App />
+                  </ErrorBoundary>
+                </LockerProvider>
+              </AppointmentProvider>
+            </AdminProvider>
+          </AuthProvider>
+        </HospitalProvider>
       </BrowserRouter>
     </GoogleOAuthProvider>
   </React.StrictMode>

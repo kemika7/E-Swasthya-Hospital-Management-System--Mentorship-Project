@@ -165,7 +165,7 @@ const DoctorProfile = () => {
       <div
         style={{
           width: '100%',
-          maxWidth: 600,
+          maxWidth: 1000,
           backgroundColor: '#f8fafc', // White/light container
           borderRadius: 24,
           overflow: 'hidden',
@@ -213,128 +213,164 @@ const DoctorProfile = () => {
           </h1>
         </div>
 
-        <div style={{ padding: '1.5rem', flex: 1, backgroundColor: '#f8fafc' }}>
-          {/* DOCTOR INFO CARD */}
-          <div
-            style={{
-              backgroundColor: 'rgba(82, 178, 191, 0.15)', // Teal/light-blue tint
-              borderRadius: 20,
-              padding: '1.5rem',
-              marginBottom: '1.5rem',
-            }}
-          >
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
-              {/* Left: Image */}
+        <div className="profile-grid" style={{ padding: '1.5rem', flex: 1, backgroundColor: '#f8fafc' }}>
+          {/* LEFT COLUMN: DOCTOR INFO + TABS */}
+          <div className="profile-left-col">
+            {/* DOCTOR INFO CARD */}
+            <div
+              style={{
+                backgroundColor: 'rgba(82, 178, 191, 0.15)', // Teal/light-blue tint
+                borderRadius: 20,
+                padding: '1.5rem',
+                marginBottom: '1.5rem',
+              }}
+            >
+              <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
+                {/* Left: Image */}
+                <div
+                  style={{
+                    width: 80,
+                    height: 100,
+                    borderRadius: 16,
+                    backgroundColor: '#e2e8f0',
+                    backgroundImage: `url(${doctor.image})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    flexShrink: 0,
+                  }}
+                />
+
+                {/* Right: Details */}
+                <div style={{ flex: 1 }}>
+                  <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.25rem' }}>
+                    {doctor.doctor_name}
+                  </h2>
+                  <div style={{ fontSize: '0.95rem', color: '#64748b', marginBottom: '0.5rem' }}>
+                    {doctor.specialty_name || doctor.specialization}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem', color: '#64748b', marginBottom: '0.75rem' }}>
+                    <FiMapPin size={14} />
+                    <span>{doctor.location}</span>
+                  </div>
+
+                  {/* Additional Info Row */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', fontSize: '0.75rem', color: '#334155' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ opacity: 0.7 }}>Experience</span>
+                      <span style={{ fontWeight: 600 }}>{doctor.experience} Years</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ opacity: 0.7 }}>Hospital</span>
+                      <span style={{ fontWeight: 600 }}>{doctor.hospital || 'N/A'}</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ opacity: 0.7 }}>Working Hours</span>
+                      <span style={{ fontWeight: 600 }}>{doctor.working_hours}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* STATS ROW */}
               <div
                 style={{
-                  width: 80,
-                  height: 100,
-                  borderRadius: 16,
-                  backgroundColor: '#e2e8f0',
-                  backgroundImage: `url(${doctor.image})`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  flexShrink: 0,
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  paddingTop: '0.5rem',
+                  borderTop: '1px solid rgba(82, 178, 191, 0.2)',
                 }}
-              />
-
-              {/* Right: Details */}
-              <div style={{ flex: 1 }}>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.25rem' }}>
-                  {doctor.doctor_name}
-                </h2>
-                <div style={{ fontSize: '0.95rem', color: '#64748b', marginBottom: '0.5rem' }}>
-                  {doctor.specialty_name || doctor.specialization}
+              >
+                <div style={{ textAlign: 'center', flex: 1 }}>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>{doctor.fee}</div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Consultation Fee</div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.85rem', color: '#64748b', marginBottom: '0.75rem' }}>
-                  <FiMapPin size={14} />
-                  <span>{doctor.location}</span>
+                <div style={{ textAlign: 'center', flex: 1, borderLeft: '1px solid rgba(82, 178, 191, 0.2)', borderRight: '1px solid rgba(82, 178, 191, 0.2)' }}>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>{doctor.experience}+</div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Years Exp.</div>
                 </div>
-
-                {/* Additional Info Row */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', fontSize: '0.75rem', color: '#334155' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ opacity: 0.7 }}>Experience</span>
-                    <span style={{ fontWeight: 600 }}>{doctor.experience} Years</span>
+                <div style={{ textAlign: 'center', flex: 1 }}>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
+                    {doctor.rating || '4.5'} <FiStar size={14} fill="#fbbf24" color="#fbbf24" />
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ opacity: 0.7 }}>Hospital</span>
-                    <span style={{ fontWeight: 600 }}>{doctor.hospital || 'N/A'}</span>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ opacity: 0.7 }}>Working Hours</span>
-                    <span style={{ fontWeight: 600 }}>{doctor.working_hours}</span>
-                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Rating</div>
                 </div>
               </div>
             </div>
 
-            {/* STATS ROW */}
+            {/* TAB NAVIGATION */}
             <div
               style={{
                 display: 'flex',
-                justifyContent: 'space-between',
-                paddingTop: '0.5rem',
-                borderTop: '1px solid rgba(82, 178, 191, 0.2)',
+                backgroundColor: '#f1f5f9',
+                borderRadius: 12,
+                padding: '0.25rem',
+                marginBottom: '1.5rem',
               }}
             >
-              <div style={{ textAlign: 'center', flex: 1 }}>
-                <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>{doctor.fee}</div>
-                <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Consultation Fee</div>
-              </div>
-              <div style={{ textAlign: 'center', flex: 1, borderLeft: '1px solid rgba(82, 178, 191, 0.2)', borderRight: '1px solid rgba(82, 178, 191, 0.2)' }}>
-                <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>{doctor.experience}+</div>
-                <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Years Exp.</div>
-              </div>
-              <div style={{ textAlign: 'center', flex: 1 }}>
-                <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
-                  {doctor.rating || '4.5'} <FiStar size={14} fill="#fbbf24" color="#fbbf24" />
-                </div>
-                <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Rating</div>
-              </div>
+              {[
+                { id: 'schedules', label: 'Schedules' },
+                { id: 'about', label: 'About' },
+                { id: 'experience', label: 'Experience' },
+                { id: 'reviews', label: 'Reviews' },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  style={{
+                    flex: 1,
+                    padding: '0.6rem 0',
+                    borderRadius: 10,
+                    border: 'none',
+                    backgroundColor: activeTab === tab.id ? 'var(--white)' : 'transparent',
+                    color: activeTab === tab.id ? 'var(--primary)' : '#64748b',
+                    fontSize: '0.85rem',
+                    fontWeight: activeTab === tab.id ? 600 : 500,
+                    cursor: 'pointer',
+                    boxShadow: activeTab === tab.id ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
+
+            {/* NON-BOOKING TAB CONTENT (About, Experience, Reviews) */}
+            {activeTab === 'about' && (
+              <div style={{ padding: '1rem', color: '#64748b', lineHeight: 1.6 }}>
+                <p><strong>Category:</strong> {doctor.category_name}</p>
+                <p><strong>Specialty:</strong> {doctor.specialty_name || doctor.specialization}</p>
+                <p><strong>Bio:</strong> {doctor.bio || 'No bio available.'}</p>
+                <p><strong>Location:</strong> {doctor.location}</p>
+              </div>
+            )}
+
+            {activeTab === 'experience' && (
+              <div style={{ padding: '1rem', color: '#64748b' }}>
+                <p><strong>Total Experience:</strong> {doctor.experience}</p>
+                <p style={{ marginTop: '0.5rem' }}>Previous Affiliations: City Hospital, MedLife Clinic.</p>
+              </div>
+            )}
+
+            {activeTab === 'reviews' && (
+              <div style={{ padding: '1rem', color: '#64748b' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                  <FiStar fill="#fbbf24" color="#fbbf24" size={24} />
+                  <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>{doctor.rating || '4.5'} Rating</span>
+                </div>
+                <p>Reviews coming soon.</p>
+              </div>
+            )}
+
+            {/* On mobile, if activeTab is schedules, it takes up the entire space (handled by stacking). 
+                On desktop, it goes purely to the right column. To maintain UX on mobile, we render the schedule 
+                here IF on mobile... OR we can just rely on grid-order. The simplest is to render it in the right column, 
+                and if activeTab !== 'schedules', we hide the right column on mobile via CSS 
+            */}
           </div>
 
-          {/* TAB NAVIGATION */}
-          <div
-            style={{
-              display: 'flex',
-              backgroundColor: '#f1f5f9',
-              borderRadius: 12,
-              padding: '0.25rem',
-              marginBottom: '1.5rem',
-            }}
-          >
-            {[
-              { id: 'schedules', label: 'Schedules' },
-              { id: 'about', label: 'About' },
-              { id: 'experience', label: 'Experience' },
-              { id: 'reviews', label: 'Reviews' },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                style={{
-                  flex: 1,
-                  padding: '0.6rem 0',
-                  borderRadius: 10,
-                  border: 'none',
-                  backgroundColor: activeTab === tab.id ? 'var(--white)' : 'transparent',
-                  color: activeTab === tab.id ? 'var(--primary)' : '#64748b',
-                  fontSize: '0.85rem',
-                  fontWeight: activeTab === tab.id ? 600 : 500,
-                  cursor: 'pointer',
-                  boxShadow: activeTab === tab.id ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
-                  transition: 'all 0.2s',
-                }}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          {/* TAB CONTENT */}
-          {activeTab === 'schedules' && (
+          {/* RIGHT COLUMN: BOOKING (Only visible when Schedules tab is active) */}
+          <div className="profile-right-col" style={{ display: activeTab === 'schedules' ? 'block' : 'none' }}>
             <div style={{ animation: 'fadeIn 0.3s ease' }}>
               {/* APPOINTMENT TYPE SELECTION */}
               <div style={{ marginBottom: '1.5rem' }}>
@@ -530,33 +566,7 @@ const DoctorProfile = () => {
                 </div>
               </div>
             </div>
-          )}
-
-          {activeTab === 'about' && (
-            <div style={{ padding: '1rem', color: '#64748b', lineHeight: 1.6 }}>
-              <p><strong>Category:</strong> {doctor.category_name}</p>
-              <p><strong>Specialty:</strong> {doctor.specialty_name || doctor.specialization}</p>
-              <p><strong>Bio:</strong> {doctor.bio || 'No bio available.'}</p>
-              <p><strong>Location:</strong> {doctor.location}</p>
-            </div>
-          )}
-
-          {activeTab === 'experience' && (
-            <div style={{ padding: '1rem', color: '#64748b' }}>
-              <p><strong>Total Experience:</strong> {doctor.experience}</p>
-              <p style={{ marginTop: '0.5rem' }}>Previous Affiliations: City Hospital, MedLife Clinic.</p>
-            </div>
-          )}
-
-          {activeTab === 'reviews' && (
-            <div style={{ padding: '1rem', color: '#64748b' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                <FiStar fill="#fbbf24" color="#fbbf24" size={24} />
-                <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>{doctor.rating || '4.5'} Rating</span>
-              </div>
-              <p>Reviews coming soon.</p>
-            </div>
-          )}
+          </div>
         </div>
       </div>
 
@@ -649,6 +659,19 @@ const DoctorProfile = () => {
           @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
+          }
+          
+          .profile-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+          }
+          
+          /* Desktop layout mapping */
+          @media (min-width: 768px) {
+            .profile-grid:has(.profile-right-col[style*="display: block"]) {
+              grid-template-columns: 1fr 1.2fr;
+            }
           }
         `}
       </style>

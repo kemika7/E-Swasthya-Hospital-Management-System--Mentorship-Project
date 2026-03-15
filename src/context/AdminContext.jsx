@@ -24,6 +24,7 @@ export const AdminProvider = ({ children }) => {
   });
   const [analytics, setAnalytics] = useState({ labels: [], data: [] });
   const [transactions, setTransactions] = useState([]);
+  const [reports, setReports] = useState([]);
   const [kpis, setKpis] = useState({
     totalPatients: 0,
     totalDoctors: 0,
@@ -48,6 +49,9 @@ export const AdminProvider = ({ children }) => {
 
         const patientsData = await apiFetch('/patients');
         setPatients(patientsData);
+
+        const reportsData = await apiFetch('/reports');
+        setReports(reportsData);
       } catch (err) {
         console.error('Failed to fetch admin dashboard:', err);
       } finally {
@@ -58,6 +62,62 @@ export const AdminProvider = ({ children }) => {
   }, []);
 
   // --- Actions ---
+
+  // Reports
+  const fetchReports = async () => {
+    try {
+      const { apiFetch } = await import('../services/apiClient');
+      const data = await apiFetch('/reports');
+      setReports(data);
+    } catch (err) {
+      console.error('Failed to fetch reports:', err);
+    }
+  };
+
+  const createReportEntry = async (patientId) => {
+    try {
+      const { apiFetch } = await import('../services/apiClient');
+      await apiFetch(`/reports/create/${patientId}`, { method: 'POST' });
+      fetchReports();
+    } catch (err) {
+      console.error('Failed to create report entry:', err);
+    }
+  };
+
+  const updateReportStatus = async (reportId, statusData) => {
+    try {
+      const { apiFetch } = await import('../services/apiClient');
+      await apiFetch(`/reports/${reportId}`, {
+        method: 'PUT',
+        body: JSON.stringify(statusData)
+      });
+      setReports(prev => prev.map(r => r.id === reportId ? { ...r, ...statusData } : r));
+    } catch (err) {
+      console.error('Failed to update report status:', err);
+    }
+  };
+
+  const uploadReportFile = async (reportId, file) => {
+    try {
+      const formData = new FormData();
+      formData.append('report', file);
+      
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/reports/upload/${reportId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (!response.ok) throw new Error('Upload failed');
+      
+      fetchReports();
+    } catch (err) {
+      console.error('Failed to upload report file:', err);
+    }
+  };
 
   // Doctors
   const addDoctor = async (doctor) => {
@@ -230,7 +290,12 @@ export const AdminProvider = ({ children }) => {
     updateDoctor,
     deleteDoctor,
     addPatient,
-    analytics
+    analytics,
+    reports,
+    fetchReports,
+    createReportEntry,
+    updateReportStatus,
+    uploadReportFile
   };
 
   return <AdminContext.Provider value={value}>{children}</AdminContext.Provider>;

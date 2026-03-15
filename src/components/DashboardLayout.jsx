@@ -2,7 +2,7 @@ import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import Navbar from './Navbar';
 import { PatientSidebar, DoctorSidebar, AdminSidebar } from './Sidebar';
-import SwasthaAI from './SwasthaAI';
+import SwasthyaAI from './SwasthyaAI';
 
 const DashboardLayout = ({ children }) => {
   const { userRole } = useAuth();
@@ -31,7 +31,7 @@ const DashboardLayout = ({ children }) => {
           </div>
         </main>
       </div>
-      {userRole === 'patient' && <SwasthaAI />}
+      {userRole === 'patient' && <SwasthyaAI />}
     </div>
   );
 };

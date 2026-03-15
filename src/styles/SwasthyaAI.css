@@ -1,0 +1,284 @@
+.swastha-ai-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 1000;
+  font-family: inherit;
+}
+
+.swastha-ai-floating-btn {
+  position: relative;
+  height: 56px;
+  padding: 0 24px;
+  border-radius: 28px;
+  background: linear-gradient(135deg, var(--primary), #2563eb);
+  color: white;
+  border: none;
+  box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.swastha-ai-floating-btn:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 20px rgba(59, 130, 246, 0.4);
+}
+
+.btn-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transform: translateX(-100%);
+  animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+
+.btn-label {
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.3px;
+}
+
+.swastha-ai-window {
+  position: absolute;
+  bottom: 80px;
+  right: 0;
+  width: 400px;
+  max-width: calc(100vw - 48px);
+  height: 600px;
+  max-height: calc(100vh - 120px);
+  background-color: white;
+  border-radius: 24px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  border: 1px solid rgba(0,0,0,0.06);
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.8) translateY(40px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.swastha-ai-header {
+  background: white;
+  color: var(--text);
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.swastha-ai-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: var(--text);
+}
+
+.swastha-ai-status-dot {
+  width: 10px;
+  height: 10px;
+  background-color: #22c55e;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #22c55e;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.8; }
+}
+
+.swastha-ai-close {
+  background: #f1f5f9;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border-radius: 12px;
+  transition: all 0.2s;
+}
+
+.swastha-ai-close:hover {
+  background: #e2e8f0;
+  color: var(--text);
+}
+
+.swastha-ai-messages {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background-color: #ffffff;
+  scroll-behavior: smooth;
+}
+
+.swastha-ai-message {
+  display: flex;
+  max-width: 90%;
+}
+
+.swastha-ai-message.user {
+  align-self: flex-end;
+}
+
+.swastha-ai-message.model {
+  align-self: flex-start;
+}
+
+.message-bubble {
+  padding: 12px 18px;
+  border-radius: 18px;
+  font-size: 0.98rem;
+  line-height: 1.5;
+  word-wrap: break-word;
+  position: relative;
+}
+
+.swastha-ai-message.user .message-bubble {
+  background: linear-gradient(135deg, var(--primary), #2563eb);
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+.swastha-ai-message.model .message-bubble {
+  background-color: #f1f5f9;
+  color: var(--text);
+  border-bottom-left-radius: 4px;
+}
+
+.typing-indicator {
+  display: flex;
+  gap: 4px;
+  padding: 8px 12px;
+}
+
+.typing-indicator span {
+  width: 6px;
+  height: 6px;
+  background-color: #94a3b8;
+  border-radius: 50%;
+  animation: bounce 1.4s infinite ease-in-out;
+}
+
+@keyframes bounce {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1); }
+}
+
+.swastha-ai-footer {
+  padding: 16px 20px;
+  border-top: 1px solid #f1f5f9;
+  background-color: white;
+}
+
+.swastha-ai-quick-replies {
+  display: flex;
+  overflow-x: auto;
+  gap: 8px;
+  padding-bottom: 12px;
+  scrollbar-width: none;
+}
+
+.swastha-ai-quick-replies::-webkit-scrollbar {
+  display: none;
+}
+
+.quick-reply-chip {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  border-radius: 12px;
+  padding: 8px 16px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.quick-reply-chip:hover {
+  background: #f1f5f9;
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.swastha-ai-input-form {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.swastha-ai-input-form input {
+  flex: 1;
+  padding: 12px 20px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  font-size: 1rem;
+  outline: none;
+  transition: all 0.2s;
+  background-color: #f8fafc;
+}
+
+.swastha-ai-input-form input:focus {
+  border-color: var(--primary);
+  background-color: white;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.swastha-ai-send-btn {
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.swastha-ai-send-btn:hover:not(:disabled) {
+  background-color: #1d4ed8;
+  transform: translateY(-2px);
+}
+
+.swastha-ai-send-btn:disabled {
+  background-color: #e2e8f0;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+@media (max-width: 480px) {
+  .swastha-ai-window {
+    width: auto;
+    left: 12px;
+    right: 12px;
+    height: calc(100vh - 100px);
+    bottom: 80px;
+  }
+}

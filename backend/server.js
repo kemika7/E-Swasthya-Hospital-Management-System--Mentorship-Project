@@ -2,11 +2,15 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const db = require('./config/db');
+const path = require('path');
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads/reports', express.static(path.join(__dirname, 'uploads/reports')));
 
 // Logging middleware
 app.use((req, res, next) => {
@@ -31,6 +35,8 @@ app.use('/api/announcements', require('./routes/announcements'));
 app.use('/api/patients', require('./routes/patients'));
 app.use('/api/plans', require('./routes/plans'));
 app.use('/api/chatbot', require('./routes/chatbot'));
+app.use('/api/locker', require('./routes/locker'));
+app.use('/api/reports', require('./routes/reports'));
 
 // Health Check
 app.get('/api/health', (req, res) => {
@@ -56,6 +62,47 @@ async function ensurePatientSchema() {
       await db.execute('ALTER TABLE patients ADD COLUMN is_verified BOOLEAN DEFAULT FALSE');
       console.log('[DB] Added missing is_verified column to patients table.');
     }
+    if (!colNames.includes('mpin')) {
+      await db.execute('ALTER TABLE patients ADD COLUMN mpin VARCHAR(255) NULL');
+      console.log('[DB] Added missing mpin column to patients table.');
+    }
+    
+    // Create patient_documents table
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS patient_documents (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        patient_id INT NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        file_path VARCHAR(255) NOT NULL,
+        file_type VARCHAR(100),
+        size INT,
+        uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE
+      )
+    `);
+    console.log('[DB] patient_documents table ready.');
+
+    // Create reports table
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS reports (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        patient_id INT NOT NULL,
+        consultation_status ENUM('pending', 'in_progress', 'done') DEFAULT 'pending',
+        consultation_percent INT DEFAULT 0,
+        record_updated_status ENUM('pending', 'in_progress', 'done') DEFAULT 'pending',
+        record_updated_percent INT DEFAULT 0,
+        report_generated_status ENUM('pending', 'in_progress', 'done') DEFAULT 'pending',
+        report_generated_percent INT DEFAULT 0,
+        report_published_status ENUM('pending', 'in_progress', 'done') DEFAULT 'pending',
+        report_published_percent INT DEFAULT 0,
+        overall_progress INT DEFAULT 0,
+        report_file_path VARCHAR(255) NULL,
+        uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE
+      )
+    `);
+    console.log('[DB] reports table ready.');
+    
   } catch (err) {
     // patients table may not exist yet - that's okay
     console.warn('[DB] Could not patch patients schema:', err.message);

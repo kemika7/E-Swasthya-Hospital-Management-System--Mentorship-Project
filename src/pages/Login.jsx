@@ -500,24 +500,6 @@ const Login = () => {
           >
             Sign In
           </button>
-
-          <button
-            type="button"
-            onClick={() => navigate('/register/doctor')}
-            style={{
-              width: '100%',
-              padding: '0.75rem',
-              borderRadius: 12,
-              border: 'none',
-              backgroundColor: 'transparent',
-              color: 'var(--primary)',
-              fontSize: '0.95rem',
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            Register as a New Doctor
-          </button>
         </form>
       ) : (
         <form onSubmit={handleSubmit} style={{ display: 'grid', gap: '1.25rem' }}>

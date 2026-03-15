@@ -1,61 +1,112 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiArrowLeft, FiCheck, FiLoader } from 'react-icons/fi';
+import { FiArrowLeft, FiCheck, FiLoader, FiFileText } from 'react-icons/fi';
+import { apiFetch } from '../../services/apiClient';
 
-const PROGRESS_STEPS = [
-  { id: 'consultation', label: 'Consultation', status: 'done' },
-  { id: 'record', label: 'Record Updated', status: 'done' },
-  { id: 'generated', label: 'Report Generated', status: 'done' },
-  { id: 'published', label: 'Report Published', status: 'in_progress' },
-];
+const AnimatedCircularProgress = ({ percent, size = 60, strokeWidth = 5, label, status }) => {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const [offset, setOffset] = useState(circumference);
 
-const PROGRESS_PERCENT = 82;
-const RADIUS = 44;
-const STROKE_WIDTH = 8;
-const circumference = 2 * Math.PI * RADIUS;
-const strokeDashoffset = circumference - (PROGRESS_PERCENT / 100) * circumference;
+  useEffect(() => {
+    const progressOffset = circumference - (percent / 100) * circumference;
+    setOffset(progressOffset);
+  }, [percent, circumference]);
 
-const CircularProgress = () => (
-  <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-    <svg width={RADIUS * 2 + STROKE_WIDTH} height={RADIUS * 2 + STROKE_WIDTH} style={{ transform: 'rotate(-90deg)' }}>
-      <circle
-        cx={RADIUS + STROKE_WIDTH / 2}
-        cy={RADIUS + STROKE_WIDTH / 2}
-        r={RADIUS}
-        fill="none"
-        stroke="rgba(148,163,184,0.25)"
-        strokeWidth={STROKE_WIDTH}
-      />
-      <circle
-        cx={RADIUS + STROKE_WIDTH / 2}
-        cy={RADIUS + STROKE_WIDTH / 2}
-        r={RADIUS}
-        fill="none"
-        stroke="var(--primary)"
-        strokeWidth={STROKE_WIDTH}
-        strokeDasharray={circumference}
-        strokeDashoffset={strokeDashoffset}
-        strokeLinecap="round"
-        style={{ transition: 'stroke-dashoffset 0.3s ease' }}
-      />
-    </svg>
-    <div
-      style={{
-        position: 'absolute',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <span style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text)' }}>{PROGRESS_PERCENT}%</span>
+  const getColor = () => {
+    if (status === 'done') return '#22c55e'; // Green
+    if (status === 'in_progress') return '#3b82f6'; // Blue
+    return '#94a3b8'; // Grey (Pending)
+  };
+
+  const color = getColor();
+
+  return (
+    <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+      <div style={{ position: 'relative', width: size, height: size }}>
+        <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke="#e2e8f0"
+            strokeWidth={strokeWidth}
+          />
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke={color}
+            strokeWidth={strokeWidth}
+            strokeDasharray={circumference}
+            style={{ 
+                strokeDashoffset: offset,
+                transition: 'stroke-dashoffset 1s ease-in-out',
+                strokeLinecap: 'round'
+            }}
+          />
+        </svg>
+        <div style={{ 
+            position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: size > 80 ? '1.25rem' : '0.75rem', fontWeight: 700, color: 'var(--text)'
+        }}>
+          {percent}%
+        </div>
+      </div>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text)' }}>{label}</div>
+        <div style={{ fontSize: '0.7rem', color, fontWeight: 500, textTransform: 'capitalize' }}>
+            {status.replace('_', ' ')}
+        </div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const Reports = () => {
   const navigate = useNavigate();
-  const isReportPublished = false; // Mock: Report Published is "In Progress"
+  const [reportData, setReportData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchReportStatus = async () => {
+      try {
+        const data = await apiFetch('/reports/my-report');
+        setReportData(data);
+      } catch (err) {
+        console.error('Failed to fetch report status:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchReportStatus();
+  }, []);
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <FiLoader className="spin" size={32} />
+      </div>
+    );
+  }
+
+  const steps = [
+    { id: 'consultation', label: 'Consultation' },
+    { id: 'record_updated', label: 'Record Updated' },
+    { id: 'report_generated', label: 'Report Generated' },
+    { id: 'report_published', label: 'Report Published' },
+  ];
+
+  const overallPercent = reportData?.overall_progress || 0;
+  const isReportPublished = reportData?.report_published_status === 'done' && reportData?.report_file_path;
+
+  const handleViewReport = () => {
+    if (reportData?.report_file_path) {
+      window.open(`${import.meta.env.VITE_API_BASE_URL.replace('/api', '')}${reportData.report_file_path}`, '_blank');
+    }
+  };
 
   return (
     <main
@@ -112,174 +163,138 @@ const Reports = () => {
         <div style={{ width: 40 }} />
       </div>
 
-      {/* REPORT PROGRESS OVERVIEW SECTION */}
+      {/* OVERALL PROGRESS SECTION */}
       <section
         style={{
           marginBottom: '1.5rem',
-          backgroundColor: 'rgba(148,163,184,0.15)',
-          borderRadius: 16,
-          padding: '1.25rem',
+          backgroundColor: 'var(--white)',
+          borderRadius: 20,
+          padding: '2rem',
+          boxShadow: 'var(--shadow-soft)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '1.5rem'
+        }}
+      >
+        <AnimatedCircularProgress 
+            percent={overallPercent} 
+            size={120} 
+            strokeWidth={10} 
+            label="Overall Progress" 
+            status={overallPercent === 100 ? 'done' : 'in_progress'} 
+        />
+      </section>
+
+      {/* INDIVIDUAL STEPS PROGRESS */}
+      <section
+        style={{
+          marginBottom: '1.5rem',
+          backgroundColor: 'var(--white)',
+          borderRadius: 20,
+          padding: '1.5rem',
           boxShadow: 'var(--shadow-soft)',
         }}
       >
-        {/* Progress Bar (Top) */}
+        <h3 style={{ marginBottom: '1.5rem', fontSize: '1.1rem', fontWeight: 600 }}>Process Timeline</h3>
         <div
           style={{
-            width: '100%',
-            height: 8,
-            backgroundColor: 'rgba(148,163,184,0.25)',
-            borderRadius: 999,
-            marginBottom: '1.25rem',
-            overflow: 'hidden',
-          }}
-        >
-          <div
-            style={{
-              width: `${PROGRESS_PERCENT}%`,
-              height: '100%',
-              backgroundColor: 'var(--primary)',
-              borderRadius: 999,
-              transition: 'width 0.3s ease',
-            }}
-          />
-        </div>
-
-        {/* Progress Steps (Left) + Overall Progress (Right) */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            justifyContent: 'space-between',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
             gap: '1.5rem',
-            flexWrap: 'wrap',
+            justifyItems: 'center'
           }}
         >
-          {/* Progress Steps - Left Side */}
-          <div
-            style={{
-              flex: 1,
-              minWidth: 200,
-              display: 'flex',
-              gap: '0.75rem',
-              justifyContent: 'space-between',
-            }}
-          >
-            {PROGRESS_STEPS.map((step) => {
-              const isDone = step.status === 'done';
-              return (
-                <div
-                  key={step.id}
-                  style={{
-                    flex: 1,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '0.35rem',
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: '50%',
-                      backgroundColor: isDone ? 'var(--primary)' : 'rgba(148,163,184,0.3)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    {isDone ? (
-                      <FiCheck size={18} style={{ color: 'var(--white)' }} />
-                    ) : (
-                      <FiLoader size={18} style={{ color: 'rgba(23,23,16,0.6)' }} />
-                    )}
-                  </div>
-                  <span
-                    style={{
-                      fontSize: '0.7rem',
-                      fontWeight: 500,
-                      color: isDone ? 'var(--text)' : 'rgba(23,23,16,0.6)',
-                      textAlign: 'center',
-                      lineHeight: 1.2,
-                    }}
-                  >
-                    {step.label}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: '0.65rem',
-                      color: isDone ? 'var(--primary)' : 'rgba(23,23,16,0.5)',
-                      fontWeight: 500,
-                    }}
-                  >
-                    {isDone ? 'Done' : 'In Progress'}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Overall Progress - Right Side */}
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '0.5rem',
-              flexShrink: 0,
-            }}
-          >
-            <CircularProgress />
-            <span
-              style={{
-                fontSize: '0.8rem',
-                fontWeight: 600,
-                color: 'var(--text)',
-              }}
-            >
-              Overall Progress
-            </span>
-          </div>
+          {steps.map((step) => (
+            <AnimatedCircularProgress
+              key={step.id}
+              percent={reportData ? reportData[`${step.id}_percent`] : 0}
+              status={reportData ? reportData[`${step.id}_status`] : 'pending'}
+              label={step.label}
+              size={80}
+              strokeWidth={6}
+            />
+          ))}
         </div>
       </section>
 
       {/* REPORT ACCESS SECTION */}
       <section
         style={{
-          backgroundColor: 'rgba(148,163,184,0.15)',
-          borderRadius: 16,
-          padding: '1.25rem',
+          backgroundColor: isReportPublished ? 'rgba(34,197,94,0.1)' : 'rgba(148,163,184,0.1)',
+          borderRadius: 20,
+          padding: '2rem',
           boxShadow: 'var(--shadow-soft)',
+          textAlign: 'center',
+          border: isReportPublished ? '1px solid rgba(34,197,94,0.2)' : 'none'
         }}
       >
-        <p
-          style={{
-            fontSize: '0.95rem',
-            color: 'var(--text)',
-            lineHeight: 1.5,
-            marginBottom: '1rem',
-            opacity: 0.9,
-          }}
-        >
-          After the Report Publishing is Complete, You can click here to view your report.
-        </p>
-        <button
-          type="button"
-          disabled={!isReportPublished}
-          style={{
-            padding: '0.75rem 1.5rem',
-            borderRadius: 12,
-            border: '2px solid var(--primary)',
-            backgroundColor: 'var(--white)',
-            color: 'var(--primary)',
-            fontSize: '0.95rem',
-            fontWeight: 600,
-            cursor: isReportPublished ? 'pointer' : 'not-allowed',
-            opacity: isReportPublished ? 1 : 0.6,
-          }}
-        >
-          View Your Report
-        </button>
+        {isReportPublished ? (
+          <>
+            <div style={{ 
+                width: 60, height: 60, borderRadius: '50%', backgroundColor: '#22c55e', 
+                display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                margin: '0 auto 1rem', color: 'var(--white)' 
+            }}>
+              <FiCheck size={30} />
+            </div>
+            <p style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text)', marginBottom: '1.5rem' }}>
+              Your report is ready to view!
+            </p>
+            <button
+              type="button"
+              onClick={handleViewReport}
+              style={{
+                padding: '1rem 2.5rem',
+                borderRadius: 14,
+                border: 'none',
+                backgroundColor: 'var(--primary)',
+                color: 'var(--white)',
+                fontSize: '1rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                margin: '0 auto'
+              }}
+            >
+              <FiFileText size={20} />
+              View Your Report
+            </button>
+          </>
+        ) : (
+          <>
+            <p
+              style={{
+                fontSize: '1rem',
+                color: 'var(--text)',
+                lineHeight: 1.6,
+                marginBottom: '1rem',
+                opacity: 0.8,
+              }}
+            >
+              Once the Report Publishing is Complete, you will be able to view and download your report here.
+            </p>
+            <button
+              type="button"
+              disabled
+              style={{
+                padding: '0.9rem 2rem',
+                borderRadius: 14,
+                border: '2px dashed var(--text-light)',
+                backgroundColor: 'transparent',
+                color: 'var(--text-light)',
+                fontSize: '1rem',
+                fontWeight: 600,
+                cursor: 'not-allowed',
+                opacity: 0.6,
+              }}
+            >
+              Report Pending
+            </button>
+          </>
+        )}
       </section>
     </main>
   );

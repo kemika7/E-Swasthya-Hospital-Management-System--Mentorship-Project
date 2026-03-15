@@ -12,6 +12,17 @@ const crypto = require('crypto');
 const validateEmail = (email) => /^\S+@\S+\.\S+$/.test(email);
 const validatePassword = (password) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/.test(password);
 const validatePhone = (phone) => /^\d{10}$/.test(phone);
+const validateFullName = (name) => name && name.trim().includes(' ');
+
+// Capitalize first letter of each part of the name
+const formatName = (name) => {
+    if (!name) return '';
+    return name
+        .trim()
+        .split(/\s+/)
+        .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+        .join(' ');
+};
 
 // Generate 6-digit OTP
 const generateOTP = () => {
@@ -22,9 +33,12 @@ const generateOTP = () => {
 
 // Register Patient (no OTP - direct registration)
 router.post('/register', async (req, res) => {
-    const { name, email, password, phone, address, dob, age, gender, medical_history } = req.body;
+    let { name, email, password, phone, address, dob, age, gender, medical_history } = req.body;
 
     try {
+        if (!validateFullName(name)) return res.status(400).json({ message: 'Please provide your full name (first and last name).' });
+        name = formatName(name);
+
         if (!validateEmail(email)) return res.status(400).json({ message: 'Invalid email format' });
         if (!validatePassword(password)) return res.status(400).json({ message: 'Password must be at least 8 chars, with 1 upper, 1 lower, 1 number, and 1 special char.' });
 
@@ -37,10 +51,19 @@ router.post('/register', async (req, res) => {
         }
         if (phone && !validatePhone(phone)) return res.status(400).json({ message: 'Phone number must be exactly 10 digits.' });
 
-        // Check if patient already exists
-        const [existingPatient] = await db.execute('SELECT * FROM patients WHERE email = ?', [email]);
-        if (existingPatient.length > 0) {
+        // Check if account already exists with this email or phone
+        const [existingEmailInPatients] = await db.execute('SELECT * FROM patients WHERE email = ?', [email]);
+        const [existingEmailInUsers] = await db.execute('SELECT * FROM users WHERE email = ?', [email]);
+        if (existingEmailInPatients.length > 0 || existingEmailInUsers.length > 0) {
             return res.status(400).json({ message: 'An account with this email already exists.' });
+        }
+
+        if (phone) {
+            const [existingPhoneInPatients] = await db.execute('SELECT * FROM patients WHERE phone = ?', [phone]);
+            const [existingPhoneInUsers] = await db.execute('SELECT * FROM users WHERE phone = ?', [phone]);
+            if (existingPhoneInPatients.length > 0 || existingPhoneInUsers.length > 0) {
+                return res.status(400).json({ message: 'An account with this phone number already exists.' });
+            }
         }
 
         // Hash password
@@ -78,7 +101,10 @@ router.post('/register', async (req, res) => {
 
 // Register Doctor
 router.post('/register-doctor', async (req, res) => {
-    const { name, email, password, phone, address, regNumber, specialization, hospital } = req.body;
+    let { name, email, password, phone, address, regNumber, specialization, hospital } = req.body;
+
+    if (!validateFullName(name)) return res.status(400).json({ message: 'Please provide your full name (first and last name).' });
+    name = formatName(name);
 
     if (!validateEmail(email)) return res.status(400).json({ message: 'Invalid email format' });
     if (!validatePassword(password)) return res.status(400).json({ message: 'Password must be at least 8 chars, with 1 upper, 1 lower, 1 number, and 1 special char.' });
@@ -92,12 +118,20 @@ router.post('/register-doctor', async (req, res) => {
     await connection.beginTransaction();
 
     try {
-        // Check if user exists in both users and patients tables to be thorough
-        const [existingUser] = await connection.execute('SELECT * FROM users WHERE email = ?', [email]);
-        const [existingPatient] = await connection.execute('SELECT * FROM patients WHERE email = ?', [email]);
+        // Check if account already exists with this email or phone
+        const [existingEmailInUsers] = await connection.execute('SELECT * FROM users WHERE email = ?', [email]);
+        const [existingEmailInPatients] = await connection.execute('SELECT * FROM patients WHERE email = ?', [email]);
         
-        if (existingUser.length > 0 || existingPatient.length > 0) {
-            return res.status(400).json({ message: 'An account with this email already exists. Please use a different email or try logging in.' });
+        if (existingEmailInUsers.length > 0 || existingEmailInPatients.length > 0) {
+            return res.status(400).json({ message: 'An account with this email already exists.' });
+        }
+
+        if (phone) {
+            const [existingPhoneInUsers] = await connection.execute('SELECT * FROM users WHERE phone = ?', [phone]);
+            const [existingPhoneInPatients] = await connection.execute('SELECT * FROM patients WHERE phone = ?', [phone]);
+            if (existingPhoneInUsers.length > 0 || existingPhoneInPatients.length > 0) {
+                return res.status(400).json({ message: 'An account with this phone number already exists.' });
+            }
         }
 
         // Find specialty
@@ -108,10 +142,10 @@ router.post('/register-doctor', async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // Insert into users
+        // Insert into users (now including phone)
         const [userResult] = await connection.execute(
-            'INSERT INTO users (name, email, password, role, is_verified) VALUES (?, ?, ?, ?, FALSE)',
-            [name, email, hashedPassword, 'doctor']
+            'INSERT INTO users (name, email, phone, password, role, is_verified) VALUES (?, ?, ?, ?, ?, FALSE)',
+            [name, email, phone || '', hashedPassword, 'doctor']
         );
         const userId = userResult.insertId;
 

@@ -6,7 +6,6 @@ import homepageIllustration from '../assets/images/homepage1.png';
 import { medicalCategories } from '../data/mockData';
 import { useAuth } from '../context/AuthContext';
 import { sanitizeInput } from '../utils/sanitize';
-import OtpVerificationModal from '../components/OtpVerificationModal';
 
 const validatePassword = (password) => /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/.test(password);
 
@@ -37,10 +36,7 @@ const DoctorRegister = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
 
-  // OTP Modal State
-  const [showOtpModal, setShowOtpModal] = useState(false);
-  const [registeredEmail, setRegisteredEmail] = useState('');
-
+  
   const specializations = useMemo(() => {
     return medicalCategories.flatMap((c) => c.specialties?.map((s) => s.name) || []);
   }, []);
@@ -100,20 +96,14 @@ const DoctorRegister = () => {
         body: JSON.stringify(payload),
       });
 
-      if (res.requireOtp) {
-        setRegisteredEmail(res.email);
-        setShowOtpModal(true);
-      }
+      // Auto-login after successful registration
+      login(res);
     } catch (err) {
       setError(err.message || 'Error occurred during registration.');
     }
   };
 
-  const handleOtpSuccess = (data) => {
-    setShowOtpModal(false);
-    login({ token: data.token, user: data.user });
-  };
-
+  
   return (
     <AuthLayout leftHeader={<BrandingHeader />} illustrationSrc={homepageIllustration}>
       <div style={{ marginBottom: '1.25rem' }}>
@@ -510,15 +500,7 @@ const DoctorRegister = () => {
         </button>
       </form>
       
-      {showOtpModal && (
-        <OtpVerificationModal 
-          email={registeredEmail}
-          type="registration"
-          onClose={() => setShowOtpModal(false)}
-          onSuccess={handleOtpSuccess}
-        />
-      )}
-    </AuthLayout>
+          </AuthLayout>
   );
 };
 

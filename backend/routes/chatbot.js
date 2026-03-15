@@ -14,7 +14,6 @@ const getAllDoctors = async () => {
       FROM doctors d 
       JOIN users u ON d.user_id = u.id
       LEFT JOIN specialties s ON d.specialty_id = s.id
-      WHERE d.status = 'Active'
       ORDER BY u.name
     `);
     return doctors;
@@ -26,22 +25,22 @@ const getAllDoctors = async () => {
 
 // Full symptom-to-specialization mapping
 const symptomMap = [
-  { keywords: ['fever', 'cold', 'warm', 'flu', 'temperature', 'chills', 'hot'], specialty: 'General Physician' },
-  { keywords: ['chest', 'heart', 'cardiac', 'cardiology', 'palpitation'], specialty: 'Cardiologist' },
-  { keywords: ['bone', 'joint', 'ortho', 'knee', 'shoulder', 'fracture', 'spine', 'back pain'], specialty: 'Orthopedist' },
-  { keywords: ['stomach', 'belly', 'digestion', 'gastro', 'nausea', 'vomit', 'diarrhea', 'constipation', 'acidity'], specialty: 'Gastroenterologist' },
-  { keywords: ['skin', 'rash', 'acne', 'eczema', 'dermatology', 'itching', 'allergy'], specialty: 'Dermatologist' },
-  { keywords: ['eye', 'vision', 'ophthalmology', 'sight', 'blind', 'retina', 'blur'], specialty: 'Ophthalmologist' },
-  { keywords: ['ear', 'nose', 'throat', 'ent', 'sinus', 'tonsil', 'hearing', 'snoring'], specialty: 'ENT Specialist' },
-  { keywords: ['hormone', 'thyroid', 'diabetes', 'sugar', 'insulin', 'endocrine'], specialty: 'Endocrinologist' },
-  { keywords: ['women', 'pregnancy', 'period', 'gynecology', 'uterus', 'ovary', 'menstrual'], specialty: 'Gynecologist' },
-  { keywords: ['child', 'baby', 'kid', 'pediatric', 'infant', 'toddler'], specialty: 'Pediatrician' },
-  { keywords: ['kidney', 'urinary', 'urine', 'nephrology', 'bladder'], specialty: 'Nephrologist' },
-  { keywords: ['lung', 'breathing', 'asthma', 'pulmonology', 'cough', 'respiratory', 'oxygen'], specialty: 'Pulmonologist' },
-  { keywords: ['brain', 'mental', 'anxiety', 'depression', 'headache', 'neurology', 'nerve', 'seizure', 'migraine', 'dizziness'], specialty: 'Neurologist' },
-  { keywords: ['psychiatry', 'stress', 'panic', 'mood', 'bipolar', 'schizophrenia'], specialty: 'Psychiatrist' },
-  { keywords: ['teeth', 'tooth', 'dental', 'gum', 'cavity', 'dentist'], specialty: 'Dentist' },
-  { keywords: ['blood', 'anemia', 'iron', 'hemoglobin', 'platelet'], specialty: 'General Physician' },
+  { keywords: ['fever', 'warm', 'flu', 'temperature', 'chills', 'runny nose', 'sneezing', 'fatigue', 'weakness', 'body ache', 'cold'], specialty: 'General Physician' },
+  { keywords: ['chest pain', 'heart pain', 'cardiac', 'cardiology', 'palpitation', 'heart racing', 'irregular heartbeat', 'heart attack'], specialty: 'Cardiologist' },
+  { keywords: ['bone pain', 'joint pain', 'knee pain', 'shoulder pain', 'back pain', 'fracture', 'spine', 'ortho', 'arthritis', 'muscle pain'], specialty: 'Orthopedist' },
+  { keywords: ['stomach ache', 'stomach pain', 'belly pain', 'digestion', 'gastro', 'nausea', 'vomit', 'diarrhea', 'constipation', 'acidity', 'bloating', 'indigestion', 'abdominal'], specialty: 'Gastroenterologist' },
+  { keywords: ['skin rash', 'rash', 'acne', 'eczema', 'dermatology', 'itching', 'skin allergy', 'pimple', 'psoriasis', 'skin problem', 'skin issue'], specialty: 'Dermatologist' },
+  { keywords: ['eye pain', 'eye problem', 'vision', 'ophthalmology', 'sight', 'blind', 'retina', 'blur', 'eye infection', 'red eye'], specialty: 'Ophthalmologist' },
+  { keywords: ['ear pain', 'nose problem', 'throat pain', 'sore throat', 'ent', 'sinus', 'tonsil', 'hearing loss', 'snoring', 'ear infection', 'nasal'], specialty: 'ENT Specialist' },
+  { keywords: ['hormone', 'thyroid', 'diabetes', 'sugar level', 'insulin', 'endocrine', 'weight gain', 'weight loss'], specialty: 'Endocrinologist' },
+  { keywords: ['women health', 'pregnancy', 'period pain', 'irregular period', 'gynecology', 'uterus', 'ovary', 'menstrual', 'vaginal', 'pcod', 'pcos'], specialty: 'Gynecologist' },
+  { keywords: ['child sick', 'baby sick', 'kid sick', 'pediatric', 'infant', 'toddler', 'my child', 'my baby', 'my kid'], specialty: 'Pediatrician' },
+  { keywords: ['kidney pain', 'kidney problem', 'urinary', 'urine problem', 'nephrology', 'bladder', 'kidney stone'], specialty: 'Nephrologist' },
+  { keywords: ['cough', 'breathing problem', 'shortness of breath', 'asthma', 'pulmonology', 'respiratory', 'oxygen', 'wheezing', 'lung pain', 'lung problem', 'breathless'], specialty: 'Pulmonologist' },
+  { keywords: ['brain problem', 'anxiety', 'depression', 'headache', 'neurology', 'nerve pain', 'seizure', 'migraine', 'dizziness', 'memory loss', 'numbness', 'stroke'], specialty: 'Neurologist' },
+  { keywords: ['stress', 'panic attack', 'mood swing', 'bipolar', 'schizophrenia', 'mental health', 'psychiatry', 'suicidal', 'ocd'], specialty: 'Psychiatrist' },
+  { keywords: ['tooth pain', 'teeth pain', 'dental', 'gum pain', 'cavity', 'dentist', 'toothache'], specialty: 'Dentist' },
+  { keywords: ['blood problem', 'anemia', 'iron deficiency', 'hemoglobin', 'platelet', 'bleeding'], specialty: 'General Physician' },
 ];
 
 // Typo-tolerant specialty name map
@@ -80,14 +79,15 @@ const buildDoctorList = (allDoctors) => {
   if (allDoctors.length === 0) return "No doctors are currently available.";
   const grouped = {};
   allDoctors.forEach(d => {
-    const spec = d.specialty_name || 'General Physician';
+    const spec = (d.specialty_name || 'General Physician').trim();
     if (!grouped[spec]) grouped[spec] = [];
-    if (grouped[spec].length < 3) {
-      grouped[spec].push(`Dr. ${d.doctor_name} - [/patient/doctor/${d.id}]`);
+    // keep up to 5 per specialty so Gemini can pick the best 3
+    if (grouped[spec].length < 5) {
+      grouped[spec].push({ name: d.doctor_name, id: d.id });
     }
   });
   return Object.entries(grouped).map(([spec, docs]) =>
-    `${spec}:\n${docs.map((d, i) => `  ${i + 1}. ${d}`).join('\n')}`
+    `${spec}:\n${docs.map((d, i) => `  ${i + 1}. [${d.name}](/patient/doctor/${d.id})`).join('\n')}`
   ).join('\n\n');
 };
 
@@ -142,7 +142,7 @@ const generateLocalReply = (message, specialty, doctors) => {
       : isSpecializationQuery(message)
         ? `Here are the top ${doctors.length} ${specialty} doctors:\n`
         : `Based on your concern, I recommend seeing a ${specialty}:\n`;
-    const docList = doctors.map((d, i) => `${i + 1}. Dr. ${d.doctor_name} - [/patient/doctor/${d.id}]`).join('\n');
+    const docList = doctors.map((d, i) => `${i + 1}. [${d.doctor_name}](/patient/doctor/${d.id})`).join('\n');
     return intro + docList;
   }
 
@@ -173,33 +173,66 @@ router.post('/chat', async (req, res) => {
     if (GEMINI_API_KEY) {
       try {
         const doctorListText = buildDoctorList(allDoctors);
-        const systemPrompt = `You are Swastha AI, a professional, friendly, and fast virtual health assistant for a hospital patient portal.
+        const systemPrompt = `You are "Swastha AI," a professional, friendly, and knowledgeable virtual health assistant for a patient portal. You behave like a smart medical AI — you can answer any health or general question AND recommend real doctors when needed.
 
-Rules (strictly follow):
-1. Symptom queries: If the patient describes symptoms (e.g. "I feel warm", "chest pain"), identify the likely disease and recommend exactly 3 doctors of the relevant specialty with profile links.
-   Format: "It seems like you may have [DISEASE]. I recommend consulting a [SPECIALTY]:\n1. Dr. Name - [link]\n2. Dr. Name - [link]\n3. Dr. Name - [link]"
-2. Specialty queries: If the patient asks for a specific specialty (e.g. "best cardiologist", "suggest doctor for cardiology"), recommend top 3 doctors of that specialty with links.
-3. Greetings: respond naturally. Example: "Hello! How can I help you today?"
-4. Never use Markdown asterisks. Keep responses short and empathetic.
-5. Only recommend doctors from the list provided below. Do not hallucinate.
-6. If no doctors are available for a specialty, say so clearly.
+RULES (follow exactly):
 
-Symptom mapping:
-- Fever/warm/cold -> General Physician
-- Chest pain/heart -> Cardiologist
-- Bone/joint pain -> Orthopedist
-- Stomach/digestion -> Gastroenterologist
-- Skin/rash -> Dermatologist
-- Eyes -> Ophthalmologist
-- Ear/nose/throat -> ENT Specialist
-- Diabetes/thyroid -> Endocrinologist
-- Women/pregnancy -> Gynecologist
-- Child/baby -> Pediatrician
-- Kidney/urine -> Nephrologist
-- Lung/breathing -> Pulmonologist
-- Brain/headache/anxiety -> Neurologist
+1. PATIENT REPORTING SYMPTOMS (e.g. "I have a cough", "I feel feverish", "my stomach hurts"):
+   - Respond empathetically. Briefly explain what the condition might be (2-3 sentences max).
+   - Then recommend exactly 3 doctors from the available list for the relevant specialty.
+   - Format:
+     It sounds like you may have [CONDITION]. [1-2 sentence health tip or what to watch for.]
+     I recommend consulting a [SPECIALTY]:
+     1. [Dr. Name](/patient/doctor/ID)
+     2. [Dr. Name](/patient/doctor/ID)
+     3. [Dr. Name](/patient/doctor/ID)
 
-Available Doctors:
+2. ASKING ABOUT SYMPTOMS / HEALTH INFO (e.g. "what are symptoms of cough", "what causes stomach ache", "is fever dangerous"):
+   - Give a clear, helpful medical explanation. Use a short list if needed.
+   - Do NOT recommend doctors unless the user asks.
+   - Example for "symptoms of cough":
+     Common symptoms associated with a cough include:
+     - Dry or wet cough
+     - Sore throat or irritation
+     - Shortness of breath or wheezing
+     - Chest tightness
+     - Runny nose or congestion (if due to cold)
+     A persistent cough lasting more than 2 weeks should be evaluated by a doctor.
+
+3. SPECIALTY / DOCTOR QUERIES (e.g. "suggest a cardiologist", "which doctor for skin"):
+   - Recommend top 3 doctors for that specialty with profile links.
+
+4. GENERAL KNOWLEDGE (science, math, history, tech, etc.):
+   - Answer accurately and concisely like a knowledgeable assistant.
+
+5. GREETINGS:
+   - Respond: "Hello! I'm Swastha AI. How can I help you today?"
+
+6. CONSTRAINTS:
+   - Never use markdown asterisks (*) for bold/italic.
+   - Never invent doctor names or IDs. Only use doctors from the list below.
+   - If no doctors exist for a specialty: "No doctors are currently available for this specialty. Please contact us directly."
+   - Keep responses concise and easy to read.
+   - You can use numbered or bulleted lists for clarity.
+
+Symptom to specialty mapping:
+- Fever, flu, fatigue, body ache, cold, chills -> General Physician
+- Chest pain, heart palpitations, cardiac issues -> Cardiologist
+- Bone pain, joint pain, knee, back, fracture, arthritis -> Orthopedist
+- Stomach ache, nausea, vomiting, acidity, diarrhea, bloating -> Gastroenterologist
+- Skin rash, acne, eczema, itching, psoriasis -> Dermatologist
+- Eye pain, vision problems, blur, red eye -> Ophthalmologist
+- Ear pain, sore throat, sinus, tonsil, hearing loss -> ENT Specialist
+- Diabetes, thyroid, hormones, weight issues -> Endocrinologist
+- Pregnancy, periods, PCOS, women's health -> Gynecologist
+- Child/baby/infant illness -> Pediatrician
+- Kidney pain, urine problems, kidney stones -> Nephrologist
+- Cough, breathing difficulty, asthma, wheezing -> Pulmonologist
+- Headache, migraine, anxiety, depression, seizure, dizziness -> Neurologist
+- Toothache, dental, gum pain -> Dentist
+- Stress, panic, mental health, mood disorders -> Psychiatrist
+
+Available Doctors (ONLY use these — never invent):
 ${doctorListText}`;
 
         // Build alternating history for Gemini
@@ -217,7 +250,7 @@ ${doctorListText}`;
 
         const payload = {
           system_instruction: { parts: [{ text: systemPrompt }] },
-          generationConfig: { temperature: 0.1, maxOutputTokens: 200 },
+          generationConfig: { temperature: 0.7, maxOutputTokens: 800 },
           contents: [
             ...validHistory,
             { role: 'user', parts: [{ text: message }] }

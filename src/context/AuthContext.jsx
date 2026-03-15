@@ -1,10 +1,12 @@
 import React, { createContext, useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useHospital } from './HospitalContext';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
+  const { clearHospital } = useHospital();
 
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
   const [userRole, setUserRole] = useState(localStorage.getItem('userRole'));
@@ -20,7 +22,7 @@ export const AuthProvider = ({ children }) => {
     setUserRole(user.role);
     setUserProfile(user);
 
-    if (user.role === 'patient') navigate('/patient/dashboard');
+    if (user.role === 'patient') navigate('/patient/select-hospital');
     if (user.role === 'doctor') navigate('/doctor/dashboard');
     if (user.role === 'admin') navigate('/admin/dashboard');
   };
@@ -29,6 +31,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     localStorage.removeItem('userRole');
     localStorage.removeItem('userProfile');
+    clearHospital();
     setIsAuthenticated(false);
     setUserRole(null);
     setUserProfile(null);

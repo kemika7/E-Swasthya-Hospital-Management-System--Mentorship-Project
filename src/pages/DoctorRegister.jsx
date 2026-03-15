@@ -1,5 +1,13 @@
 import React, { useMemo, useState } from 'react';
-import { FiMail, FiLock, FiUser, FiPhone, FiHome, FiEye, FiEyeOff } from 'react-icons/fi';
+import { FiMail, FiLock, FiUser, FiPhone, FiHome, FiEye, FiEyeOff, FiActivity } from 'react-icons/fi';
+
+const HOSPITALS = [
+  { id: 1, name: 'City Hospital' },
+  { id: 2, name: 'Green Valley Hospital' },
+  { id: 3, name: 'Sunrise Medical Center' },
+  { id: 4, name: 'Lakeside Clinic' },
+  { id: 5, name: 'Royal Care Hospital' },
+];
 import AuthLayout from '../components/AuthLayout';
 import BrandingHeader from '../components/BrandingHeader';
 import homepageIllustration from '../assets/images/homepage1.png';
@@ -27,7 +35,7 @@ const DoctorRegister = () => {
     address: '',
     regNumber: '',
     specialization: '',
-    hospital: '',
+    hospitalId: '',
     password: '',
     confirmPassword: '',
     confirmAccurate: false,
@@ -59,7 +67,7 @@ const DoctorRegister = () => {
       form.address &&
       form.regNumber &&
       form.specialization &&
-      form.hospital &&
+      form.hospitalId &&
       form.password &&
       form.confirmAccurate;
     
@@ -89,7 +97,12 @@ const DoctorRegister = () => {
     try {
       const { apiFetch } = await import('../services/apiClient');
       
-      const { confirmPassword, confirmAccurate, ...payload } = form;
+      const { confirmPassword, confirmAccurate, ...rest } = form;
+      const selectedHospital = HOSPITALS.find(h => h.id === Number(rest.hospitalId));
+      const payload = {
+        ...rest,
+        hospital: selectedHospital?.name || '',
+      };
 
       const res = await apiFetch('/auth/register-doctor', {
         method: 'POST',
@@ -335,7 +348,7 @@ const DoctorRegister = () => {
         </label>
 
         <label style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--text)' }}>
-          Hospital / Clinic Name
+          Hospital / Clinic
           <div
             style={{
               marginTop: '0.5rem',
@@ -349,23 +362,29 @@ const DoctorRegister = () => {
               padding: '0.75rem 1rem',
             }}
           >
-            <FiHome size={18} style={{ opacity: 0.5, color: 'var(--text)' }} />
-            <input
-              type="text"
-              name="hospital"
-              placeholder="Enter hospital or clinic name"
-              value={form.hospital}
+            <FiActivity size={18} style={{ opacity: 0.5, color: 'var(--text)', flexShrink: 0 }} />
+            <select
+              name="hospitalId"
+              value={form.hospitalId}
               onChange={handleChange}
               required
+              aria-label="Select Hospital"
               style={{
                 flex: 1,
                 border: 'none',
                 outline: 'none',
                 fontSize: '0.95rem',
-                color: 'var(--text)',
+                color: form.hospitalId ? 'var(--text)' : '#94a3b8',
                 backgroundColor: 'transparent',
+                cursor: 'pointer',
+                appearance: 'auto',
               }}
-            />
+            >
+              <option value="" disabled>Select your hospital</option>
+              {HOSPITALS.map((h) => (
+                <option key={h.id} value={h.id}>{h.name}</option>
+              ))}
+            </select>
           </div>
         </label>
 

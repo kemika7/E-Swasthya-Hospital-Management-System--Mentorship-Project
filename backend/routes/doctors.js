@@ -193,9 +193,9 @@ router.post('/', authenticateToken, async (req, res) => {
     try {
         if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access denied' });
 
-        const { name, email, phone, password, specialty_id: inputSpecialtyId, specialization, experience, bio, location, working_hours, fee, qualification, rating } = req.body;
-        // Strictly use the admin's hospital_id
-        const hospital_id = req.user.hospital_id;
+        const { name, email, phone, password, specialty_id: inputSpecialtyId, specialization, experience, bio, location, working_hours, fee, qualification, rating, hospital_id: bodyHospitalId } = req.body;
+        // Use hospital from body if provided (e.g. for mega-admins), else use admin's own hospital_id
+        const hospital_id = bodyHospitalId || req.user.hospital_id;
         const specialty_id = (inputSpecialtyId && inputSpecialtyId !== '') ? inputSpecialtyId : null;
 
         const cleanEmail = email.trim();

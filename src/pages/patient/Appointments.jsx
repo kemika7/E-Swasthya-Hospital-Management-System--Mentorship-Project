@@ -38,11 +38,9 @@ const Appointments = () => {
   };
 
   return (
-    <main
-      className="layout-main"
+    <div
+      className="appointments-page"
       style={{
-        minHeight: '100vh',
-        backgroundColor: 'var(--background)',
         paddingBottom: '2rem',
       }}
     >
@@ -218,7 +216,7 @@ const Appointments = () => {
           </div>
         )}
       </section>
-    </main>
+    </div>
   );
 };
 

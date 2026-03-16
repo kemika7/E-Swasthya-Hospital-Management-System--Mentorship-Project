@@ -424,11 +424,10 @@ const CreateAccountPatient = () => {
             color: 'var(--white)',
             fontSize: '1rem',
             fontWeight: 600,
-            cursor: 'pointer',
             boxShadow: '0 10px 25px rgba(82, 178, 191, 0.35)',
             marginTop: '0.25rem',
-          opacity: loading ? 0.7 : 1,
-          cursor: loading ? 'not-allowed' : 'pointer',
+            opacity: loading ? 0.7 : 1,
+            cursor: loading ? 'not-allowed' : 'pointer',
           }}
           disabled={loading}
         >

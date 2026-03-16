@@ -60,6 +60,7 @@ const PatientLayout = () => (
       <Route path="hospitals" element={<RequireHospital><HospitalsPage /></RequireHospital>} />
       <Route path="hospital/:hospitalId" element={<RequireHospital><HospitalSpecializationsPage /></RequireHospital>} />
       <Route path="hospital/:hospitalId/doctors" element={<RequireHospital><DoctorListing /></RequireHospital>} />
+      <Route path="doctor/:doctorId" element={<RequireHospital><DoctorProfile /></RequireHospital>} />
       <Route path="appointments" element={<RequireHospital><Appointments /></RequireHospital>} />
       <Route path="reports" element={<RequireHospital><Reports /></RequireHospital>} />
       <Route path="locker" element={<RequireHospital><DocumentLocker /></RequireHospital>} />
@@ -174,24 +175,6 @@ const AppShell = () => {
           <Route
             path="/register/doctor"
             element={<Navigate to="/login" replace />}
-          />
-
-          {/* Global Doctor and Appointment routes */}
-          <Route
-            path="/doctors/:doctorId"
-            element={
-              <ProtectedRoute role="patient">
-                <DoctorProfile />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/appointments"
-            element={
-              <ProtectedRoute role="patient">
-                <Appointments />
-              </ProtectedRoute>
-            }
           />
 
           {/* Patient Portal */}

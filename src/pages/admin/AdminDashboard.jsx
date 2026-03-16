@@ -30,14 +30,30 @@ const AdminDashboard = () => {
   const [newAnnouncement, setNewAnnouncement] = useState({ title: '', body: '' });
   const [isAddingAnnouncement, setIsAddingAnnouncement] = useState(false);
 
+  // Statistics & KPI Fallbacks
+  const safeKpis = kpis || {
+    totalPatients: 0,
+    totalDoctors: 0,
+    totalAppointmentsToday: 0,
+    totalTransactions: 0,
+    totalRevenue: 0
+  };
+
+  const safeDoctors = Array.isArray(doctors) ? doctors : [];
+  const safeAppointments = Array.isArray(appointments) ? appointments : [];
+  const safeBeds = beds || {
+    general: { total: 0, occupied: 0 },
+    icu: { total: 0, occupied: 0 },
+    private: { total: 0, occupied: 0 },
+  };
+
   // Top Performing Doctors Logic
-  const topDoctors = (doctors || []).slice(0, 3);
+  const topDoctors = safeDoctors.slice(0, 3);
 
   const handleAppointmentAction = (id, action) => {
     if (action === 'cancel') {
       updateAppointment(id, { status: 'Cancelled' });
     } else if (action === 'reschedule') {
-      // For inline demo, just alerting. Real app would open modal.
       const newDate = prompt("Enter new date (YYYY-MM-DD):");
       if (newDate) updateAppointment(id, { date: newDate, status: 'Rescheduled' });
     }
@@ -48,7 +64,7 @@ const AdminDashboard = () => {
   };
 
   useEffect(() => {
-    if (!chartRef.current || !analytics.labels || !analytics.labels.length) return;
+    if (!chartRef.current || !analytics?.labels || !analytics?.labels?.length) return;
 
     const ctx = chartRef.current.getContext('2d');
     if (chartInstanceRef.current) {
@@ -117,7 +133,7 @@ const AdminDashboard = () => {
       <div className="grid grid-cols-4" style={{ gap: 'var(--space-md)' }}>
         <div style={{ cursor: 'pointer' }} onClick={() => navigate('/admin/patients')}>
           <Card title="Total Patients">
-            <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>{kpis.totalPatients}</div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>{safeKpis.totalPatients}</div>
             <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
               Click to manage
             </div>
@@ -125,7 +141,7 @@ const AdminDashboard = () => {
         </div>
         <div style={{ cursor: 'pointer' }} onClick={() => navigate('/admin/doctors')}>
           <Card title="Doctors">
-            <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>{kpis.totalDoctors}</div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>{safeKpis.totalDoctors}</div>
             <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
               Click to manage
             </div>
@@ -134,7 +150,7 @@ const AdminDashboard = () => {
         <div style={{ cursor: 'pointer' }} onClick={() => navigate('/admin/appointments')}>
           <Card title="Appointments">
             <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>
-              {kpis.totalAppointmentsToday}
+              {safeKpis.totalAppointmentsToday}
             </div>
             <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
               Today's Schedule
@@ -144,10 +160,10 @@ const AdminDashboard = () => {
         <div style={{ cursor: 'pointer' }} onClick={() => navigate('/admin/transactions')}>
           <Card title="Transactions">
             <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>
-              {kpis.totalTransactions}
+              {safeKpis.totalTransactions}
             </div>
             <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
-              ${kpis.totalRevenue} Revenue
+              ${safeKpis.totalRevenue} Revenue
             </div>
           </Card>
         </div>
@@ -179,7 +195,7 @@ const AdminDashboard = () => {
 
         <Card title="Bed Availability (Editable)">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {Object.entries(beds).map(([type, data]) => (
+            {Object.entries(safeBeds).map(([type, data]) => (
               <div key={type} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', backgroundColor: '#f8fafc', borderRadius: '8px' }}>
                 <div>
                   <div style={{ textTransform: 'capitalize', fontWeight: 600 }}>{type} Ward</div>
@@ -213,8 +229,8 @@ const AdminDashboard = () => {
                   {index + 1}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 500 }}>{doc.name}</div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{doc.specialty}</div>
+                  <div style={{ fontWeight: 500 }}>{doc.doctor_name || doc.name}</div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{doc.specialty_name || doc.specialization}</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontWeight: 600, color: '#22c55e' }}>{Number(doc.rating || 0).toFixed(1)}</div>
@@ -222,12 +238,13 @@ const AdminDashboard = () => {
                 </div>
               </div>
             ))}
+            {topDoctors.length === 0 && <div style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '1rem' }}>No doctors found.</div>}
           </div>
         </Card>
 
         <Card title="Recent Appointments">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-            {appointments.slice(0, 3).map((app) => (
+            {safeAppointments.slice(0, 3).map((app) => (
               <div key={app.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', backgroundColor: '#f8fafc', borderRadius: '8px' }}>
                 <div>
                   <div style={{ fontWeight: 500, fontSize: '0.9rem' }}>{app.patientName}</div>

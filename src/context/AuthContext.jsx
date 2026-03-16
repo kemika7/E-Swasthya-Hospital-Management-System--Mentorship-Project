@@ -22,7 +22,7 @@ export const AuthProvider = ({ children }) => {
     setUserRole(user.role);
     setUserProfile(user);
 
-    if (user.role === 'patient') navigate('/patient/select-hospital');
+    if (user.role === 'patient') navigate('/patient/dashboard');
     if (user.role === 'doctor') navigate('/doctor/dashboard');
     if (user.role === 'admin') navigate('/admin/dashboard');
   };
@@ -31,7 +31,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     localStorage.removeItem('userRole');
     localStorage.removeItem('userProfile');
-    clearHospital();
+    // Removed clearHospital() to remember hospital selection across patient logins
     setIsAuthenticated(false);
     setUserRole(null);
     setUserProfile(null);

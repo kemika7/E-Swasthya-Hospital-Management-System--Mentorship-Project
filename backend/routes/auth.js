@@ -121,7 +121,7 @@ router.post('/register-doctor', async (req, res) => {
         // Check if account already exists with this email or phone
         const [existingEmailInUsers] = await connection.execute('SELECT * FROM users WHERE email = ?', [email]);
         const [existingEmailInPatients] = await connection.execute('SELECT * FROM patients WHERE email = ?', [email]);
-        
+
         if (existingEmailInUsers.length > 0 || existingEmailInPatients.length > 0) {
             return res.status(400).json({ message: 'An account with this email already exists.' });
         }
@@ -176,7 +176,7 @@ router.post('/register-doctor', async (req, res) => {
 
     } catch (err) {
         await connection.rollback();
-        
+
         // If we created a user but the doctor insertion failed, clean up the orphaned user
         if (err.code === 'ER_DUP_ENTRY' || err.message.includes('Duplicate')) {
             try {
@@ -185,14 +185,14 @@ router.post('/register-doctor', async (req, res) => {
                 console.error('Cleanup error:', cleanupErr);
             }
         }
-        
+
         console.error('[DOCTOR REGISTRATION ERROR]', err.message, err.code || '', err.sqlMessage || '');
-        
+
         // Provide more specific error messages
         if (err.code === 'ER_DUP_ENTRY') {
             return res.status(400).json({ message: 'An account with this email already exists. Please use a different email.' });
         }
-        
+
         res.status(500).json({ message: 'Server error during registration. Please try again.' });
     } finally {
         connection.release();
@@ -358,7 +358,7 @@ router.post('/verify-otp', async (req, res) => {
 
     try {
         const [otps] = await db.execute('SELECT * FROM otps WHERE email = ? AND otp = ? AND type = ? ORDER BY created_at DESC LIMIT 1', [email, otp, type]);
-        
+
         if (otps.length === 0) {
             return res.status(400).json({ message: 'Invalid or expired OTP.' });
         }
@@ -372,11 +372,11 @@ router.post('/verify-otp', async (req, res) => {
         if (type === 'registration') {
             await db.execute('UPDATE users SET is_verified = TRUE WHERE email = ?', [email]);
             await db.execute('UPDATE patients SET is_verified = TRUE WHERE email = ?', [email]);
-            
+
             // Generate auth token so user doesn't need to log in again immediately
             let user = null;
             let roleId = null;
-            
+
             const [patients] = await db.execute('SELECT * FROM patients WHERE email = ?', [email]);
             if (patients.length > 0) {
                 user = patients[0];
@@ -403,7 +403,7 @@ router.post('/verify-otp', async (req, res) => {
                 // Clear OTP
                 await db.execute('DELETE FROM otps WHERE email = ? AND type = ?', [email, 'registration']);
 
-                return res.json({ 
+                return res.json({
                     message: 'Account verified successfully.',
                     token,
                     user: {
@@ -454,15 +454,15 @@ router.post('/resend-otp', async (req, res) => {
     try {
         const otp = generateOTP();
         const expiresAt = new Date(Date.now() + 10 * 60000); // 10 minutes
-        
+
         // Remove existing active OTPs for this user/type to avoid spam
         await db.execute('DELETE FROM otps WHERE email = ? AND type = ?', [email, type]);
-        
+
         await db.execute('INSERT INTO otps (email, otp, type, expires_at) VALUES (?, ?, ?, ?)', [email, otp, type, expiresAt]);
         await sendOTP(email, otp, type === 'registration' ? 'registration' : 'reset-password');
 
         res.json({ message: 'New OTP sent successfully.' });
-    } catch(err) {
+    } catch (err) {
         console.error(err);
         res.status(500).json({ message: 'Error resending OTP.' });
     }
@@ -476,7 +476,7 @@ router.post('/reset-password', async (req, res) => {
         if (!validatePassword(newPassword)) return res.status(400).json({ message: 'Password must be at least 8 chars, with 1 upper, 1 lower, 1 number, and 1 special char.' });
 
         const [otps] = await db.execute('SELECT * FROM otps WHERE email = ? AND otp = ? AND type = ? ORDER BY created_at DESC LIMIT 1', [email, otp, 'reset']);
-        
+
         if (otps.length === 0) {
             return res.status(400).json({ message: 'Invalid or expired OTP.' });
         }

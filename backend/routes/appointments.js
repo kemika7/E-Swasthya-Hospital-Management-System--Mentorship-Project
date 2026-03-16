@@ -48,7 +48,7 @@ router.get('/', authenticateToken, async (req, res) => {
 // Create an appointment (Patient or Admin)
 router.post('/', authenticateToken, async (req, res) => {
     console.log('Backend [POST /appointments]: Booking attempt by user:', JSON.stringify(req.user));
-    let { doctorId, patientId, date, time, duration, appointment_type, notes } = req.body;
+    let { doctorId, patientId, hospitalId, date, time, duration, appointment_type, notes } = req.body;
 
     // If patient books, use their ID. If admin books, use provided patientId.
     if (req.user.role === 'patient') {
@@ -60,8 +60,9 @@ router.post('/', authenticateToken, async (req, res) => {
     // Ensure IDs are numbers
     const finalPatientId = Number(patientId);
     const finalDoctorId = Number(doctorId);
+    const finalHospitalId = hospitalId ? Number(hospitalId) : null;
 
-    console.log(`Backend [POST /appointments]: Final Params -> patientId: ${finalPatientId}, doctorId: ${finalDoctorId}, date: ${date}, time: ${time}`);
+    console.log(`Backend [POST /appointments]: Final Params -> patientId: ${finalPatientId}, doctorId: ${finalDoctorId}, hospitalId: ${finalHospitalId}, date: ${date}, time: ${time}`);
 
     if (!finalPatientId || !finalDoctorId) {
         return res.status(400).json({ message: 'Valid Patient ID and Doctor ID are required' });
@@ -75,16 +76,17 @@ router.post('/', authenticateToken, async (req, res) => {
         console.log('Backend [POST /appointments]: Inserting into DB:', {
             patient_id: finalPatientId,
             doctor_id: finalDoctorId,
+            hospital_id: finalHospitalId,
             date,
             time,
             appointment_type: appointment_type || 'Consultation'
         });
         const [result] = await db.execute(
-            'INSERT INTO appointments (patient_id, doctor_id, date, time, duration, status, appointment_type, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            [finalPatientId, finalDoctorId, date, time, duration || 30, 'Scheduled', appointment_type || 'Consultation', notes || null]
+            'INSERT INTO appointments (patient_id, doctor_id, hospital_id, date, time, duration, status, appointment_type, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [finalPatientId, finalDoctorId, finalHospitalId, date, time, duration || 30, 'Pending', appointment_type || 'Consultation', notes || null]
         );
         console.log('Backend [POST /appointments]: Insert successful, ID:', result.insertId);
-        res.status(201).json({ message: 'Appointment created successfully', appointmentId: result.insertId });
+        res.status(201).json({ message: 'Appointment booked successfully', appointmentId: result.insertId });
     } catch (err) {
         console.error('Backend [POST /appointments]: MySQL Error:', err);
         res.status(500).json({ message: 'Server error booking appointment: ' + err.message });

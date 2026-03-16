@@ -37,7 +37,7 @@ const AppointmentsManagement = () => {
             </tr>
           </thead>
           <tbody>
-            {appointments.map(app => (
+            {(Array.isArray(appointments) ? appointments : []).map(app => (
               <tr key={app.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                 <td style={{ padding: '1rem' }}>{app.patientName}</td>
                 <td style={{ padding: '1rem' }}>{app.doctorName}</td>
@@ -48,14 +48,14 @@ const AppointmentsManagement = () => {
                 <td style={{ padding: '1rem' }}>{app.type}</td>
                 <td style={{ padding: '1rem' }}>
                   <span style={{ 
-                    color: getStatusColor(app.status), 
+                    color: getStatusColor(app.status || 'Pending'), 
                     fontWeight: 500,
-                    backgroundColor: `${getStatusColor(app.status)}15`,
+                    backgroundColor: `${getStatusColor(app.status || 'Pending')}15`,
                     padding: '0.25rem 0.5rem',
                     borderRadius: '4px',
                     fontSize: '0.85rem'
                   }}>
-                    {app.status}
+                    {app.status || 'Pending'}
                   </span>
                 </td>
                 <td style={{ padding: '1rem', textAlign: 'right' }}>

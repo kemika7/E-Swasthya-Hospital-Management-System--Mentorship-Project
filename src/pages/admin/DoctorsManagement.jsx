@@ -4,14 +4,20 @@ import { useAuth } from '../../context/AuthContext';
 import { FiPlus, FiEdit2, FiTrash2, FiX, FiCheck, FiMail, FiPhone, FiActivity } from 'react-icons/fi';
 
 const DoctorsManagement = () => {
-  const { doctors, addDoctor, updateDoctor, deleteDoctor, specialties, categories } = useAdmin();
+  const { doctors, addDoctor, updateDoctor, deleteDoctor, specialties, categories, hospitals } = useAdmin();
   const { userProfile } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDoctor, setEditingDoctor] = useState(null);
   const [viewingDoctor, setViewingDoctor] = useState(null);
   const [message, setMessage] = useState({ text: '', type: '' });
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
-  
+
+  // Fallbacks for data from context
+  const safeDoctors = Array.isArray(doctors) ? doctors : [];
+  const safeSpecialties = Array.isArray(specialties) ? specialties : [];
+  const safeCategories = Array.isArray(categories) ? categories : [];
+  const safeHospitals = Array.isArray(hospitals) ? hospitals : [];
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -52,7 +58,7 @@ const DoctorsManagement = () => {
         rating: doctor.rating !== undefined ? doctor.rating : 0
       });
       // Try to find category for editing
-      const spec = specialties.find(s => s.id === doctor.specialty_id);
+      const spec = safeSpecialties.find(s => s.id === doctor.specialty_id);
       setSelectedCategoryId(spec?.category_id || '');
     } else {
       setEditingDoctor(null);
@@ -120,7 +126,7 @@ const DoctorsManagement = () => {
     }
   };
 
-  const filteredSpecialties = specialties.filter(spec => 
+  const filteredSpecialties = safeSpecialties.filter(spec => 
     !selectedCategoryId || String(spec.category_id) === String(selectedCategoryId)
   );
 
@@ -154,7 +160,7 @@ const DoctorsManagement = () => {
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
-        {doctors.map(doctor => (
+        {safeDoctors.map(doctor => (
           <div key={doctor.id} className="card shadow-sm" onClick={() => setViewingDoctor(doctor)} style={{ 
             padding: '1.5rem', 
             borderRadius: '12px', 
@@ -172,7 +178,8 @@ const DoctorsManagement = () => {
                 <div style={{ 
                   width: '50px', 
                   height: '50px', 
-                  borderRadius: '12px', 
+                  borderRadius: '12px',
+ 
                   backgroundColor: 'rgba(82, 178, 191, 0.1)', 
                   display: 'flex', 
                   alignItems: 'center', 
@@ -251,6 +258,23 @@ const DoctorsManagement = () => {
               </div>
 
               <div>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>Hospital *</label>
+                <select 
+                    className="input-field" 
+                    value={formData.hospital_id} 
+                    onChange={e => setFormData({ ...formData, hospital_id: e.target.value })} 
+                    required
+                    style={{ appearance: 'auto' }}
+                >
+                    <option value="">Select Hospital</option>
+                    {safeHospitals.map(hosp => (
+                        <option key={hosp.id} value={hosp.id}>{hosp.name}</option>
+                    ))}
+                    {safeHospitals.length === 0 && <option disabled>Loading hospitals...</option>}
+                </select>
+              </div>
+
+              <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>
                   Medical Category *
                 </label>
@@ -265,7 +289,7 @@ const DoctorsManagement = () => {
                     style={{ appearance: 'auto' }}
                 >
                     <option value="">Select Category</option>
-                    {categories.map(cat => (
+                    {safeCategories.map(cat => (
                         <option key={cat.id} value={cat.id}>{cat.name}</option>
                     ))}
                 </select>

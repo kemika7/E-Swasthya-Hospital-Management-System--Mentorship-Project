@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { apiFetch } from '../services/apiClient';
+import { useAuth } from './AuthContext';
 
 const AdminContext = createContext();
 
@@ -12,6 +13,7 @@ export const useAdmin = () => {
 };
 
 export const AdminProvider = ({ children }) => {
+  const { isAuthenticated, userRole } = useAuth();
   const [doctors, setDoctors] = useState([]);
   const [patients, setPatients] = useState([]);
   const [announcements, setAnnouncements] = useState([]);
@@ -36,43 +38,70 @@ export const AdminProvider = ({ children }) => {
   const [hospitals, setHospitals] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // --- Actions ---
+
+  const fetchDoctors = async () => {
+    try {
+      const userProfile = JSON.parse(localStorage.getItem('userProfile'));
+      const hospitalId = userProfile?.hospital_id;
+      // Use the new /admin/doctors endpoint
+      const data = await apiFetch(`/admin/doctors${hospitalId ? `?hospital_id=${hospitalId}` : ''}`);
+      setDoctors(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Failed to fetch doctors:', err);
+      setDoctors([]);
+    }
+  };
+
   // --- Fetch Initial Data ---
   useEffect(() => {
     const fetchAdminData = async () => {
+      setLoading(true);
+      // Fetch Categories, Specializations & Hospitals (Use Admin routes for alignment)
       try {
-        // Fetch Categories & Specialties (Public routes)
-        try {
-          const [cats, specs, hosps] = await Promise.all([
-            apiFetch('/doctors/categories'),
-            apiFetch('/doctors/all-specialties'),
-            apiFetch('/doctors/hospitals')
-          ]);
-          setCategories(cats);
-          setSpecialties(specs);
-          setHospitals(hosps);
-        } catch (err) {
-          console.error('Failed to fetch categories/specialties:', err);
-        }
+        const [cats, specs, hosps] = await Promise.all([
+          apiFetch('/admin/categories').catch(e => { console.error(e); return []; }),
+          apiFetch('/admin/specializations').catch(e => { console.error(e); return []; }),
+          apiFetch('/admin/hospitals').catch(e => { console.error(e); return []; })
+        ]);
+        setCategories(cats || []);
+        setSpecialties(specs || []);
+        setHospitals(hosps || []);
+      } catch (err) {
+        console.error('Failed to fetch categories/specializations/hospitals:', err);
+      }
 
-        // Fetch Dashboard Stats (Protected route)
+      // Fetch Dashboard Stats (Protected route)
+      if (isAuthenticated && userRole === 'admin') {
         try {
           const data = await apiFetch('/dashboard/admin');
-          setKpis(data.kpis);
-          setAnnouncements(data.announcements);
-          setAppointments(data.appointments);
-          if (data.beds) setBeds(data.beds);
-          setAnalytics(data.analytics || { labels: [], data: [] });
+          if (data) {
+            setKpis(data.kpis || {
+              totalPatients: 0,
+              totalDoctors: 0,
+              totalAppointmentsToday: 0,
+              totalTransactions: 0,
+              totalRevenue: 0
+            });
+            setAnnouncements(data.announcements || []);
+            setAppointments(data.appointments || []);
+            if (data.beds) setBeds(data.beds);
+            setAnalytics(data.analytics || { labels: [], data: [] });
+          }
 
           const patientsData = await apiFetch('/patients');
-          setPatients(patientsData);
+          setPatients(Array.isArray(patientsData) ? patientsData : []);
+
+          await fetchDoctors();
         } catch (err) {
           console.error('Failed to initialize admin services:', err);
-        } finally {
-          setLoading(false);
         }
-      };
-      fetchAdminData();
-    }, []);
+      }
+      setLoading(false);
+    };
+
+    fetchAdminData();
+  }, [isAuthenticated, userRole]);
 
   // --- Actions ---
 
@@ -135,20 +164,18 @@ export const AdminProvider = ({ children }) => {
   // Doctors
   const addDoctor = async (doctor) => {
     try {
-      const { apiFetch } = await import('../services/apiClient');
-      await apiFetch('/doctors', {
+      // Mapping to follow user's naming preference if needed, but backend handles both
+      const response = await apiFetch('/admin/add-doctor', {
         method: 'POST',
         body: JSON.stringify(doctor)
       });
-      // Refresh everything
-      const userProfile = JSON.parse(localStorage.getItem('userProfile'));
-      const hospitalId = userProfile?.hospital_id;
+      
+      if (response && response.error) throw new Error(response.error);
 
+      // Refresh kpis and doctors
       const data = await apiFetch('/dashboard/admin');
-      setKpis(data.kpis);
-
-      const doctorsData = await apiFetch(hospitalId ? `/doctors?hospital_id=${hospitalId}` : '/doctors');
-      setDoctors(doctorsData);
+      if (data && data.kpis) setKpis(data.kpis);
+      await fetchDoctors();
     } catch (err) {
       console.error('Failed to add doctor:', err);
       throw err;
@@ -157,12 +184,14 @@ export const AdminProvider = ({ children }) => {
 
   const updateDoctor = async (id, data) => {
     try {
-      const { apiFetch } = await import('../services/apiClient');
       await apiFetch(`/doctors/${id}`, {
         method: 'PUT',
         body: JSON.stringify(data)
       });
       setDoctors(prev => prev.map(d => d.id === id ? { ...d, ...data } : d));
+      // Optionally refresh dashboard stats if rating/etc changed
+      const dashboardData = await apiFetch('/dashboard/admin');
+      if (dashboardData && dashboardData.kpis) setKpis(dashboardData.kpis);
     } catch (err) {
       console.error('Failed to update doctor:', err);
       throw err;
@@ -303,6 +332,9 @@ export const AdminProvider = ({ children }) => {
     updateBedCapacity,
     transactions,
     kpis,
+    categories,
+    specialties,
+    hospitals,
     loading,
     updatePatient,
     deletePatient,
@@ -310,7 +342,8 @@ export const AdminProvider = ({ children }) => {
     updateDoctor,
     deleteDoctor,
     addPatient,
-    analytics
+    analytics,
+    fetchDoctors
   };
 
   return <AdminContext.Provider value={value}>{children}</AdminContext.Provider>;

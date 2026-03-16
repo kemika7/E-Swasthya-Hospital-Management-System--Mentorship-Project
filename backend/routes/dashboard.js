@@ -207,7 +207,7 @@ router.get('/admin', authenticateToken, async (req, res) => {
                 id: a.id,
                 title: a.title,
                 body: a.body,
-                date: a.date instanceof Date ? a.date.toISOString().split('T')[0] : a.date
+                date: (a.date && typeof a.date.toISOString === 'function') ? a.date.toISOString().split('T')[0] : a.date
             })),
             beds: {
                 general: { total: 50, occupied: 32 },

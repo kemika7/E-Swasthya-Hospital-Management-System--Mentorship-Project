@@ -50,7 +50,7 @@ const PatientsManagement = () => {
             </tr>
           </thead>
           <tbody>
-            {patients.map(patient => (
+            {(Array.isArray(patients) ? patients : []).map(patient => (
               <tr key={patient.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                 <td style={{ padding: '1rem' }}>{patient.name}</td>
                 <td style={{ padding: '1rem' }}>{patient.age}</td>

@@ -152,28 +152,8 @@ const DoctorProfile = () => {
   };
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        backgroundColor: '#0f172a', // Dark background as requested
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        padding: '1rem',
-      }}
-    >
-      <div
-        style={{
-          width: '100%',
-          maxWidth: 1000,
-          backgroundColor: '#f8fafc', // White/light container
-          borderRadius: 24,
-          overflow: 'hidden',
-          minHeight: '90vh',
-          display: 'flex',
-          flexDirection: 'column',
-        }}
-      >
+    <>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
         {/* TOP HEADER */}
         <div
           style={{
@@ -181,7 +161,8 @@ const DoctorProfile = () => {
             display: 'flex',
             alignItems: 'center',
             gap: '1rem',
-            backgroundColor: '#0f172a', // Matches outer bg
+            backgroundColor: 'var(--primary)',
+            borderRadius: '16px 16px 0 0'
           }}
         >
           <button
@@ -288,26 +269,9 @@ const DoctorProfile = () => {
                   <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>{doctor.experience}+</div>
                   <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Years Exp.</div>
                 </div>
-<<<<<<< HEAD
-
-                {/* Additional Info Row */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', fontSize: '0.75rem', color: '#334155' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ opacity: 0.7 }}>Experience</span>
-                    <span style={{ fontWeight: 600 }}>{doctor.experience} Years</span>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ opacity: 0.7 }}>Hospital</span>
-                    <span style={{ fontWeight: 600 }}>{doctor.hospital_name || 'N/A'}</span>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ opacity: 0.7 }}>Working Hours</span>
-                    <span style={{ fontWeight: 600 }}>{doctor.working_hours}</span>
-=======
                 <div style={{ textAlign: 'center', flex: 1 }}>
                   <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem' }}>
                     {doctor.rating || '4.5'} <FiStar size={14} fill="#fbbf24" color="#fbbf24" />
->>>>>>> 7ebf6259320ecfb7553c8c69bf66e65c2b24ec05
                   </div>
                   <div style={{ fontSize: '0.75rem', color: '#64748b' }}>Rating</div>
                 </div>
@@ -583,36 +547,7 @@ const DoctorProfile = () => {
                 </div>
               </div>
             </div>
-<<<<<<< HEAD
-          )}
-
-          {activeTab === 'about' && (
-            <div style={{ padding: '1rem', color: '#64748b', lineHeight: 1.6 }}>
-              <p><strong>Category:</strong> {doctor.category_name}</p>
-              <p><strong>Specialty:</strong> {doctor.specialty_name || doctor.specialization}</p>
-              <p><strong>Bio:</strong> {doctor.bio || 'No bio available.'}</p>
-              <p><strong>Location:</strong> {doctor.location}</p>
-            </div>
-          )}
-
-          {activeTab === 'experience' && (
-            <div style={{ padding: '1rem', color: '#64748b' }}>
-              <p><strong>Total Experience:</strong> {doctor.experience} Years</p>
-            </div>
-          )}
-
-          {activeTab === 'reviews' && (
-            <div style={{ padding: '1rem', color: '#64748b' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                <FiStar fill="#fbbf24" color="#fbbf24" size={24} />
-                <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a' }}>{doctor.rating || '4.5'} Rating</span>
-              </div>
-              <p>Reviews coming soon.</p>
-            </div>
-          )}
-=======
           </div>
->>>>>>> 7ebf6259320ecfb7553c8c69bf66e65c2b24ec05
         </div>
       </div>
 
@@ -721,7 +656,7 @@ const DoctorProfile = () => {
           }
         `}
       </style>
-    </div>
+    </>
   );
 };
 

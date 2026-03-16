@@ -101,7 +101,7 @@ export const AdminProvider = ({ children }) => {
     try {
       const formData = new FormData();
       formData.append('report', file);
-      
+
       const token = localStorage.getItem('token');
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/reports/upload/${reportId}`, {
         method: 'POST',
@@ -112,7 +112,7 @@ export const AdminProvider = ({ children }) => {
       });
 
       if (!response.ok) throw new Error('Upload failed');
-      
+
       fetchReports();
     } catch (err) {
       console.error('Failed to upload report file:', err);

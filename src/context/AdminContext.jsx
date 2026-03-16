@@ -23,6 +23,7 @@ export const AdminProvider = ({ children }) => {
   });
   const [analytics, setAnalytics] = useState({ labels: [], data: [] });
   const [transactions, setTransactions] = useState([]);
+  const [reports, setReports] = useState([]);
   const [kpis, setKpis] = useState({
     totalPatients: 0,
     totalDoctors: 0,
@@ -41,52 +42,95 @@ export const AdminProvider = ({ children }) => {
       try {
         // Fetch Categories & Specialties (Public routes)
         try {
-            const [cats, specs, hosps] = await Promise.all([
-                apiFetch('/doctors/categories'),
-                apiFetch('/doctors/all-specialties'),
-                apiFetch('/doctors/hospitals')
-            ]);
-            setCategories(cats);
-            setSpecialties(specs);
-            setHospitals(hosps);
+          const [cats, specs, hosps] = await Promise.all([
+            apiFetch('/doctors/categories'),
+            apiFetch('/doctors/all-specialties'),
+            apiFetch('/doctors/hospitals')
+          ]);
+          setCategories(cats);
+          setSpecialties(specs);
+          setHospitals(hosps);
         } catch (err) {
-            console.error('Failed to fetch categories/specialties:', err);
+          console.error('Failed to fetch categories/specialties:', err);
         }
 
         // Fetch Dashboard Stats (Protected route)
         try {
-            const data = await apiFetch('/dashboard/admin');
-            setKpis(data.kpis);
-            setAnnouncements(data.announcements);
-            setAppointments(data.appointments);
-            if (data.beds) setBeds(data.beds);
-            setAnalytics(data.analytics || { labels: [], data: [] });
+          const data = await apiFetch('/dashboard/admin');
+          setKpis(data.kpis);
+          setAnnouncements(data.announcements);
+          setAppointments(data.appointments);
+          if (data.beds) setBeds(data.beds);
+          setAnalytics(data.analytics || { labels: [], data: [] });
 
-            const patientsData = await apiFetch('/patients');
-            setPatients(patientsData);
-
-            // Fetch ALL doctors for THIS hospital
-            const userProfile = JSON.parse(localStorage.getItem('userProfile'));
-            const hospitalId = userProfile?.hospital_id;
-            let doctorsUrl = '/doctors';
-            if (hospitalId) {
-                doctorsUrl += `?hospital_id=${hospitalId}`;
-            }
-            const doctorsData = await apiFetch(doctorsUrl);
-            setDoctors(doctorsData);
+          const patientsData = await apiFetch('/patients');
+          setPatients(patientsData);
         } catch (err) {
-            console.error('Failed to fetch admin dashboard stats:', err);
+          console.error('Failed to initialize admin services:', err);
+        } finally {
+          setLoading(false);
         }
-      } catch (err) {
-        console.error('Failed to initialize admin services:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchAdminData();
-  }, []);
+      };
+      fetchAdminData();
+    }, []);
 
   // --- Actions ---
+
+  // Reports
+  const fetchReports = async () => {
+    try {
+      const { apiFetch } = await import('../services/apiClient');
+      const data = await apiFetch('/reports');
+      setReports(data);
+    } catch (err) {
+      console.error('Failed to fetch reports:', err);
+    }
+  };
+
+  const createReportEntry = async (patientId) => {
+    try {
+      const { apiFetch } = await import('../services/apiClient');
+      await apiFetch(`/reports/create/${patientId}`, { method: 'POST' });
+      fetchReports();
+    } catch (err) {
+      console.error('Failed to create report entry:', err);
+    }
+  };
+
+  const updateReportStatus = async (reportId, statusData) => {
+    try {
+      const { apiFetch } = await import('../services/apiClient');
+      await apiFetch(`/reports/${reportId}`, {
+        method: 'PUT',
+        body: JSON.stringify(statusData)
+      });
+      setReports(prev => prev.map(r => r.id === reportId ? { ...r, ...statusData } : r));
+    } catch (err) {
+      console.error('Failed to update report status:', err);
+    }
+  };
+
+  const uploadReportFile = async (reportId, file) => {
+    try {
+      const formData = new FormData();
+      formData.append('report', file);
+
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/reports/upload/${reportId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (!response.ok) throw new Error('Upload failed');
+
+      fetchReports();
+    } catch (err) {
+      console.error('Failed to upload report file:', err);
+    }
+  };
 
   // Doctors
   const addDoctor = async (doctor) => {
@@ -99,10 +143,10 @@ export const AdminProvider = ({ children }) => {
       // Refresh everything
       const userProfile = JSON.parse(localStorage.getItem('userProfile'));
       const hospitalId = userProfile?.hospital_id;
-      
+
       const data = await apiFetch('/dashboard/admin');
       setKpis(data.kpis);
-      
+
       const doctorsData = await apiFetch(hospitalId ? `/doctors?hospital_id=${hospitalId}` : '/doctors');
       setDoctors(doctorsData);
     } catch (err) {
@@ -266,10 +310,7 @@ export const AdminProvider = ({ children }) => {
     updateDoctor,
     deleteDoctor,
     addPatient,
-    analytics,
-    categories,
-    specialties,
-    hospitals
+    analytics
   };
 
   return <AdminContext.Provider value={value}>{children}</AdminContext.Provider>;

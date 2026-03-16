@@ -46,12 +46,6 @@ export const PatientSidebar = () => {
           </NavLink>
         </li>
         <li>
-          <NavLink to="/patient/hospitals" className={linkBaseStyle}>
-            <FiActivity size={20} />
-            <span>Hospitals</span>
-          </NavLink>
-        </li>
-        <li>
           <NavLink to="/patient/doctors" className={linkBaseStyle}>
             <FiUsers size={20} />
             <span>Doctors</span>
@@ -65,8 +59,8 @@ export const PatientSidebar = () => {
         </li>
         <li>
           <NavLink to="/patient/reports" className={linkBaseStyle}>
-            <FiFileText size={20} />
-            <span>Reports</span>
+            <FiActivity size={20} />
+            <span>Health Tracker</span>
           </NavLink>
         </li>
         <li>
@@ -75,6 +69,7 @@ export const PatientSidebar = () => {
             <span>Document Locker</span>
           </NavLink>
         </li>
+
       </ul>
     </aside>
   );

@@ -67,7 +67,7 @@ async function ensurePatientSchema() {
       await db.execute('ALTER TABLE patients ADD COLUMN mpin VARCHAR(255) NULL');
       console.log('[DB] Added missing mpin column to patients table.');
     }
-    
+
     // Create patient_documents table
     await db.execute(`
       CREATE TABLE IF NOT EXISTS patient_documents (
@@ -103,7 +103,7 @@ async function ensurePatientSchema() {
       )
     `);
     console.log('[DB] reports table ready.');
-    
+
   } catch (err) {
     // patients table may not exist yet - that's okay
     console.warn('[DB] Could not patch patients schema:', err.message);
@@ -196,7 +196,7 @@ async function ensureLockerSchema() {
         FOREIGN KEY (patient_id) REFERENCES patients(patient_id) ON DELETE CASCADE
       )
     `);
-    
+
     await db.execute(`
       CREATE TABLE IF NOT EXISTS patient_documents (
         id INT AUTO_INCREMENT PRIMARY KEY,

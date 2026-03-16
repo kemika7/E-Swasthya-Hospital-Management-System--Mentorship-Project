@@ -28,6 +28,7 @@ const getPasswordError = (password) => {
 
 const DoctorRegister = () => {
   const { login } = useAuth();
+  const [hospitals, setHospitals] = React.useState([]);
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -44,7 +45,18 @@ const DoctorRegister = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
 
-  
+  React.useEffect(() => {
+    const fetchHospitals = async () => {
+      try {
+        const { apiFetch } = await import('../services/apiClient');
+        const data = await apiFetch('/doctors/hospitals');
+        setHospitals(data);
+      } catch (err) {
+        console.error('Failed to fetch hospitals:', err);
+      }
+    };
+    fetchHospitals();
+  }, []);
   const specializations = useMemo(() => {
     return medicalCategories.flatMap((c) => c.specialties?.map((s) => s.name) || []);
   }, []);
@@ -115,10 +127,11 @@ const DoctorRegister = () => {
       const { apiFetch } = await import('../services/apiClient');
       
       const { confirmPassword, confirmAccurate, ...rest } = form;
-      const selectedHospital = HOSPITALS.find(h => h.id === Number(rest.hospitalId));
+      const selectedHospital = hospitals.find(h => h.id === Number(rest.hospitalId));
       const payload = {
         ...rest,
         hospital: selectedHospital?.name || '',
+        hospitalId: Number(rest.hospitalId),
       };
 
       const res = await apiFetch('/auth/register-doctor', {
@@ -399,7 +412,7 @@ const DoctorRegister = () => {
               }}
             >
               <option value="" disabled>Select your hospital</option>
-              {HOSPITALS.map((h) => (
+              {hospitals.map((h) => (
                 <option key={h.id} value={h.id}>{h.name}</option>
               ))}
             </select>

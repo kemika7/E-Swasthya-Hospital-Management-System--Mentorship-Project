@@ -62,6 +62,7 @@ CREATE TABLE IF NOT EXISTS doctors (
     dob DATE,
     blood_group VARCHAR(5),
     working_hours VARCHAR(100) DEFAULT '9 AM - 5 PM',
+    qualification VARCHAR(255),
     rating FLOAT DEFAULT 0.0,
     fee INT DEFAULT 0,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
@@ -106,5 +107,14 @@ CREATE TABLE IF NOT EXISTS otps (
     otp VARCHAR(10) NOT NULL,
     type ENUM('registration', 'reset') NOT NULL,
     expires_at DATETIME NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Announcements Table
+CREATE TABLE IF NOT EXISTS announcements (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    body TEXT NOT NULL,
+    date DATE NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

@@ -102,8 +102,9 @@ router.get('/all', authenticateToken, async (req, res) => {
             JOIN patients p ON a.patient_id = p.patient_id
             JOIN doctors d ON a.doctor_id = d.id
             JOIN users ud ON d.user_id = ud.id
+            WHERE d.hospital_id = ?
             ORDER BY a.date DESC, a.time DESC
-        `);
+        `, [req.user.hospital_id]);
         res.json(appointments);
     } catch (err) {
         console.error(err);

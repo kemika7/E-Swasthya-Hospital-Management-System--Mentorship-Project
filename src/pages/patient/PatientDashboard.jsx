@@ -62,6 +62,16 @@ const iconMap = {
   FaTooth,
   FaNotesMedical,
   GiStomach,
+  'Cardiology': FiHeart,
+  'Neurology': FiActivity, // Or a brain icon if available
+  'Orthopedics': FaBone,
+  'Pediatrics': MdChildCare,
+  'Dermatology': MdOutlineHealing,
+  'Gynecology': FaFemale,
+  'Ophthalmology': FiEye,
+  'ENT': MdLocalHospital, // Generic for ENT if no specific
+  'Gastroenterology': GiStomach,
+  'Pulmonology': FaLungs,
 };
 
 const PatientDashboard = () => {
@@ -372,7 +382,7 @@ const PatientDashboard = () => {
             `}
           </style>
           {(dashboardData.categories?.length > 0 ? dashboardData.categories : []).map((category) => {
-            const IconComponent = iconMap[category.icon] || FiActivity;
+            const IconComponent = iconMap[category.name] || iconMap[category.title] || iconMap[category.icon] || FiActivity;
             return (
               <div
                 key={category.id}

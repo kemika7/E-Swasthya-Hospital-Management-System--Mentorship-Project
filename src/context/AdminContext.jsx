@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-
-// Mock data imports removed
+import { apiFetch } from '../services/apiClient';
 
 const AdminContext = createContext();
 
@@ -18,9 +17,9 @@ export const AdminProvider = ({ children }) => {
   const [announcements, setAnnouncements] = useState([]);
   const [appointments, setAppointments] = useState([]);
   const [beds, setBeds] = useState({
-    general: { total: 0, occupied: 0 },
-    icu: { total: 0, occupied: 0 },
-    private: { total: 0, occupied: 0 },
+    general: { total: 50, occupied: 32 },
+    icu: { total: 10, occupied: 4 },
+    private: { total: 20, occupied: 15 },
   });
   const [analytics, setAnalytics] = useState({ labels: [], data: [] });
   const [transactions, setTransactions] = useState([]);
@@ -31,30 +30,60 @@ export const AdminProvider = ({ children }) => {
     totalTransactions: 0,
     totalRevenue: 0
   });
+  const [categories, setCategories] = useState([]);
+  const [specialties, setSpecialties] = useState([]);
+  const [hospitals, setHospitals] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // --- Fetch Initial Data ---
   useEffect(() => {
-    const fetchDashboard = async () => {
+    const fetchAdminData = async () => {
       try {
-        const { apiFetch } = await import('../services/apiClient');
-        const data = await apiFetch('/dashboard/admin');
-        setKpis(data.kpis);
-        setAnnouncements(data.announcements);
-        setAppointments(data.appointments);
-        setDoctors(data.topDoctors);
-        setBeds(data.beds);
-        setAnalytics(data.analytics || { labels: [], data: [] });
+        // Fetch Categories & Specialties (Public routes)
+        try {
+            const [cats, specs, hosps] = await Promise.all([
+                apiFetch('/doctors/categories'),
+                apiFetch('/doctors/all-specialties'),
+                apiFetch('/doctors/hospitals')
+            ]);
+            setCategories(cats);
+            setSpecialties(specs);
+            setHospitals(hosps);
+        } catch (err) {
+            console.error('Failed to fetch categories/specialties:', err);
+        }
 
-        const patientsData = await apiFetch('/patients');
-        setPatients(patientsData);
+        // Fetch Dashboard Stats (Protected route)
+        try {
+            const data = await apiFetch('/dashboard/admin');
+            setKpis(data.kpis);
+            setAnnouncements(data.announcements);
+            setAppointments(data.appointments);
+            if (data.beds) setBeds(data.beds);
+            setAnalytics(data.analytics || { labels: [], data: [] });
+
+            const patientsData = await apiFetch('/patients');
+            setPatients(patientsData);
+
+            // Fetch ALL doctors for THIS hospital
+            const userProfile = JSON.parse(localStorage.getItem('userProfile'));
+            const hospitalId = userProfile?.hospital_id;
+            let doctorsUrl = '/doctors';
+            if (hospitalId) {
+                doctorsUrl += `?hospital_id=${hospitalId}`;
+            }
+            const doctorsData = await apiFetch(doctorsUrl);
+            setDoctors(doctorsData);
+        } catch (err) {
+            console.error('Failed to fetch admin dashboard stats:', err);
+        }
       } catch (err) {
-        console.error('Failed to fetch admin dashboard:', err);
+        console.error('Failed to initialize admin services:', err);
       } finally {
         setLoading(false);
       }
     };
-    fetchDashboard();
+    fetchAdminData();
   }, []);
 
   // --- Actions ---
@@ -67,12 +96,18 @@ export const AdminProvider = ({ children }) => {
         method: 'POST',
         body: JSON.stringify(doctor)
       });
-      // Refresh
+      // Refresh everything
+      const userProfile = JSON.parse(localStorage.getItem('userProfile'));
+      const hospitalId = userProfile?.hospital_id;
+      
       const data = await apiFetch('/dashboard/admin');
-      setDoctors(data.topDoctors);
       setKpis(data.kpis);
+      
+      const doctorsData = await apiFetch(hospitalId ? `/doctors?hospital_id=${hospitalId}` : '/doctors');
+      setDoctors(doctorsData);
     } catch (err) {
       console.error('Failed to add doctor:', err);
+      throw err;
     }
   };
 
@@ -86,6 +121,7 @@ export const AdminProvider = ({ children }) => {
       setDoctors(prev => prev.map(d => d.id === id ? { ...d, ...data } : d));
     } catch (err) {
       console.error('Failed to update doctor:', err);
+      throw err;
     }
   };
 
@@ -230,7 +266,10 @@ export const AdminProvider = ({ children }) => {
     updateDoctor,
     deleteDoctor,
     addPatient,
-    analytics
+    analytics,
+    categories,
+    specialties,
+    hospitals
   };
 
   return <AdminContext.Provider value={value}>{children}</AdminContext.Provider>;

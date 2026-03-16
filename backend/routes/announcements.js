@@ -4,9 +4,13 @@ const db = require('../config/db');
 const { authenticateToken } = require('../middleware/auth');
 
 // Get all announcements
-router.get('/', async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
     try {
-        const [announcements] = await db.execute('SELECT * FROM announcements ORDER BY date DESC, created_at DESC');
+        const hospitalId = req.user.hospital_id;
+        const [announcements] = await db.execute(
+            'SELECT * FROM announcements WHERE hospital_id = ? OR hospital_id IS NULL ORDER BY date DESC, created_at DESC',
+            [hospitalId]
+        );
         res.json(announcements);
     } catch (err) {
         console.error(err);
@@ -20,9 +24,10 @@ router.post('/', authenticateToken, async (req, res) => {
         if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access denied' });
 
         const { title, body, date } = req.body;
+        const hospitalId = req.user.hospital_id;
         await db.execute(
-            'INSERT INTO announcements (title, body, date) VALUES (?, ?, ?)',
-            [title, body, date || new Date().toISOString().split('T')[0]]
+            'INSERT INTO announcements (title, body, date, hospital_id) VALUES (?, ?, ?, ?)',
+            [title, body, date || new Date().toISOString().split('T')[0], hospitalId]
         );
         res.status(201).json({ message: 'Announcement created successfully' });
     } catch (err) {

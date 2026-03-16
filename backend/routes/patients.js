@@ -9,7 +9,13 @@ router.get('/', authenticateToken, async (req, res) => {
     try {
         if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access denied' });
 
-        const [patients] = await db.execute('SELECT patient_id as id, name, email, phone, age, gender, address, medical_history, status, profile_pic, created_at FROM patients');
+        const [patients] = await db.execute(`
+            SELECT DISTINCT p.patient_id as id, p.name, p.email, p.phone, p.age, p.gender, p.address, p.medical_history, p.status, p.profile_pic, p.created_at
+            FROM patients p
+            JOIN appointments a ON p.patient_id = a.patient_id
+            JOIN doctors d ON a.doctor_id = d.id
+            WHERE d.hospital_id = ?
+        `, [req.user.hospital_id]);
         res.json(patients);
     } catch (err) {
         console.error(err);

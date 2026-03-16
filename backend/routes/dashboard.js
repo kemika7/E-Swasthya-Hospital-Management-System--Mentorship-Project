@@ -29,7 +29,7 @@ router.get('/patient', authenticateToken, async (req, res) => {
         });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ message: 'Server error fetching dashboard data' });
+        res.status(500).json({ message: err.message || 'Server error fetching dashboard data' });
     }
 });
 
@@ -37,6 +37,7 @@ router.get('/patient', authenticateToken, async (req, res) => {
 router.get('/doctor', authenticateToken, async (req, res) => {
     try {
         const doctorId = req.user.roleId;
+        const hospitalId = req.user.hospital_id;
         if (!doctorId) return res.status(400).json({ message: 'Doctor profile not found' });
 
         // Statistics
@@ -45,38 +46,42 @@ router.get('/doctor', authenticateToken, async (req, res) => {
                 COUNT(*) as total,
                 SUM(CASE WHEN date = CURDATE() THEN 1 ELSE 0 END) as today,
                 SUM(CASE WHEN status = 'Scheduled' THEN 1 ELSE 0 END) as pending
-            FROM appointments 
-            WHERE doctor_id = ? AND status != 'Cancelled'
-        `, [doctorId]);
+            FROM appointments a
+            JOIN doctors d ON a.doctor_id = d.id
+            WHERE a.doctor_id = ? AND a.status != 'Cancelled' AND d.hospital_id = ?
+        `, [doctorId, hospitalId]);
 
         // Scheduled events summary (Real data based on appointment types)
         const [events] = await db.execute(`
             SELECT 
                 appointment_type as label, COUNT(*) as count
-            FROM appointments 
-            WHERE doctor_id = ? AND status = 'Scheduled'
+            FROM appointments a
+            JOIN doctors d ON a.doctor_id = d.id
+            WHERE a.doctor_id = ? AND a.status = 'Scheduled' AND d.hospital_id = ?
             GROUP BY appointment_type
-        `, [doctorId]);
+        `, [doctorId, hospitalId]);
 
         // Today's activities
         const [activities] = await db.execute(`
             SELECT a.time, p.name as title
             FROM appointments a
             JOIN patients p ON a.patient_id = p.patient_id
-            WHERE a.doctor_id = ? AND a.date = CURDATE() AND a.status != 'Cancelled'
+            JOIN doctors d ON a.doctor_id = d.id
+            WHERE a.doctor_id = ? AND a.date = CURDATE() AND a.status != 'Cancelled' AND d.hospital_id = ?
             ORDER BY a.time ASC
-        `, [doctorId]);
+        `, [doctorId, hospitalId]);
 
         // Upcoming appointments
         const [upcoming] = await db.execute(`
             SELECT a.appointment_id as id, a.date, a.time, a.status, a.appointment_type, p.name as patientName
             FROM appointments a
             JOIN patients p ON a.patient_id = p.patient_id
+            JOIN doctors d ON a.doctor_id = d.id
             WHERE a.doctor_id = ? AND (a.date > CURDATE() OR (a.date = CURDATE() AND a.time >= CURTIME()))
-            AND a.status = 'Scheduled'
+            AND a.status = 'Scheduled' AND d.hospital_id = ?
             ORDER BY a.date ASC, a.time ASC
             LIMIT 5
-        `, [doctorId]);
+        `, [doctorId, hospitalId]);
 
         // Today's custom plans
         const [doctorPlans] = await db.execute(`
@@ -116,31 +121,34 @@ router.get('/doctor', authenticateToken, async (req, res) => {
         });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ message: 'Server error fetching doctor dashboard' });
+        res.status(500).json({ message: err.message || 'Server error fetching doctor dashboard' });
     }
 });
 
 // Get admin dashboard stats
 router.get('/admin', authenticateToken, async (req, res) => {
     try {
-        // Basic Counts
+        const hospitalId = req.user.hospital_id || 0;
+
+        // Basic Counts (Filtered by hospital_id where applicable)
         const [counts] = await db.execute(`
             SELECT 
-                (SELECT COUNT(*) FROM patients) as totalPatients,
-                (SELECT COUNT(*) FROM doctors) as totalDoctors,
-                (SELECT COUNT(*) FROM appointments WHERE date = CURDATE()) as totalAppointmentsToday,
-                (SELECT COUNT(*) FROM appointments) as totalTransactions,
-                (SELECT IFNULL(SUM(fee), 0) FROM doctors JOIN appointments ON doctors.id = appointments.doctor_id WHERE appointments.status = 'Completed') as totalRevenue
-        `);
+                (SELECT COUNT(DISTINCT a.patient_id) FROM appointments a JOIN doctors d ON a.doctor_id = d.id WHERE d.hospital_id = ?) as totalPatients,
+                (SELECT COUNT(*) FROM doctors WHERE hospital_id = ?) as totalDoctors,
+                (SELECT COUNT(*) FROM appointments a JOIN doctors d ON a.doctor_id = d.id WHERE a.date = CURDATE() AND d.hospital_id = ?) as totalAppointmentsToday,
+                (SELECT COUNT(*) FROM appointments a JOIN doctors d ON a.doctor_id = d.id WHERE d.hospital_id = ?) as totalTransactions,
+                (SELECT IFNULL(SUM(a.fee), 0) FROM (SELECT app.doctor_id, doc.fee FROM appointments app JOIN doctors doc ON app.doctor_id = doc.id WHERE app.status = 'Completed' AND doc.hospital_id = ?) as a) as totalRevenue
+        `, [hospitalId, hospitalId, hospitalId, hospitalId, hospitalId]);
 
         // Top Performing Doctors
         const [topDoctors] = await db.execute(`
             SELECT d.*, u.name, u.email 
             FROM doctors d 
             JOIN users u ON d.user_id = u.id 
+            WHERE d.hospital_id = ?
             ORDER BY d.rating DESC 
             LIMIT 5
-        `);
+        `, [hospitalId]);
 
         // Recent Appointments
         const [recentAppointments] = await db.execute(`
@@ -149,25 +157,30 @@ router.get('/admin', authenticateToken, async (req, res) => {
             JOIN patients p ON a.patient_id = p.patient_id
             JOIN doctors d ON a.doctor_id = d.id
             JOIN users ud ON d.user_id = ud.id
+            WHERE d.hospital_id = ?
             ORDER BY a.date DESC
             LIMIT 10
-        `);
+        `, [hospitalId]);
+
 
         // Latest Announcements
         const [announcements] = await db.execute(`
-            SELECT * FROM announcements ORDER BY date DESC, created_at DESC LIMIT 5
-        `);
+            SELECT * FROM announcements 
+            WHERE hospital_id = ? OR hospital_id IS NULL 
+            ORDER BY date DESC, created_at DESC LIMIT 5
+        `, [hospitalId]);
 
-        // Patient Mix / Analytics (Real data: Counts by month)
+        // Patient Mix / Analytics (Filtered by those who have visited THIS hospital)
         const [analytics] = await db.execute(`
             SELECT 
-                DATE_FORMAT(created_at, '%b') as month,
-                COUNT(*) as count
-            FROM patients
-            WHERE created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
-            GROUP BY month, MONTH(created_at)
-            ORDER BY MONTH(created_at)
-        `);
+                DATE_FORMAT(a.date, '%b') as month,
+                COUNT(DISTINCT a.patient_id) as count
+            FROM appointments a
+            JOIN doctors d ON a.doctor_id = d.id
+            WHERE d.hospital_id = ? AND a.date >= DATE_SUB(NOW(), INTERVAL 6 MONTH)
+            GROUP BY month, MONTH(a.date)
+            ORDER BY MONTH(a.date)
+        `, [hospitalId]);
 
         res.json({
             kpis: counts[0],
@@ -194,7 +207,7 @@ router.get('/admin', authenticateToken, async (req, res) => {
                 id: a.id,
                 title: a.title,
                 body: a.body,
-                date: a.date.toISOString().split('T')[0]
+                date: a.date instanceof Date ? a.date.toISOString().split('T')[0] : a.date
             })),
             beds: {
                 general: { total: 50, occupied: 32 },
@@ -204,7 +217,7 @@ router.get('/admin', authenticateToken, async (req, res) => {
         });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ message: 'Server error fetching admin dashboard' });
+        res.status(500).json({ message: err.message || 'Server error fetching admin dashboard' });
     }
 });
 

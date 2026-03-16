@@ -92,9 +92,48 @@ async function ensureHospitalSchema() {
   }
 }
 
+// Auto-patch: ensure announcements table exists
+async function ensureAnnouncementSchema() {
+  try {
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS announcements (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        hospital_id INT NULL,
+        title VARCHAR(255) NOT NULL,
+        body TEXT NOT NULL,
+        date DATE NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX (hospital_id)
+      )
+    `);
+    console.log('[DB] announcements table ready.');
+
+    // Patch: ensure hospital_id exists if table was already there
+    const [cols] = await db.execute('DESCRIBE announcements');
+    if (!cols.map(c => c.Field).includes('hospital_id')) {
+      await db.execute('ALTER TABLE announcements ADD COLUMN hospital_id INT NULL, ADD INDEX (hospital_id)');
+      console.log('[DB] Added hospital_id to announcements table.');
+    }
+    
+    // Check if empty and seed
+    const [rows] = await db.execute('SELECT COUNT(*) as count FROM announcements');
+    if (rows[0].count === 0) {
+      await db.execute(`
+        INSERT INTO announcements (title, body, date) VALUES 
+        ('Welcome to Admin Dashboard', 'You can now manage doctors, patients and appointments from here.', CURDATE()),
+        ('System Update', 'New reporting features have been added to the doctor dashboard.', CURDATE())
+      `);
+      console.log('[DB] Seeded initial announcements.');
+    }
+  } catch (err) {
+    console.warn('[DB] Could not create announcements table:', err.message);
+  }
+}
+
 app.listen(PORT, async () => {
   console.log(`Server is running on port ${PORT}`);
   await ensurePatientSchema();
   await ensureHospitalSchema();
+  await ensureAnnouncementSchema();
 });
 // Nodemon re-trigger

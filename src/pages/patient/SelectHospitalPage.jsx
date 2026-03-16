@@ -3,13 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { FiSearch, FiChevronRight, FiMapPin } from 'react-icons/fi';
 import { useHospital } from '../../context/HospitalContext';
 
-const HOSPITALS = [
-  { id: 1, name: 'City Hospital',          location: 'Kathmandu',  icon: '🏥', color: '#52b2bf' },
-  { id: 2, name: 'Green Valley Hospital',   location: 'Lalitpur',   icon: '🌿', color: '#22c55e' },
-  { id: 3, name: 'Sunrise Medical Center',  location: 'Bhaktapur',  icon: '🩺', color: '#f59e0b' },
-  { id: 4, name: 'Lakeside Clinic',         location: 'Pokhara',    icon: '🫀', color: '#6366f1' },
-  { id: 5, name: 'Royal Care Hospital',     location: 'Biratnagar', icon: '👑', color: '#ec4899' },
-];
 
 const SelectHospitalPage = () => {
   const navigate = useNavigate();
@@ -17,10 +10,34 @@ const SelectHospitalPage = () => {
   const [search, setSearch] = useState('');
   const [hoveredId, setHoveredId] = useState(null);
   const [error, setError] = useState('');
+  const [hospitals, setHospitals] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const filtered = HOSPITALS.filter(h =>
+  React.useEffect(() => {
+    const fetchHospitals = async () => {
+      try {
+        const { apiFetch } = await import('../../services/apiClient');
+        const data = await apiFetch('/doctors/hospitals');
+        // Map database fields to UI fields (icon/color)
+        const mapped = data.map((h, idx) => ({
+          ...h,
+          icon: ['🏥', '🏨', '🩺', '💊', '🧬', '🫀', '🧠'][idx % 7],
+          color: ['#52b2bf', '#22c55e', '#f59e0b', '#6366f1', '#ec4899'][idx % 5]
+        }));
+        setHospitals(mapped);
+      } catch (err) {
+        console.error('Failed to fetch hospitals:', err);
+        setError('Failed to load hospitals. Please check your connection.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchHospitals();
+  }, []);
+
+  const filtered = hospitals.filter(h =>
     h.name.toLowerCase().includes(search.toLowerCase()) ||
-    h.location.toLowerCase().includes(search.toLowerCase())
+    (h.location && h.location.toLowerCase().includes(search.toLowerCase()))
   );
 
   const handleSelect = (hospital) => {

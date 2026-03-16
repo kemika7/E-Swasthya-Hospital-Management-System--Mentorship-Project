@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Card from '../../components/Card';
 import { useAdmin } from '../../context/AdminContext';
+import { useAuth } from '../../context/AuthContext';
 import { adminAnalyticsData } from '../../data/mockData';
 import adminDashboardImage from '../../assets/images/admin-dashboard.png';
 import { FiPlus, FiTrash2, FiEdit2 } from 'react-icons/fi';
@@ -19,6 +20,7 @@ Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, L
 
 const AdminDashboard = () => {
   const { kpis, announcements, addAnnouncement, deleteAnnouncement, beds, updateBedCapacity, doctors, appointments, updateAppointment, patients, updatePatient, analytics } = useAdmin();
+  const { userProfile } = useAuth();
   const navigate = useNavigate();
   const chartRef = useRef(null);
   const chartInstanceRef = useRef(null);
@@ -105,7 +107,7 @@ const AdminDashboard = () => {
     >
       <div className="page-header" style={{ marginBottom: 0 }}>
         <div>
-          <h2 className="page-title">Admin Dashboard</h2>
+          <h2 className="page-title">Welcome to {userProfile?.hospital_name || 'Hospital'} Hospital Management System</h2>
           <p style={{ fontSize: '0.95rem', color: 'var(--text-light)', marginTop: '0.25rem' }}>
             Operational overview of hospital performance for administrators.
           </p>
@@ -207,7 +209,7 @@ const AdminDashboard = () => {
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{doc.specialty}</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontWeight: 600, color: '#22c55e' }}>{doc.rating.toFixed(1)}</div>
+                  <div style={{ fontWeight: 600, color: '#22c55e' }}>{Number(doc.rating || 0).toFixed(1)}</div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Rating</div>
                 </div>
               </div>

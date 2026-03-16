@@ -259,7 +259,7 @@ const DoctorProfile = () => {
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <span style={{ opacity: 0.7 }}>Hospital</span>
-                    <span style={{ fontWeight: 600 }}>{doctor.hospital || 'N/A'}</span>
+                    <span style={{ fontWeight: 600 }}>{doctor.hospital_name || 'N/A'}</span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <span style={{ opacity: 0.7 }}>Working Hours</span>
@@ -543,8 +543,7 @@ const DoctorProfile = () => {
 
           {activeTab === 'experience' && (
             <div style={{ padding: '1rem', color: '#64748b' }}>
-              <p><strong>Total Experience:</strong> {doctor.experience}</p>
-              <p style={{ marginTop: '0.5rem' }}>Previous Affiliations: City Hospital, MedLife Clinic.</p>
+              <p><strong>Total Experience:</strong> {doctor.experience} Years</p>
             </div>
           )}
 

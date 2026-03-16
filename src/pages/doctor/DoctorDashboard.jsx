@@ -346,10 +346,10 @@ const DoctorDashboard = () => {
             {currentDateStr}
           </p>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--white)', margin: '0 0 0.25rem' }}>
-            Good Day Dr. {doctorFullName}!
+            Welcome to {userProfile?.hospital_name || 'Hospital'} Doctor Dashboard!
           </h1>
           <p style={{ fontSize: '1rem', color: 'rgba(255,255,255,0.95)', margin: 0 }}>
-            Have a Nice {currentDayName}!
+            Good Day Dr. {doctorFullName}, have a Nice {currentDayName}!
           </p>
         </div>
         <div

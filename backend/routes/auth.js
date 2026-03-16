@@ -101,7 +101,7 @@ router.post('/register', async (req, res) => {
 
 // Register Doctor
 router.post('/register-doctor', async (req, res) => {
-    let { name, email, password, phone, address, regNumber, specialization, hospital } = req.body;
+    let { name, email, password, phone, address, regNumber, specialization, hospital, hospitalId } = req.body;
 
     if (!validateFullName(name)) return res.status(400).json({ message: 'Please provide your full name (first and last name).' });
     name = formatName(name);
@@ -142,18 +142,18 @@ router.post('/register-doctor', async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // Insert into users (now including phone)
+        // Insert into users (now including hospital_id)
         const [userResult] = await connection.execute(
-            'INSERT INTO users (name, email, phone, password, role, is_verified) VALUES (?, ?, ?, ?, ?, FALSE)',
-            [name, email, phone || '', hashedPassword, 'doctor']
+            'INSERT INTO users (name, email, phone, password, role, is_verified, hospital_id) VALUES (?, ?, ?, ?, ?, FALSE, ?)',
+            [name, email, phone || '', hashedPassword, 'doctor', hospitalId || null]
         );
         const userId = userResult.insertId;
 
         // Insert into doctors
         const [doctorResult] = await connection.execute(`
-            INSERT INTO doctors (user_id, specialty_id, specialization, hospital, location) 
-            VALUES (?, ?, ?, ?, ?)
-        `, [userId, specialty_id, specialization, hospital, address]);
+            INSERT INTO doctors (user_id, specialty_id, specialization, hospital, location, hospital_id) 
+            VALUES (?, ?, ?, ?, ?, ?)
+        `, [userId, specialty_id, specialization, hospital, address, hospitalId || null]);
         const doctorId = doctorResult.insertId;
 
         // Skip OTP - mark as verified immediately and auto-login
@@ -163,7 +163,7 @@ router.post('/register-doctor', async (req, res) => {
 
         // Auto-login: issue JWT token so doctor goes straight to dashboard
         const token = jwt.sign(
-            { id: userId, roleId: doctorId, name, role: 'doctor' },
+            { id: userId, roleId: doctorId, name, role: 'doctor', hospital_id: hospitalId, hospital_name: hospital },
             process.env.JWT_SECRET || 'your_jwt_secret_key',
             { expiresIn: '24h' }
         );
@@ -171,7 +171,7 @@ router.post('/register-doctor', async (req, res) => {
         res.status(201).json({
             message: 'Registration successful! Welcome to E-Swasthya.',
             token,
-            user: { id: userId, roleId: doctorId, name, email, role: 'doctor' }
+            user: { id: userId, roleId: doctorId, name, email, role: 'doctor', hospital_id: hospitalId, hospital_name: hospital }
         });
 
     } catch (err) {
@@ -213,13 +213,37 @@ router.post('/login', async (req, res) => {
             }
             user = patients[0];
             user.role = 'patient';
-            user.id = user.patient_id; // For JWT consistency
+            user.id = user.patient_id;
         } else {
-            const [users] = await db.execute('SELECT * FROM users WHERE email = ? AND role = ?', [email, role]);
-            if (users.length === 0) {
-                return res.status(400).json({ message: 'Invalid credentials' });
+            // Support Email OR Doctor ID (DOC-1) login
+            if (email.startsWith('DOC-')) {
+                const doctorId = email.replace('DOC-', '');
+                console.log(`[LOGIN] Attempting Doctor ID login: ${doctorId}`);
+                const [doctors] = await db.execute('SELECT user_id FROM doctors WHERE id = ?', [doctorId]);
+                if (doctors.length === 0) {
+                    console.log(`[LOGIN] Doctor ID ${doctorId} not found in doctors table`);
+                    return res.status(400).json({ message: 'Invalid credentials' });
+                }
+                const userId = doctors[0].user_id;
+                const [users] = await db.execute('SELECT * FROM users WHERE id = ? AND role = ?', [userId, role]);
+                if (users.length === 0) {
+                    console.log(`[LOGIN] User ID ${userId} not found in users table with role ${role}`);
+                    return res.status(400).json({ message: 'Invalid credentials' });
+                }
+                user = users[0];
+            } else {
+                console.log(`[LOGIN] Attempting Email login: ${email}`);
+                const [users] = await db.execute('SELECT * FROM users WHERE email = ? AND role = ?', [email, role]);
+                if (users.length === 0) {
+                    console.log(`[LOGIN] Email ${email} not found in users table with role ${role}`);
+                    return res.status(400).json({ message: 'Invalid credentials' });
+                }
+                user = users[0];
             }
-            user = users[0];
+
+            // JOIN with hospitals to get the name
+            const [hospRows] = await db.execute('SELECT name FROM hospitals WHERE id = ?', [user.hospital_id]);
+            user.hospital_name = hospRows.length > 0 ? hospRows[0].name : null;
         }
 
         // OTP verification removed for easier login
@@ -227,8 +251,10 @@ router.post('/login', async (req, res) => {
         // Check password
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
+            console.log(`[LOGIN] Password mismatch for ${email}`);
             return res.status(400).json({ message: 'Invalid credentials' });
         }
+        console.log(`[LOGIN] Password match for ${email}`);
 
         // Fetch role-specific ID
         let roleId = null;
@@ -241,7 +267,14 @@ router.post('/login', async (req, res) => {
 
         // Generate JWT
         const token = jwt.sign(
-            { id: role === 'patient' ? null : user.id, roleId, name: user.name, role: user.role },
+            { 
+                id: role === 'patient' ? null : user.id, 
+                roleId, 
+                name: user.name, 
+                role: user.role, 
+                hospital_id: user.hospital_id,
+                hospital_name: user.hospital_name
+            },
             process.env.JWT_SECRET || 'your_jwt_secret_key',
             { expiresIn: '24h' }
         );
@@ -253,7 +286,9 @@ router.post('/login', async (req, res) => {
                 roleId,
                 name: user.name,
                 email: user.email,
-                role: user.role
+                role: user.role,
+                hospital_id: user.hospital_id,
+                hospital_name: user.hospital_name
             }
         });
     } catch (err) {

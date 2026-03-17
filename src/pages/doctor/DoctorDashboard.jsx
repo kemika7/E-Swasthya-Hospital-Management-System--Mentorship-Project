@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import {
     ArcElement,
     BarController,
@@ -11,10 +10,12 @@ import {
     Tooltip,
 } from 'chart.js';
 import React, { useEffect, useRef, useState } from 'react';
-import { FiActivity, FiBarChart2, FiEdit2, FiX } from 'react-icons/fi';
+import { FiActivity, FiBarChart2, FiEdit2, FiPlus, FiTrash2, FiX, FiAlertTriangle, FiUser } from 'react-icons/fi';
 import { MdLocalHospital } from 'react-icons/md';
+import ErrorDisplay from '../../components/ErrorDisplay';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useAppointment } from '../../context/AppointmentContext';
 
 Chart.register(
   ArcElement,
@@ -26,15 +27,6 @@ Chart.register(
   BarController,
   BarElement
 );
-=======
-import React, { useEffect, useState } from 'react';
-import { FiActivity, FiEdit2, FiPlus, FiTrash2, FiX, FiAlertTriangle } from 'react-icons/fi';
-import { MdLocalHospital } from 'react-icons/md';
-import ErrorDisplay from '../../components/ErrorDisplay';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import { useAppointment } from '../../context/AppointmentContext';
->>>>>>> 9d9f59b08011a0a14c9c7c5033bc7d302786701a
 
 // Doctor illustration: set VITE_DOCTOR_IMAGE in .env to override; otherwise fallback is used
 import defaultDoctorImage from '../../assets/images/doctor-dashboard.png';
@@ -76,22 +68,15 @@ const DoctorDashboard = () => {
     stats: { offline: 0, online: 0, laboratory: 0 },
     scheduledEvents: { labels: [], values: [] },
     todayCount: 0,
-<<<<<<< HEAD
     activities: [],
     upcomingAppointments: []
-=======
->>>>>>> 9d9f59b08011a0a14c9c7c5033bc7d302786701a
+
   });
   const [fullProfile, setFullProfile] = useState(null);
   const [calendarActivities, setCalendarActivities] = useState([]);
   const [loadingCalendar, setLoadingCalendar] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   
-<<<<<<< HEAD
-  // Custom To-Do List State
-  const [todos, setTodos] = useState([]);
-  const [newTodoInput, setNewTodoInput] = useState('');
-=======
   // Derived appointment dates for calendar highlights
   const appointmentDates = React.useMemo(() => {
     return (appointments || [])
@@ -127,7 +112,6 @@ const DoctorDashboard = () => {
     "15:00-16:00", "16:00-17:00"
   ];
 
->>>>>>> 9d9f59b08011a0a14c9c7c5033bc7d302786701a
 
   const [profileForm, setProfileForm] = useState({
     name: '',
@@ -202,68 +186,7 @@ const DoctorDashboard = () => {
   };
 
   useEffect(() => {
-<<<<<<< HEAD
-    const fetchDashboard = async () => {
-      try {
-        const { apiFetch } = await import('../../services/apiClient');
-        const data = await apiFetch('/dashboard/doctor');
-        setDashboardData(data);
-        setCalendarActivities(data.activities || []);
-        
-        // Merge custom plans and today's appointments for To-Do List
-        const mixedTodos = [];
-        if (data.activities && data.activities.length) {
-          data.activities.forEach(a => {
-            // Note: Appointment completion isn't fully robust here unless we fetch their exact statuses, 
-            // but for dashboard display context, we'll mark them pending by default unless their data says otherwise.
-            mixedTodos.push({
-               id: a.appointment_id || Date.now() + Math.random(), 
-               type: 'appointment',
-               title: a.title,
-               status: a.status || 'Pending',
-               time: a.time
-            });
-          });
-        }
-        if (data.doctorPlans && data.doctorPlans.length) {
-           data.doctorPlans.forEach(p => {
-             mixedTodos.push({
-                id: p.id,
-                type: 'plan',
-                title: p.title,
-                status: p.status
-             });
-           });
-        }
-        setTodos(mixedTodos);
 
-      } catch (err) {
-        console.error('Failed to fetch doctor dashboard:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const fetchProfile = async () => {
-      try {
-        const { apiFetch } = await import('../../services/apiClient');
-        const data = await apiFetch('/doctors/profile');
-        setFullProfile(data);
-        setProfileForm({
-          name: data.name || '',
-          specialization: data.specialization || '',
-          location: data.location || '',
-          dob: data.dob ? new Date(data.dob).toISOString().split('T')[0] : '',
-          blood_group: data.blood_group || '',
-          working_hours: data.working_hours || ''
-        });
-      } catch (err) {
-        console.error('Failed to fetch doctor profile:', err);
-      }
-    };
-
-=======
->>>>>>> 9d9f59b08011a0a14c9c7c5033bc7d302786701a
     fetchDashboard();
     fetchProfile();
     fetchRequests();
@@ -365,25 +288,6 @@ const DoctorDashboard = () => {
     }
   };
 
-<<<<<<< HEAD
-    const fetchDayAppointments = async () => {
-      setLoadingCalendar(true);
-      try {
-        const { apiFetch } = await import('../../services/apiClient');
-        const yy = selectedDate.getFullYear();
-        const mm = String(selectedDate.getMonth() + 1).padStart(2, '0');
-        const dd = String(selectedDate.getDate()).padStart(2, '0');
-        const dateStr = `${yy}-${mm}-${dd}`;
-        const data = await apiFetch(`/appointments?date=${dateStr}`);
-        setCalendarActivities(data.map(a => ({
-          time: a.time,
-          title: `Consultation: ${a.patientName}`
-        })));
-      } catch (err) {
-        console.error('Failed to fetch calendar appointments:', err);
-      } finally {
-        setLoadingCalendar(false);
-=======
   const handleAddTodo = async (e) => {
     e.preventDefault();
     if (!newTodoInput.trim()) return;
@@ -425,106 +329,16 @@ const DoctorDashboard = () => {
       } else if (type === 'appointment') {
          // Optionally, uncomment if you want clicking an appointment to actually hit DB
          // await apiFetch(`/appointments/${todoId}`, { method: 'PUT', body: JSON.stringify({ status: newStatus }) });
->>>>>>> 9d9f59b08011a0a14c9c7c5033bc7d302786701a
+
       }
 
-<<<<<<< HEAD
-    fetchDayAppointments();
-  }, [selectedDate, today, dashboardData.activities]);
 
-  const handleProfileUpdate = async (e) => {
-    e.preventDefault();
-    try {
-      const { apiFetch } = await import('../../services/apiClient');
-      await apiFetch('/doctors/profile', {
-        method: 'PUT',
-        body: JSON.stringify(profileForm)
-      });
-      
-      setFullProfile(prev => ({
-        ...prev,
-        ...profileForm,
-      }));
-      setIsEditingProfile(false);
-    } catch (err) {
-      console.error('Failed to update profile:', err);
-      alert('Failed to update profile: ' + err.message);
-    }
-  };
-
-  const handleAddTodo = async (e) => {
-    e.preventDefault();
-    if (!newTodoInput.trim()) return;
-
-    try {
-      const { apiFetch } = await import('../../services/apiClient');
-      const todayISO = today.toISOString().split('T')[0];
-      const res = await apiFetch('/plans', {
-        method: 'POST',
-        body: JSON.stringify({ title: newTodoInput.trim(), date: todayISO })
-      });
-
-      setTodos([...todos, {
-        id: res.id,
-        type: 'plan',
-        title: res.title,
-        status: res.status
-      }]);
-      setNewTodoInput('');
-    } catch (err) {
-      console.error('Failed to add plan:', err);
-      alert('Failed to add plan: ' + err.message);
-    }
-  };
-
-  const handleToggleTodo = async (todoId, type, currentStatus) => {
-    try {
-      const { apiFetch } = await import('../../services/apiClient');
-      const newStatus = currentStatus === 'Pending' ? 'Completed' : 'Pending';
-      
-      if (type === 'plan') {
-         await apiFetch(`/plans/${todoId}`, {
-           method: 'PUT',
-           body: JSON.stringify({ status: newStatus })
-         });
-      } else if (type === 'appointment') {
-         // Optionally, uncomment if you want clicking an appointment to actually hit DB
-         // await apiFetch(`/appointments/${todoId}`, { method: 'PUT', body: JSON.stringify({ status: newStatus }) });
-      }
-
-=======
->>>>>>> 9d9f59b08011a0a14c9c7c5033bc7d302786701a
       setTodos(todos.map(t => Math.floor(t.id) === Math.floor(todoId) ? { ...t, status: newStatus } : t));
     } catch (err) {
       console.error('Failed to toggle status:', err);
     }
   };
-<<<<<<< HEAD
 
-  const handleDeleteTodo = async (todoId) => {
-    try {
-      const { apiFetch } = await import('../../services/apiClient');
-      await apiFetch(`/plans/${todoId}`, { method: 'DELETE' });
-      setTodos(todos.filter(t => t.id !== todoId));
-    } catch (err) {
-      console.error('Failed to delete plan:', err);
-    }
-  };
-
-  const formatTime = (timeStr) => {
-    if (!timeStr) return '';
-    try {
-      const [hours, minutes] = timeStr.split(':');
-      let h = parseInt(hours, 10);
-      const ampm = h >= 12 ? 'PM' : 'AM';
-      h = h % 12 || 12;
-      return `${h}:${minutes} ${ampm}`;
-    } catch (e) {
-      return timeStr;
-    }
-  };
-=======
->>>>>>> 9d9f59b08011a0a14c9c7c5033bc7d302786701a
 
   const handleDeleteTodo = async (todoId) => {
     try {
@@ -549,28 +363,6 @@ const DoctorDashboard = () => {
     }
   };
 
-<<<<<<< HEAD
-    pieInstanceRef.current = new Chart(ctx, {
-      type: 'doughnut',
-      data: {
-        labels: dashboardData.scheduledEvents.labels,
-        datasets: [
-          {
-            data: dashboardData.scheduledEvents.values,
-            backgroundColor: ['#4f46e5', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4'],
-            borderWidth: 0,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: true,
-        plugins: {
-          legend: { position: 'bottom' },
-        },
-      },
-    });
-=======
   const getTimeRange = (timeStr, duration = 30) => {
     if (!timeStr) return '';
     try {
@@ -594,7 +386,7 @@ const DoctorDashboard = () => {
       return formatTime(timeStr);
     }
   };
->>>>>>> 9d9f59b08011a0a14c9c7c5033bc7d302786701a
+
 
   const handleSubmitRequest = async (e) => {
     e.preventDefault();
@@ -734,13 +526,9 @@ const DoctorDashboard = () => {
         }}
       >
         {[
-<<<<<<< HEAD
-          { title: 'Offline Work', count: dashboardData.stats.offline, subtitle: 'Total Appointments', Icon: MdLocalHospital },
-          { title: 'Online Work', count: dashboardData.stats.online, subtitle: 'Pending Consultations', Icon: FiActivity },
-=======
           { title: 'Offline Work', count: dashboardData.stats?.offline || 0, subtitle: 'Total Appointments', Icon: MdLocalHospital },
           { title: 'Online Work', count: dashboardData.stats?.online || 0, subtitle: 'Pending Consultations', Icon: FiActivity },
->>>>>>> 9d9f59b08011a0a14c9c7c5033bc7d302786701a
+
         ].map(({ title, count, subtitle, Icon }) => (
           <div
             key={title}
@@ -825,30 +613,6 @@ const DoctorDashboard = () => {
             </h2>
           </div>
           
-<<<<<<< HEAD
-          <form onSubmit={handleAddTodo} style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-            <input 
-              type="text" 
-              placeholder="Add new task..." 
-              value={newTodoInput}
-              onChange={(e) => setNewTodoInput(e.target.value)}
-              style={{
-                flex: 1, padding: '0.5rem 0.75rem', borderRadius: 8, border: '1px solid rgba(23,23,16,0.1)', fontSize: '0.85rem'
-              }}
-            />
-            <button 
-              type="submit" 
-              style={{
-                backgroundColor: 'var(--primary)', color: 'white', border: 'none', borderRadius: 8, padding: '0 0.75rem', cursor: 'pointer', fontWeight: 600
-              }}
-            >
-              +
-            </button>
-          </form>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', overflowY: 'auto', flex: 1, maxHeight: '200px', paddingRight: '4px' }}>
-            {todos.length > 0 ? todos.map((todo) => {
-=======
           {!isAddingTodo ? (
             <button 
               onClick={() => setIsAddingTodo(true)}
@@ -909,7 +673,7 @@ const DoctorDashboard = () => {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', overflowY: 'auto', flex: 1, maxHeight: '200px', paddingRight: '4px' }}>
             {Array.isArray(todos) && todos.length > 0 ? todos.map((todo) => {
->>>>>>> 9d9f59b08011a0a14c9c7c5033bc7d302786701a
+
               const isDone = todo.status === 'Completed';
               return (
                 <div key={todo.id} style={{
@@ -929,16 +693,12 @@ const DoctorDashboard = () => {
                         textDecoration: isDone ? 'line-through' : 'none',
                         whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden'
                       }}>
-<<<<<<< HEAD
-                        {todo.title}
-                      </span>
-=======
                         {todo.title || 'Untitled Task'}
                       </span>
                       {todo.description && (
                         <span style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>{todo.description}</span>
                       )}
->>>>>>> 9d9f59b08011a0a14c9c7c5033bc7d302786701a
+
                       {todo.type === 'appointment' && (
                         <span style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 600 }}>Appointment {todo.time ? `• ${formatTime(todo.time)}` : ''}</span>
                       )}
@@ -947,17 +707,13 @@ const DoctorDashboard = () => {
                   {todo.type === 'plan' && (
                     <button 
                       onClick={() => handleDeleteTodo(todo.id)}
-<<<<<<< HEAD
-                      style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '1.2rem', cursor: 'pointer', padding: 0, lineHeight: 1 }}
-                    >×</button>
-=======
                       style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '0.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.7, transition: 'opacity 0.2s' }}
                       onMouseOver={e => e.currentTarget.style.opacity = 1}
                       onMouseOut={e => e.currentTarget.style.opacity = 0.7}
                     >
                       <FiTrash2 size={16} />
                     </button>
->>>>>>> 9d9f59b08011a0a14c9c7c5033bc7d302786701a
+
                   )}
                 </div>
               );
@@ -989,15 +745,10 @@ const DoctorDashboard = () => {
             </button>
           </div>
           <div style={{ fontSize: '0.9rem' }}>
-<<<<<<< HEAD
-            <div style={{ fontWeight: 600, color: 'var(--text)', marginBottom: '0.25rem' }}>Dr. {fullProfile?.name || doctorFullName}</div>
-            <div style={{ color: 'var(--text)', opacity: 0.8, marginBottom: '0.5rem' }}>{fullProfile?.specialization || 'Cardiologist'}</div>
-            <div style={{ color: 'var(--text)', opacity: 0.8, marginBottom: '1rem' }}>{fullProfile?.location || 'Kathmandu, Nepal'}</div>
-=======
             <div style={{ fontWeight: 600, color: 'var(--text)', marginBottom: '0.25rem' }}>Dr. {fullProfile?.name || doctorFullName || 'Doctor'}</div>
             <div style={{ color: 'var(--text)', opacity: 0.8, marginBottom: '0.5rem' }}>{fullProfile?.specialization || 'Healthcare Provider'}</div>
             <div style={{ color: 'var(--text)', opacity: 0.8, marginBottom: '1rem' }}>{fullProfile?.location || 'Location Not Set'}</div>
->>>>>>> 9d9f59b08011a0a14c9c7c5033bc7d302786701a
+
             <div style={{ display: 'grid', gap: '0.35rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(23,23,16,0.1)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ opacity: 0.8 }}>Date of Birth</span>
@@ -1135,10 +886,6 @@ const DoctorDashboard = () => {
                     gap: '0.75rem',
                   }}
                 >
-<<<<<<< HEAD
-                  <span style={{ fontWeight: 600, color: 'var(--primary)', minWidth: 70 }}>{formatTime(a.time)}</span>
-                  <span style={{ color: 'var(--text)' }}>{a.title}</span>
-=======
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontWeight: 600, color: 'var(--primary)', minWidth: 70, fontSize: '0.85rem' }}>{getTimeRange(a.time, a.duration)}</span>
@@ -1150,7 +897,7 @@ const DoctorDashboard = () => {
                     </div>
                     <span style={{ color: 'var(--text)', fontWeight: 500 }}>{a.patient_name || a.patientName || 'Patient'}</span>
                   </div>
->>>>>>> 9d9f59b08011a0a14c9c7c5033bc7d302786701a
+
                 </li>
               ))
             ) : (
@@ -1174,17 +921,11 @@ const DoctorDashboard = () => {
         <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text)', margin: '0 0 1rem' }}>
           Upcoming Appointments
         </h2>
-<<<<<<< HEAD
-        <div>
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-            {dashboardData.upcomingAppointments?.length > 0 ? (
-              dashboardData.upcomingAppointments.map((a, i) => (
-=======
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
             {Array.isArray(upcomingContext) && upcomingContext.length > 0 ? (
               upcomingContext.map((a, i) => (
->>>>>>> 9d9f59b08011a0a14c9c7c5033bc7d302786701a
+
                 <li
                   key={a.id || i}
                   style={{
@@ -1212,13 +953,6 @@ const DoctorDashboard = () => {
                         fontWeight: 700,
                       }}
                     >
-<<<<<<< HEAD
-                      {a.patientName?.charAt(0) || 'P'}
-                    </div>
-                    <div>
-                      <div style={{ fontWeight: 600, color: 'var(--text)' }}>{a.patientName}</div>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{a.type || 'Consultation'}</div>
-=======
                       { (a.patient_name || a.patientName || 'P').charAt(0) }
                     </div>
                     <div>
@@ -1229,16 +963,11 @@ const DoctorDashboard = () => {
                           " {a.notes} "
                         </div>
                       )}
->>>>>>> 9d9f59b08011a0a14c9c7c5033bc7d302786701a
+
                     </div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontWeight: 600, color: 'var(--primary)', fontSize: '0.9rem' }}>
-<<<<<<< HEAD
-                      {new Date(a.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                    </div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{formatTime(a.time)}</div>
-=======
                       {a.date ? new Date(a.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A'}
                     </div>
                     <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{getTimeRange(a.time, a.duration)}</div>
@@ -1246,7 +975,7 @@ const DoctorDashboard = () => {
                       fontSize: '0.7rem', padding: '0.1rem 0.4rem', borderRadius: 4, marginTop: '4px',
                       backgroundColor: '#dcfce7', color: '#15803d', fontWeight: 600, textAlign: 'center'
                     }}>{a.status || 'Scheduled'}</div>
->>>>>>> 9d9f59b08011a0a14c9c7c5033bc7d302786701a
+
                   </div>
                 </li>
               ))
@@ -1333,209 +1062,6 @@ const DoctorDashboard = () => {
           </div>
         </div>
       )}
-
-<<<<<<< HEAD
-=======
-      {/* REQUEST MODAL */}
-      {isRequestModalOpen && (
-        <div style={{
-          position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '1rem'
-        }}>
-          <div className="card" style={{ width: '100%', maxWidth: '500px', padding: '2rem', backgroundColor: 'var(--white)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-              <h3 style={{ margin: 0 }}>Availability Request</h3>
-              <button onClick={() => setIsRequestModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-                <FiX size={24} />
-              </button>
-            </div>
-            
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem' }}>
-              <button 
-                className={`btn ${requestType === 'Leave' ? 'btn-primary' : 'btn-outline'}`}
-                onClick={() => setRequestType('Leave')}
-                style={{ flex: 1, fontSize: '0.85rem' }}
-              >
-                Apply for Leave
-              </button>
-              <button 
-                className={`btn ${requestType === 'Schedule' ? 'btn-primary' : 'btn-outline'}`}
-                onClick={() => setRequestType('Schedule')}
-                style={{ flex: 1, fontSize: '0.85rem' }}
-              >
-                Change Weekly Schedule
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmitRequest} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {requestType === 'Leave' ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', fontWeight: 600 }}>Select Dates & Slots</label>
-                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-                      <input 
-                        type="date" 
-                        className="input-field" 
-                        id="leave-date-picker"
-                        min={new Date().toISOString().split('T')[0]}
-                        style={{ flex: 1 }}
-                      />
-                      <button 
-                        type="button"
-                        className="btn btn-primary"
-                        onClick={() => {
-                          const date = document.getElementById('leave-date-picker').value;
-                          if (!date) return;
-                          if (requestForm.leaveDates.some(ld => ld.date === date)) return;
-                          setRequestForm({
-                            ...requestForm,
-                            leaveDates: [...requestForm.leaveDates, { date, fullDay: true, slots: [] }]
-                          });
-                        }}
-                      >
-                        Add Date
-                      </button>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '250px', overflowY: 'auto' }}>
-                      {requestForm.leaveDates.map((ld, idx) => (
-                        <div key={ld.date} style={{ padding: '0.75rem', backgroundColor: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                            <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{ld.date}</span>
-                            <button 
-                              type="button" 
-                              onClick={() => {
-                                setRequestForm({
-                                  ...requestForm,
-                                  leaveDates: requestForm.leaveDates.filter(d => d.date !== ld.date)
-                                });
-                              }}
-                              style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}
-                            >
-                              Remove
-                            </button>
-                          </div>
-                          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', marginBottom: '0.5rem' }}>
-                            <label style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                              <input 
-                                type="radio" 
-                                name={`day-type-${idx}`} 
-                                checked={ld.fullDay} 
-                                onChange={() => {
-                                  const newDates = [...requestForm.leaveDates];
-                                  newDates[idx].fullDay = true;
-                                  newDates[idx].slots = [];
-                                  setRequestForm({ ...requestForm, leaveDates: newDates });
-                                }}
-                              /> Full Day
-                            </label>
-                            <label style={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                              <input 
-                                type="radio" 
-                                name={`day-type-${idx}`} 
-                                checked={!ld.fullDay} 
-                                onChange={() => {
-                                  const newDates = [...requestForm.leaveDates];
-                                  newDates[idx].fullDay = false;
-                                  setRequestForm({ ...requestForm, leaveDates: newDates });
-                                }}
-                              /> Partial (Slots)
-                            </label>
-                          </div>
-                          {!ld.fullDay && (
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '0.4rem', marginTop: '0.5rem' }}>
-                              {PREDEFINED_SLOTS.map(slot => (
-                                <button
-                                  key={slot}
-                                  type="button"
-                                  onClick={() => {
-                                    const newDates = [...requestForm.leaveDates];
-                                    const slots = newDates[idx].slots;
-                                    newDates[idx].slots = slots.includes(slot) ? slots.filter(s => s !== slot) : [...slots, slot].sort();
-                                    setRequestForm({ ...requestForm, leaveDates: newDates });
-                                  }}
-                                  style={{
-                                    padding: '0.3rem', fontSize: '0.7rem', borderRadius: '4px', border: '1px solid',
-                                    borderColor: ld.slots.includes(slot) ? 'var(--primary)' : '#cbd5e1',
-                                    backgroundColor: ld.slots.includes(slot) ? 'rgba(82, 178, 191, 0.1)' : 'white',
-                                    color: ld.slots.includes(slot) ? 'var(--primary)' : '#64748b',
-                                    cursor: 'pointer'
-                                  }}
-                                >
-                                  {slot}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                      {requestForm.leaveDates.length === 0 && (
-                        <p style={{ textAlign: 'center', fontSize: '0.85rem', color: '#94a3b8', padding: '1rem' }}>No dates selected yet.</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  <label style={{ fontSize: '0.85rem', fontWeight: 600 }}>Requested Weekly Schedule</label>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                    {DAY_NAMES.map(day => (
-                      <button
-                        key={day}
-                        type="button"
-                        onClick={() => {
-                          const currentDays = requestForm.availability.days || [];
-                          const newDays = currentDays.includes(day) ? currentDays.filter(d => d !== day) : [...currentDays, day];
-                          setRequestForm({ ...requestForm, availability: { ...requestForm.availability, days: newDays } });
-                        }}
-                        style={{
-                          padding: '0.4rem 0.8rem', fontSize: '0.75rem', borderRadius: '20px', border: '1px solid',
-                          borderColor: requestForm.availability.days.includes(day) ? 'var(--primary)' : '#cbd5e1',
-                          backgroundColor: requestForm.availability.days.includes(day) ? 'var(--primary-light)' : 'white',
-                          color: requestForm.availability.days.includes(day) ? 'var(--primary)' : '#64748b',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {day}
-                      </button>
-                    ))}
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '0.5rem', marginTop: '0.5rem' }}>
-                    {PREDEFINED_SLOTS.map(slot => (
-                      <button
-                        key={slot}
-                        type="button"
-                        onClick={() => {
-                          const currentSlots = requestForm.availability.timeSlots || [];
-                          const newSlots = currentSlots.includes(slot) ? currentSlots.filter(s => s !== slot) : [...currentSlots, slot].sort();
-                          setRequestForm({ ...requestForm, availability: { ...requestForm.availability, timeSlots: newSlots } });
-                        }}
-                        style={{
-                          padding: '0.5rem', fontSize: '0.75rem', borderRadius: '8px', border: '1px solid',
-                          borderColor: requestForm.availability.timeSlots.includes(slot) ? 'var(--primary)' : '#e2e8f0',
-                          backgroundColor: requestForm.availability.timeSlots.includes(slot) ? 'rgba(82, 178, 191, 0.1)' : 'white',
-                          color: requestForm.availability.timeSlots.includes(slot) ? 'var(--primary)' : '#64748b',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {slot}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-              
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
-                <button type="button" className="btn btn-outline" onClick={() => setIsRequestModalOpen(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={submittingRequest}>
-                  {submittingRequest ? 'Submitting...' : 'Submit Request'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
->>>>>>> 9d9f59b08011a0a14c9c7c5033bc7d302786701a
     </div>
   );
 };

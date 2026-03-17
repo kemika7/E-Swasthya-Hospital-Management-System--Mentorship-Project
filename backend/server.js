@@ -205,6 +205,7 @@ async function ensureHealthSchema() {
         height FLOAT,
         weight FLOAT,
         bmi FLOAT,
+        body_fat FLOAT,
         exercise BOOLEAN,
         exercise_duration INT,
         smoking BOOLEAN,
@@ -229,6 +230,14 @@ async function ensureHealthSchema() {
         FOREIGN KEY (patient_id) REFERENCES patients(patient_id) ON DELETE CASCADE
       )
     `);
+    // Add body_fat column if missing (for existing tables)
+    try {
+      const [cols] = await db.execute('DESCRIBE patient_health_data');
+      if (!cols.map(c => c.Field).includes('body_fat')) {
+        await db.execute('ALTER TABLE patient_health_data ADD COLUMN body_fat FLOAT NULL AFTER bmi');
+        console.log('[DB] Added body_fat column to patient_health_data.');
+      }
+    } catch (_) {}
     console.log('[DB] patient_health_data table ready.');
   } catch (err) {
     console.warn('[DB] Could not create patient_health_data table:', err.message);
@@ -354,13 +363,21 @@ async function ensurePlansSchema() {
 }
 app.listen(PORT, async () => {
   console.log(`Server is running on port ${PORT}`);
-  await ensurePatientSchema();
-  await ensureHospitalSchema();
-  await ensureAnnouncementSchema();
-  await ensureHealthSchema();
-  await ensureLockerSchema();
-  await ensureDoctorPlansSchema();
-  await ensurePatientReportsSchema();
-  await ensureRequestSchema();
-  await ensurePlansSchema();
+  // Run schema patches sequentially to avoid exhausting free DB connection limit
+  const patches = [
+    ensurePatientSchema,
+    ensureHospitalSchema,
+    ensureAnnouncementSchema,
+    ensureHealthSchema,
+    ensureLockerSchema,
+    ensureDoctorPlansSchema,
+    ensurePatientReportsSchema,
+    ensureRequestSchema,
+    ensurePlansSchema,
+  ];
+  for (const patch of patches) {
+    try { await patch(); } catch (e) { console.warn('[PATCH]', e.message); }
+    // small pause between patches so connections are released
+    await new Promise(r => setTimeout(r, 300));
+  }
 });

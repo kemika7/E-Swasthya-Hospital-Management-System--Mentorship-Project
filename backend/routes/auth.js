@@ -242,8 +242,12 @@ router.post('/login', async (req, res) => {
             }
 
             // JOIN with hospitals to get the name
-            const [hospRows] = await db.execute('SELECT name FROM hospitals WHERE id = ?', [user.hospital_id]);
-            user.hospital_name = hospRows.length > 0 ? hospRows[0].name : null;
+            try {
+              const [hospRows] = await db.execute('SELECT name FROM hospitals WHERE id = ?', [user.hospital_id]);
+              user.hospital_name = hospRows.length > 0 ? hospRows[0].name : null;
+            } catch (_) {
+              user.hospital_name = null;
+            }
         }
 
         // OTP verification removed for easier login

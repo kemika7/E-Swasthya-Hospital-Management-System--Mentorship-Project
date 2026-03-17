@@ -47,19 +47,19 @@ const PatientLayout = () => (
   <DashboardLayout>
     <Routes>
       <Route path="select-hospital" element={<SelectHospitalPage />} />
-      <Route index element={<RequireHospital><PatientDashboard /></RequireHospital>} />
-      <Route path="dashboard" element={<RequireHospital><PatientDashboard /></RequireHospital>} />
-      <Route path="doctors" element={<RequireHospital><CategoriesPage /></RequireHospital>} />
-      <Route path="category/:categoryId" element={<RequireHospital><DoctorListing /></RequireHospital>} />
+      <Route index element={<PatientDashboard />} />
+      <Route path="dashboard" element={<PatientDashboard />} />
+      <Route path="doctors" element={<CategoriesPage />} />
+      <Route path="category/:categoryId" element={<DoctorListing />} />
       <Route path="hospitals" element={<HospitalsPage />} />
       <Route path="hospital/:hospitalId" element={<HospitalSpecializationsPage />} />
       <Route path="hospital/:hospitalId/doctors" element={<DoctorListing />} />
-      <Route path="doctor/:doctorId" element={<RequireHospital><DoctorProfile /></RequireHospital>} />
-      <Route path="appointments" element={<RequireHospital><Appointments /></RequireHospital>} />
-      <Route path="reports" element={<RequireHospital><Reports /></RequireHospital>} />
-      <Route path="patient-reports" element={<RequireHospital><PatientReports /></RequireHospital>} />
-      <Route path="locker" element={<RequireHospital><DocumentLocker /></RequireHospital>} />
-      <Route path="chatbot" element={<RequireHospital><PatientChatbot /></RequireHospital>} />
+      <Route path="doctor/:doctorId" element={<DoctorProfile />} />
+      <Route path="appointments" element={<Appointments />} />
+      <Route path="reports" element={<Reports />} />
+      <Route path="patient-reports" element={<PatientReports />} />
+      <Route path="locker" element={<DocumentLocker />} />
+      <Route path="chatbot" element={<PatientChatbot />} />
       <Route path="*" element={<Navigate to="/patient/dashboard" replace />} />
     </Routes>
   </DashboardLayout>

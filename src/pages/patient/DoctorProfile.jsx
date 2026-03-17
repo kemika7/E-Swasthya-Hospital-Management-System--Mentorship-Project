@@ -134,8 +134,8 @@ const DoctorProfile = () => {
 
   const handleConfirmBooking = async () => {
     if (!selectedHospital) {
-      if (window.confirm('Please select a hospital to book an appointment. Would you like to select one now?')) {
-        navigate('/patient/select-hospital', { state: { from: location } });
+      if (window.confirm('Please select a hospital from the Hospital section first. Would you like to go there now?')) {
+        navigate('/patient/hospitals', { state: { from: location } });
       }
       return;
     }

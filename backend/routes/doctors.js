@@ -348,9 +348,112 @@ router.put('/admin/requests/:id', authenticateToken, async (req, res) => {
 });
 
 // ─── Doctor Parameter Routes ──────────────────────────
-// Get specific doctor profile
-router.get('/:id', async (req, res) => {
+
+// Get doctor availability for a specific date
+router.get('/:id/availability', async (req, res) => {
+    console.log(`[AVAILABILITY] Request for doctor ${req.params.id} on date ${req.query.date}`);
     try {
+        const doctorId = req.params.id;
+        const { date } = req.query;
+
+        if (!date) {
+            return res.status(400).json({ message: 'Date parameter is required' });
+        }
+
+        // 1. Fetch doctor's base availability and unavailable dates
+        const [doctorRows] = await db.execute(
+            'SELECT availability, unavailable_dates FROM doctors WHERE id = ?',
+            [doctorId]
+        );
+
+        if (doctorRows.length === 0) {
+            return res.status(404).json({ message: 'Doctor not found' });
+        }
+
+        const { availability, unavailable_dates } = doctorRows[0];
+        const parsedAvailability = typeof availability === 'string' ? JSON.parse(availability) : (availability || { days: [], timeSlots: [] });
+        const parsedUnavailable = typeof unavailable_dates === 'string' ? JSON.parse(unavailable_dates) : (unavailable_dates || []);
+
+        // 2. Check if date is blocked
+        if (parsedUnavailable.includes(date)) {
+            return res.json({ 
+                available: false, 
+                slots: [], 
+                allDaySlots: [], 
+                message: 'Doctor is on leave or unavailable on this date' 
+            });
+        }
+
+        // 3. Check if weekday is scheduled
+        const dayName = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date(date));
+        if (!parsedAvailability.days || !parsedAvailability.days.includes(dayName)) {
+            return res.json({ 
+                available: false, 
+                slots: [], 
+                allDaySlots: [], 
+                message: `Doctor does not work on ${dayName}s` 
+            });
+        }
+
+        const scheduledSlots = parsedAvailability.timeSlots || [];
+
+        // 4. Fetch existing appointments for this doctor on this date
+        const [appointments] = await db.execute(
+            'SELECT time FROM appointments WHERE doctor_id = ? AND date = ? AND status != "Cancelled"',
+            [doctorId, date]
+        );
+
+        // Standardize time format from DB (HH:mm:ss) to match frontend (HH:mm AM/PM or HH:mm)
+        const bookedTimes = appointments.map(a => {
+            return a.time.substring(0, 5); // Just HH:mm for comparison base
+        });
+
+        const convertToHHmm = (timeStr) => {
+            if (!timeStr) return "";
+            if (timeStr.includes('AM') || timeStr.includes('PM')) {
+                const [time, modifier] = timeStr.split(' ');
+                let [hours, minutes] = time.split(':');
+                if (hours === '12') hours = '00';
+                if (modifier === 'PM' && hours !== '12') {
+                    hours = parseInt(hours, 10) + 12;
+                }
+                return `${String(hours).padStart(2, '0')}:${minutes}`;
+            }
+            return timeStr.substring(0, 5);
+        };
+
+        let availableSlots = scheduledSlots.filter(slot => {
+            const slotHHmm = convertToHHmm(slot);
+            return !bookedTimes.includes(slotHHmm);
+        });
+
+        // 5. If date is today, filter out past slots
+        const now = new Date();
+        const todayStr = now.toISOString().split('T')[0];
+        
+        if (date === todayStr) {
+            availableSlots = availableSlots.filter(slot => {
+                const slotTimeStr = convertToHHmm(slot); // "HH:mm"
+                const [hours, minutes] = slotTimeStr.split(':').map(Number);
+                const slotDateTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
+                return slotDateTime > now;
+            });
+        }
+
+        res.json({
+            available: availableSlots.length > 0,
+            slots: availableSlots,
+            allDaySlots: scheduledSlots
+        });
+
+    } catch (err) {
+        console.error('[AVAILABILITY FETCH ERROR]', err);
+        res.status(500).json({ message: 'Error checking availability' });
+    }
+});
+
+// Get specific doctor profile
+router.get('/:id', async (req, res) => {    try {
         const [doctor] = await db.execute(`
             SELECT d.*, u.name as doctor_name, u.email, 
                    s.name as specialty_name, c.name as category_name,
@@ -373,10 +476,6 @@ router.get('/:id', async (req, res) => {
         res.status(500).json({ message: 'Server error fetching doctor' });
     }
 });
-
-
-
-
 
 // Create doctor (Admin only)
 router.post('/', authenticateToken, async (req, res) => {

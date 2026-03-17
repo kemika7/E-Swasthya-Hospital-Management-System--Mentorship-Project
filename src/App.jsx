@@ -41,15 +41,6 @@ const AppointmentsManagement = lazy(() => import('./pages/admin/AppointmentsMana
 const TransactionsManagement = lazy(() => import('./pages/admin/TransactionsManagement'));
 const ReportsManagement = lazy(() => import('./pages/admin/ReportsManagement'));
 
-// Guard: patients without a hospital selection are redirected to select-hospital
-const RequireHospital = ({ children }) => {
-  const { selectedHospital } = useHospital();
-  if (!selectedHospital) {
-    return <Navigate to="/patient/select-hospital" replace />;
-  }
-  return children;
-};
-
 const PatientLayout = () => (
   <DashboardLayout>
     <Routes>
@@ -66,8 +57,19 @@ const PatientLayout = () => (
       <Route path="reports" element={<RequireHospital><Reports /></RequireHospital>} />
       <Route path="patient-reports" element={<RequireHospital><PatientReports /></RequireHospital>} />
       <Route path="locker" element={<RequireHospital><DocumentLocker /></RequireHospital>} />
+      <Route index element={<PatientDashboard />} />
+      <Route path="dashboard" element={<PatientDashboard />} />
+      <Route path="doctors" element={<CategoriesPage />} />
+      <Route path="category/:categoryId" element={<DoctorListing />} />
+      <Route path="hospitals" element={<HospitalsPage />} />
+      <Route path="hospital/:hospitalId" element={<HospitalSpecializationsPage />} />
+      <Route path="hospital/:hospitalId/doctors" element={<DoctorListing />} />
+      <Route path="doctor/:doctorId" element={<DoctorProfile />} />
+      <Route path="appointments" element={<Appointments />} />
+      <Route path="reports" element={<Reports />} />
+      <Route path="locker" element={<DocumentLocker />} />
 
-      <Route path="*" element={<Navigate to="/patient/select-hospital" replace />} />
+      <Route path="*" element={<Navigate to="/patient/dashboard" replace />} />
     </Routes>
   </DashboardLayout>
 );

@@ -72,7 +72,95 @@ router.post('/', authenticateToken, async (req, res) => {
         return res.status(400).json({ message: 'Date and time are required' });
     }
 
+    const connection = await db.getConnection();
     try {
+        await connection.beginTransaction();
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const bookingDate = new Date(date);
+        bookingDate.setHours(0, 0, 0, 0);
+
+        // 1. Future Booking Limit (2 Weeks Rule)
+        const maxDate = new Date(today);
+        maxDate.setDate(today.getDate() + 14);
+
+        if (bookingDate < today) {
+            await connection.rollback();
+            return res.status(400).json({ message: 'Selected date is in the past' });
+        }
+        if (bookingDate > maxDate) {
+            await connection.rollback();
+            return res.status(400).json({ message: 'Appointments can only be booked within the next 2 weeks' });
+        }
+
+        // 2. Real-Time Time Validation for Today
+        if (bookingDate.getTime() === today.getTime()) {
+            const now = new Date();
+            const [hours, minutes] = time.split(':');
+            const slotDate = new Date();
+            slotDate.setHours(parseInt(hours), parseInt(minutes), 0);
+            
+            // Allow booking only if the slot is at least 15 mins in the future
+            if (slotDate.getTime() < now.getTime() + (15 * 60000)) {
+                await connection.rollback();
+                return res.status(400).json({ message: 'Selected time has already passed or is too soon' });
+            }
+        }
+
+        // 3. One Appointment Per Day Per Doctor
+        const [duplicate] = await connection.execute(
+            'SELECT appointment_id FROM appointments WHERE patient_id = ? AND doctor_id = ? AND date = ? AND status != "Cancelled"',
+            [finalPatientId, finalDoctorId, date]
+        );
+        if (duplicate.length > 0) {
+            await connection.rollback();
+            return res.status(400).json({ message: 'You already have an appointment today with this doctor. You can only book one appointment per day.' });
+        }
+
+        // --- Availability Check ---
+        const [doctorRows] = await connection.execute('SELECT availability, unavailable_dates FROM doctors WHERE id = ?', [finalDoctorId]);
+        if (doctorRows.length === 0) {
+            await connection.rollback();
+            return res.status(404).json({ message: 'Doctor not found' });
+        }
+
+        const { availability, unavailable_dates } = doctorRows[0];
+        const parsedAvailability = typeof availability === 'string' ? JSON.parse(availability) : availability;
+        const parsedUnavailable = typeof unavailable_dates === 'string' ? JSON.parse(unavailable_dates) : unavailable_dates;
+
+        // 1. Check if date is blocked
+        if (parsedUnavailable && parsedUnavailable.includes(date)) {
+            await connection.rollback();
+            return res.status(400).json({ message: 'Doctor is unavailable on this date' });
+        }
+
+        // 2. Check if weekday is scheduled
+        const dayName = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date(date));
+        if (!parsedAvailability || !parsedAvailability.days || !parsedAvailability.days.includes(dayName)) {
+            await connection.rollback();
+            return res.status(400).json({ message: `Doctor is not scheduled for ${dayName}s` });
+        }
+
+        // 3. Check if slot is in availability
+        const slotTime = time.substring(0, 5); // 09:00:00 -> 09:00
+        const isValidSlot = (parsedAvailability.timeSlots || []).some(slot => slot.startsWith(slotTime));
+        if (!isValidSlot) {
+            await connection.rollback();
+            return res.status(400).json({ message: 'Requested time slot is not in doctor\'s schedule' });
+        }
+
+        // 4. Check if slot is already booked (WITH LOCK)
+        const [existing] = await connection.execute(
+            'SELECT appointment_id FROM appointments WHERE doctor_id = ? AND date = ? AND time = ? AND status != "Cancelled" FOR UPDATE',
+            [finalDoctorId, date, time]
+        );
+        if (existing.length > 0) {
+            await connection.rollback();
+            return res.status(400).json({ message: 'This time slot is already booked. Please choose another slot.' });
+        }
+        // --- End Availability Check ---
+
         console.log('Backend [POST /appointments]: Inserting into DB:', {
             patient_id: finalPatientId,
             doctor_id: finalDoctorId,
@@ -81,15 +169,20 @@ router.post('/', authenticateToken, async (req, res) => {
             time,
             appointment_type: appointment_type || 'Consultation'
         });
-        const [result] = await db.execute(
+        const [result] = await connection.execute(
             'INSERT INTO appointments (patient_id, doctor_id, hospital_id, date, time, duration, status, appointment_type, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [finalPatientId, finalDoctorId, finalHospitalId, date, time, duration || 30, 'Scheduled', appointment_type || 'Consultation', notes || null]
         );
+
+        await connection.commit();
         console.log('Backend [POST /appointments]: Insert successful, ID:', result.insertId);
         res.status(201).json({ message: 'Appointment booked successfully', appointmentId: result.insertId });
     } catch (err) {
+        await connection.rollback();
         console.error('Backend [POST /appointments]: MySQL Error:', err);
         res.status(500).json({ message: 'Server error booking appointment: ' + err.message });
+    } finally {
+        connection.release();
     }
 });
 

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiSearch, FiMapPin, FiPhone, FiChevronRight } from 'react-icons/fi';
+import { FiSearch, FiMapPin, FiPhone, FiChevronRight, FiCheckCircle } from 'react-icons/fi';
 import { apiFetch } from '../../services/apiClient';
+import { useHospital } from '../../context/HospitalContext';
 
 const HOSPITAL_COLORS = [
   '#6366f1', '#ec4899', '#14b8a6', '#f59e0b', '#8b5cf6',
@@ -23,6 +24,7 @@ const TYPE_STYLES = {
 
 const HospitalsPage = () => {
   const navigate = useNavigate();
+  const { selectedHospital, setSelectedHospital } = useHospital();
   const [hospitals, setHospitals] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -207,16 +209,49 @@ const HospitalsPage = () => {
                     </p>
                   </div>
 
-                  <FiChevronRight
-                    size={18}
-                    color={isHovered ? color : '#cbd5e1'}
-                    style={{
-                      transition: 'all 0.3s',
-                      transform: isHovered ? 'translateX(3px)' : 'none',
-                      flexShrink: 0, marginTop: 4,
-                    }}
-                  />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedHospital({ id: hospital.id, name: hospital.name });
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '0.6rem',
+                        borderRadius: 10,
+                        backgroundColor: selectedHospital?.id === hospital.id ? 'var(--primary)' : 'rgba(82,178,191,0.1)',
+                        color: selectedHospital?.id === hospital.id ? 'var(--white)' : 'var(--primary)',
+                        border: 'none',
+                        fontSize: '0.85rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.4rem',
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      {selectedHospital?.id === hospital.id ? (
+                        <>
+                          <FiCheckCircle size={14} /> Selected
+                        </>
+                      ) : (
+                        'Select as My Hospital'
+                      )}
+                    </button>
+                  </div>
                 </div>
+
+                <FiChevronRight
+                  size={18}
+                  color={isHovered ? color : '#cbd5e1'}
+                  style={{
+                    transition: 'all 0.3s',
+                    transform: isHovered ? 'translateX(3px)' : 'none',
+                    flexShrink: 0, marginTop: 4,
+                  }}
+                />
               </div>
             );
           })}

@@ -19,7 +19,7 @@ import { useAppointment } from '../../context/AppointmentContext';
 const DoctorProfile = () => {
   const { doctorId } = useParams();
   const navigate = useNavigate();
-  const { updateAppointmentDetails, bookAppointment } = useAppointment();
+  const { updateAppointmentDetails, bookAppointment, appointments } = useAppointment();
 
   const [doctor, setDoctor] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -28,6 +28,10 @@ const DoctorProfile = () => {
   const [selectedTime, setSelectedTime] = useState(null);
   const [appointmentType, setAppointmentType] = useState('Consultation');
   const [showBookingModal, setShowBookingModal] = useState(false);
+  const [availabilityData, setAvailabilityData] = useState({ available: true, slots: [], allDaySlots: [] });
+  const [fetchingSlots, setFetchingSlots] = useState(false);
+  const [availabilityError, setAvailabilityError] = useState(null);
+
 
   // Calendar state
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -97,21 +101,31 @@ const DoctorProfile = () => {
     '12:45 PM', '01:25 PM', '01:45 PM',
   ];
 
-  const handleDateClick = (day) => {
+  const handleDateClick = async (day) => {
     if (day) {
       setSelectedDate(day);
-      checkBookingReadiness(day, selectedTime);
+      setSelectedTime(null);
+      setAvailabilityError(null);
+      
+      const dateStr = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      setFetchingSlots(true);
+      try {
+        const data = await apiFetch(`/doctors/${doctorId}/availability?date=${dateStr}`);
+        setAvailabilityData(data || { available: false, slots: [], allDaySlots: [] });
+      } catch (err) {
+        console.error('Failed to fetch availability:', err);
+        setAvailabilityError(err.message || 'Failed to load availability');
+        setAvailabilityData({ available: false, slots: [], allDaySlots: [] });
+      } finally {
+        setFetchingSlots(false);
+      }
     }
   };
 
   const handleTimeClick = (time) => {
     setSelectedTime(time);
-    checkBookingReadiness(selectedDate, time);
-  };
-
-  const checkBookingReadiness = (date, time) => {
-    if (date && time) {
-      setTimeout(() => setShowBookingModal(true), 500);
+    if (selectedDate && time) {
+       setTimeout(() => setShowBookingModal(true), 500);
     }
   };
 
@@ -455,13 +469,23 @@ const DoctorProfile = () => {
                 >
                   {calendarDays.map((day, index) => {
                     const isSelected = selectedDate === day;
-                    // Disable past days in current month
+                    // Disable past days, days beyond 14 days, and days already booked
                     const today = new Date();
-                    const isPast = day &&
-                      currentMonth.getFullYear() === today.getFullYear() &&
-                      currentMonth.getMonth() === today.getMonth() &&
-                      day < today.getDate();
-                    const isDisabled = day && isPast;
+                    today.setHours(0, 0, 0, 0);
+                    
+                    const cellDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+                    const twoWeeksLater = new Date(today);
+                    twoWeeksLater.setDate(today.getDate() + 14);
+
+                    const dateIso = day ? `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}` : null;
+                    const hasAppointment = day && (appointments || []).some(a => {
+                      const aDate = typeof a.date === 'string' ? a.date.split('T')[0] : a.date;
+                      return aDate === dateIso && Number(a.doctor_id) === Number(doctorId) && a.status !== 'Cancelled';
+                    });
+
+                    const isPast = day && cellDate < today;
+                    const isTooFar = day && cellDate > twoWeeksLater;
+                    const isDisabled = day && (isPast || isTooFar || hasAppointment);
 
                     if (!day) return <div key={`empty-${index}`} />;
 
@@ -493,6 +517,12 @@ const DoctorProfile = () => {
                         }}
                       >
                         {day}
+                        {hasAppointment && (
+                          <div style={{
+                            position: 'absolute', bottom: '4px', width: 4, height: 4, 
+                            borderRadius: '50%', backgroundColor: isSelected ? 'white' : 'var(--primary)'
+                          }} />
+                        )}
                       </button>
                     );
                   })}
@@ -511,39 +541,69 @@ const DoctorProfile = () => {
                     gap: '0.75rem',
                   }}
                 >
-                  {timeSlots.map((time, index) => {
-                    const isSelected = selectedTime === time;
-                    // Mock unavailable slots
-                    const isUnavailable = index === 2 || index === 5;
+                  {fetchingSlots ? (
+                    <div style={{ gridColumn: 'span 3', textAlign: 'center', padding: '2rem', fontSize: '0.9rem', color: 'var(--primary)' }}>
+                      <div className="spinner" style={{ marginBottom: '0.5rem' }}></div>
+                      Checking availability...
+                    </div>
+                  ) : availabilityError ? (
+                    <div style={{ gridColumn: 'span 3', textAlign: 'center', padding: '1.5rem', fontSize: '0.85rem', color: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.05)', borderRadius: 12 }}>
+                      {availabilityError}. Please try again.
+                    </div>
+                  ) : selectedDate ? (
+                    Array.isArray(availabilityData?.allDaySlots) && availabilityData.allDaySlots.length > 0 ? (
+                      availabilityData.allDaySlots.map((slotTime) => {
+                        const isSelected = selectedTime === slotTime;
+                        const isBooked = !Array.isArray(availabilityData?.slots) || !availabilityData.slots.includes(slotTime);
 
-                    return (
-                      <button
-                        key={time}
-                        disabled={isUnavailable}
-                        onClick={() => !isUnavailable && handleTimeClick(time)}
-                        style={{
-                          padding: '0.6rem 0',
-                          borderRadius: 8,
-                          border: 'none',
-                          backgroundColor: isSelected
-                            ? 'var(--primary)'
-                            : isUnavailable
-                              ? '#f1f5f9' // light grey for disabled
-                              : '#e2e8f0', // darker grey for available
-                          color: isSelected
-                            ? 'var(--white)'
-                            : isUnavailable
-                              ? '#cbd5e1'
-                              : '#0f172a',
-                          fontSize: '0.8rem',
-                          fontWeight: 500,
-                          cursor: isUnavailable ? 'default' : 'pointer',
-                        }}
-                      >
-                        {time}
-                      </button>
-                    );
-                  })}
+                        return (
+                          <button
+                            key={slotTime}
+                            disabled={isBooked}
+                            onClick={() => !isBooked && handleTimeClick(slotTime)}
+                            style={{
+                              padding: '0.6rem 0',
+                              borderRadius: 8,
+                              border: 'none',
+                              backgroundColor: isSelected
+                                ? 'var(--primary)'
+                                : isBooked
+                                  ? '#f1f5f9'
+                                  : '#e2e8f0',
+                              color: isSelected
+                                ? 'var(--white)'
+                                : isBooked
+                                  ? '#cbd5e1'
+                                  : '#0f172a',
+                              fontSize: '0.8rem',
+                              fontWeight: 500,
+                              cursor: isBooked ? 'default' : 'pointer',
+                              transition: 'all 0.2s',
+                            }}
+                          >
+                            {slotTime}
+                          </button>
+                        );
+                      })
+                    ) : (
+                      <div style={{ gridColumn: 'span 3', textAlign: 'center', padding: '1.5rem', fontSize: '0.85rem', color: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.05)', borderRadius: 12 }}>
+                        {availabilityData?.message || 'No available time slots for this date.'}
+                        {selectedDate && (appointments || []).some(a => {
+                          const dateIso = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(selectedDate).padStart(2, '0')}`;
+                          const aDate = typeof a.date === 'string' ? a.date.split('T')[0] : a.date;
+                          return aDate === dateIso && Number(a.doctor_id) === Number(doctorId) && a.status !== 'Cancelled';
+                        }) && (
+                          <div style={{ marginTop: '0.5rem', fontWeight: 600 }}>
+                            You already have an appointment on this day with this doctor.
+                          </div>
+                        )}
+                      </div>
+                    )
+                  ) : (
+                    <div style={{ gridColumn: 'span 3', textAlign: 'center', padding: '2rem', fontSize: '0.9rem', color: '#94a3b8' }}>
+                      Please select a date from the calendar to see available slots
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

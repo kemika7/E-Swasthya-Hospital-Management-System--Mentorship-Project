@@ -4,7 +4,11 @@ const db = require('../config/db');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+<<<<<<< HEAD
 const { authenticateToken } = require('../middleware/auth');
+=======
+const { authenticateToken, authorizeRoles } = require('../middleware/auth');
+>>>>>>> b4ac04adbddce5dee8a218ad211b2b943b455188
 
 // ─── Multer: storage for uploaded reports ────────────────────────────────────
 const storage = multer.diskStorage({
@@ -36,6 +40,7 @@ const upload = multer({
   limits: { fileSize: 20 * 1024 * 1024 } // 20MB limit
 });
 
+<<<<<<< HEAD
 // ─── Local auth shim (for existing admin routes that use their own inline auth) ─
 const auth = (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -188,10 +193,17 @@ router.get('/my-patients', authenticateToken, async (req, res) => {
 // EXISTING ADMIN REPORT ROUTES (unchanged)
 // ════════════════════════════════════════════════════════════════════════════
 
+=======
+>>>>>>> b4ac04adbddce5dee8a218ad211b2b943b455188
 // 1. GET /api/reports/my-report - Get report status for logged-in patient
-router.get('/my-report', auth, async (req, res) => {
+router.get('/my-report', authenticateToken, async (req, res) => {
   try {
-    const [rows] = await db.execute('SELECT * FROM reports WHERE patient_id = ? ORDER BY uploaded_at DESC LIMIT 1', [req.user.id]);
+    const patientRoleId = req.user.roleId; // For patients, roleId is the patient_id
+    if (!patientRoleId) {
+        return res.status(400).json({ message: 'Patient ID missing in session.' });
+    }
+
+    const [rows] = await db.execute('SELECT * FROM reports WHERE patient_id = ? ORDER BY uploaded_at DESC LIMIT 1', [patientRoleId]);
     if (rows.length === 0) {
       return res.json({
         consultation_status: 'pending',
@@ -208,29 +220,33 @@ router.get('/my-report', auth, async (req, res) => {
     }
     res.json(rows[0]);
   } catch (error) {
-    console.error('Fetch my-report error:', error);
+    console.error('[REPORTS MY-REPORT ERROR]', error);
     res.status(500).json({ message: 'Server error fetching report status' });
   }
 });
 
 // 2. GET /api/reports - Get all reports (Admin)
-router.get('/', auth, isAdmin, async (req, res) => {
+router.get('/', authenticateToken, authorizeRoles('admin'), async (req, res) => {
   try {
+    const hospitalId = req.user.hospital_id;
     const [rows] = await db.execute(`
       SELECT r.*, p.name as patient_name 
       FROM reports r 
-      JOIN patients p ON r.patient_id = p.id
+      JOIN patients p ON r.patient_id = p.patient_id
+      LEFT JOIN appointments a ON r.patient_id = a.patient_id
+      LEFT JOIN doctors d ON a.doctor_id = d.id
+      WHERE d.hospital_id = ?
       ORDER BY r.uploaded_at DESC
-    `);
+    `, [hospitalId]);
     res.json(rows);
   } catch (error) {
-    console.error('Fetch all reports error:', error);
+    console.error('[REPORTS GET ALL ERROR]', error);
     res.status(500).json({ message: 'Server error fetching reports' });
   }
 });
 
 // 3. PUT /api/reports/:id - Update report status (Admin)
-router.put('/:id', auth, isAdmin, async (req, res) => {
+router.put('/:id', authenticateToken, authorizeRoles('admin'), async (req, res) => {
   const { 
     consultation_status, consultation_percent,
     record_updated_status, record_updated_percent,
@@ -249,32 +265,32 @@ router.put('/:id', auth, isAdmin, async (req, res) => {
         overall_progress = ?
       WHERE id = ?
     `, [
-      consultation_status, consultation_percent,
-      record_updated_status, record_updated_percent,
-      report_generated_status, report_generated_percent,
-      report_published_status, report_published_percent,
-      overall_progress, req.params.id
+      consultation_status || 'pending', consultation_percent || 0,
+      record_updated_status || 'pending', record_updated_percent || 0,
+      report_generated_status || 'pending', report_generated_percent || 0,
+      report_published_status || 'pending', report_published_percent || 0,
+      overall_progress || 0, req.params.id
     ]);
     res.json({ message: 'Report updated successfully' });
   } catch (error) {
-    console.error('Update report error:', error);
+    console.error('[REPORTS UPDATE ERROR]', error);
     res.status(500).json({ message: 'Server error updating report' });
   }
 });
 
 // 4. POST /api/reports/create/:patientId - Create new report entry (Admin)
-router.post('/create/:patientId', auth, isAdmin, async (req, res) => {
+router.post('/create/:patientId', authenticateToken, authorizeRoles('admin'), async (req, res) => {
     try {
         const [result] = await db.execute('INSERT INTO reports (patient_id) VALUES (?)', [req.params.patientId]);
         res.status(201).json({ message: 'Report entry created', id: result.insertId });
     } catch (err) {
-        console.error('Create report entry error:', err);
+        console.error('[REPORTS CREATE ERROR]', err);
         res.status(500).json({ message: 'Server error creating report entry' });
     }
 });
 
 // 5. POST /api/reports/upload/:id - Upload final report file (Admin)
-router.post('/upload/:id', auth, isAdmin, upload.single('report'), async (req, res) => {
+router.post('/upload/:id', authenticateToken, authorizeRoles('admin'), upload.single('report'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: 'No file uploaded' });
@@ -288,7 +304,7 @@ router.post('/upload/:id', auth, isAdmin, upload.single('report'), async (req, r
 
     res.json({ message: 'Report file uploaded successfully', filePath });
   } catch (error) {
-    console.error('Upload report error:', error);
+    console.error('[REPORTS UPLOAD ERROR]', error);
     res.status(500).json({ message: 'Server error uploading report' });
   }
 });

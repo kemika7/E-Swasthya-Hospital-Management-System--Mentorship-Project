@@ -43,29 +43,29 @@ router.post('/save', auth, async (req, res) => {
   const patient_id = req.user.roleId;
 
   try {
-    // Extract fields from nested frontend object if necessary, or assume flattened
-    // The implementation plan suggested refining Reports.jsx to send flat data
-    
     const {
-      age, gender, blood_group, height, weight, bmi,
+      date, age, gender, blood_group, height, weight, bmi,
       exercise, exercise_duration, smoking, alcohol, sleep_hours, water_intake,
       chronic_conditions, allergies, past_surgeries, medications,
       blood_pressure_systolic, blood_pressure_diastolic, heart_rate,
       glucose_level, cholesterol_hdl, cholesterol_ldl, spo2, temperature, notes
     } = data;
 
+    // Use provided date or default to today
+    const finalDate = date || new Date().toISOString().split('T')[0];
+
     const sql = `
       INSERT INTO patient_health_data (
-        patient_id, age, gender, blood_group, height, weight, bmi,
+        patient_id, date, age, gender, blood_group, height, weight, bmi,
         exercise, exercise_duration, smoking, alcohol, sleep_hours, water_intake,
         chronic_conditions, allergies, past_surgeries, medications,
         blood_pressure_systolic, blood_pressure_diastolic, heart_rate,
         glucose_level, cholesterol_hdl, cholesterol_ldl, spo2, temperature, notes
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const params = [
-      patient_id, age, gender, blood_group, height, weight, bmi,
+      patient_id, finalDate, age, gender, blood_group, height, weight, bmi,
       exercise ? 1 : 0, exercise_duration, smoking ? 1 : 0, alcohol ? 1 : 0, sleep_hours, water_intake,
       chronic_conditions, allergies, past_surgeries, medications,
       blood_pressure_systolic, blood_pressure_diastolic, heart_rate,

@@ -16,7 +16,8 @@ import {
   FiClock,
   FiShield,
   FiEye,
-  FiAlertCircle
+  FiAlertCircle,
+  FiFileText
 } from 'react-icons/fi';
 import { 
   Chart as ChartJS, 
@@ -55,6 +56,7 @@ const Reports = () => {
     medical: { conditions: '', allergies: '', surgeries: '', medications: '' },
     vitals: { systolic: '', diastolic: '', bpm: '', sugar: '', hdl: '', ldl: '', spo2: '', temperature: '' },
     notes: '',
+    date: new Date().toISOString().split('T')[0],
     history: []
   });
   const [loading, setLoading] = useState(true);
@@ -105,7 +107,8 @@ const Reports = () => {
             notes: latest.notes || '',
             // Map all database rows to the history trend
             history: sorted.map(row => ({
-              date: new Date(row.created_at).toLocaleDateString(),
+              id: row.id,
+              date: row.date ? new Date(row.date).toLocaleDateString() : new Date(row.created_at).toLocaleDateString(),
               weight: row.weight,
               bmi: row.bmi,
               bpm: row.heart_rate,
@@ -113,7 +116,8 @@ const Reports = () => {
               sugar: row.glucose_level,
               water: row.water_intake,
               sleep: row.sleep_hours,
-              exercise: row.exercise_duration
+              exercise: row.exercise_duration,
+              notes: row.notes
             }))
           });
         }
@@ -197,7 +201,8 @@ const Reports = () => {
         cholesterol_ldl: healthData.vitals.ldl,
         spo2: healthData.vitals.spo2,
         temperature: healthData.vitals.temperature,
-        notes: healthData.notes
+        notes: healthData.notes,
+        date: healthData.date
       };
 
       await apiFetch('/health/save', {
@@ -212,7 +217,8 @@ const Reports = () => {
         setHealthData(prev => ({
           ...prev,
           history: sorted.map(row => ({
-            date: new Date(row.created_at).toLocaleDateString(),
+            id: row.id,
+            date: row.date ? new Date(row.date).toLocaleDateString() : new Date(row.created_at).toLocaleDateString(),
             weight: row.weight,
             bmi: row.bmi,
             bpm: row.heart_rate,
@@ -220,7 +226,8 @@ const Reports = () => {
             sugar: row.glucose_level,
             water: row.water_intake,
             sleep: row.sleep_hours,
-            exercise: row.exercise_duration
+            exercise: row.exercise_duration,
+            notes: row.notes
           }))
         }));
       }
@@ -507,6 +514,44 @@ const Reports = () => {
                 ) : <EmptyState message="Historical trends will appear here once you've saved multiple updates." />}
             </div>
           </section>
+
+          {/* HISTORICAL RECORDS TABLE */}
+          <section className="card md:col-span-2 lg:col-span-3" style={{ overflow: 'hidden' }}>
+             <div className="card-header">
+                <h3 className="card-title">Recent Records</h3>
+                <FiFileText color="var(--primary)" />
+            </div>
+            <div style={{ overflowX: 'auto', marginTop: '1rem' }}>
+                {healthData.history.length > 0 ? (
+                    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
+                        <thead>
+                            <tr style={{ borderBottom: '2px solid var(--background)', textAlign: 'left' }}>
+                                <th style={{ padding: '1rem', color: 'var(--text-light)', fontSize: '0.85rem' }}>Date</th>
+                                <th style={{ padding: '1rem', color: 'var(--text-light)', fontSize: '0.85rem' }}>Weight</th>
+                                <th style={{ padding: '1rem', color: 'var(--text-light)', fontSize: '0.85rem' }}>BP</th>
+                                <th style={{ padding: '1rem', color: 'var(--text-light)', fontSize: '0.85rem' }}>Heart Rate</th>
+                                <th style={{ padding: '1rem', color: 'var(--text-light)', fontSize: '0.85rem' }}>Sugar</th>
+                                <th style={{ padding: '1rem', color: 'var(--text-light)', fontSize: '0.85rem' }}>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {healthData.history.map((record, idx) => (
+                                <tr key={idx} style={{ borderBottom: '1px solid var(--background)', transition: 'background 0.2s' }}>
+                                    <td style={{ padding: '1rem', fontWeight: 600 }}>{record.date}</td>
+                                    <td style={{ padding: '1rem' }}>{record.weight ? `${record.weight} kg` : '--'}</td>
+                                    <td style={{ padding: '1rem' }}>{record.bp !== '/' ? record.bp : '--'}</td>
+                                    <td style={{ padding: '1rem' }}>{record.bpm ? `${record.bpm} BPM` : '--'}</td>
+                                    <td style={{ padding: '1rem' }}>{record.sugar ? `${record.sugar} mg/dL` : '--'}</td>
+                                    <td style={{ padding: '1rem', fontSize: '0.85rem', color: 'var(--text-light)', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={record.notes}>
+                                        {record.notes || '--'}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                ) : <EmptyState message="No health records found." />}
+            </div>
+          </section>
         </div>
       ) : (
         /* HEALTH RECORD FORM */
@@ -576,6 +621,7 @@ const Reports = () => {
                     <FormTextArea label="Chronic Conditions" placeholder="List any existing conditions..." value={healthData.medical.conditions} onChange={v => handleInputChange('medical', 'conditions', v)} />
                     <FormTextArea label="Current Medications" placeholder="Dosage and frequency..." value={healthData.medical.medications} onChange={v => handleInputChange('medical', 'medications', v)} />
                     <FormInput label="Allergies" placeholder="Food, drug, environment..." value={healthData.medical.allergies} onChange={v => handleInputChange('medical', 'allergies', v)} />
+                    <FormInput label="Recording Date" type="date" value={healthData.date} onChange={v => setHealthData(prev => ({ ...prev, date: v }))} />
                 </div>
             </CardSection>
           </div>

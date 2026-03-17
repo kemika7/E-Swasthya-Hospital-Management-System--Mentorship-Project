@@ -1,11 +1,11 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { FiChevronLeft, FiChevronRight, FiCalendar, FiClock, FiUser } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
-import { useAdmin } from '../../context/AdminContext';
-import { FiChevronLeft, FiChevronRight, FiCalendar, FiClock } from 'react-icons/fi';
+import { useAppointment } from '../../context/AppointmentContext';
 
 const DoctorCalendarPage = () => {
   const { userProfile } = useAuth();
-  const { appointments } = useAdmin();
+  const { appointments } = useAppointment();
   const doctorName = userProfile?.name || 'Doctor';
 
   const today = new Date();
@@ -71,14 +71,58 @@ const DoctorCalendarPage = () => {
     return `${y}-${m}-${d}`;
   }, [selectedDate]);
 
-  const myAppointmentsForDay = useMemo(() => {
-    return (appointments || []).filter((a) => {
-      // a.date might be a string like "2026-03-14" or an ISO string. 
-      // With dateStrings: true, it will be EXACTLY "2026-03-14".
-      const appointmentDateStr = typeof a.date === 'string' ? a.date.split('T')[0] : a.date;
-      return a.doctorName === doctorName && appointmentDateStr === selectedDateIso;
+  const myAppointmentsByDate = useMemo(() => {
+    const map = {};
+    (appointments || []).forEach(a => {
+      const d = typeof a.date === 'string' ? a.date.split('T')[0] : a.date;
+      if (!map[d]) map[d] = [];
+      map[d].push(a);
     });
-  }, [appointments, doctorName, selectedDateIso]);
+    return map;
+  }, [appointments]);
+
+  const formatTime = (timeStr) => {
+    if (!timeStr) return '';
+    try {
+      const [hours, minutes] = timeStr.split(':');
+      let h = parseInt(hours, 10);
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      h = h % 12 || 12;
+      return `${h}:${minutes} ${ampm}`;
+    } catch (e) {
+      return timeStr;
+    }
+  };
+
+  const getTimeRange = (timeStr, duration = 30) => {
+    if (!timeStr) return '';
+    try {
+      const [hours, minutes] = timeStr.split(':');
+      let h = parseInt(hours, 10);
+      let m = parseInt(minutes, 10);
+      
+      const startDate = new Date();
+      startDate.setHours(h, m, 0);
+      
+      const endDate = new Date(startDate.getTime() + (duration * 60000));
+      
+      const startTimeRefined = formatTime(timeStr);
+      const endHours = endDate.getHours();
+      const endMinutes = String(endDate.getMinutes()).padStart(2, '0');
+      const endTimeStr = `${String(endHours).padStart(2, '0')}:${endMinutes}`;
+      const endTimeRefined = formatTime(endTimeStr);
+      
+      return `${startTimeRefined} - ${endTimeRefined}`;
+    } catch (e) {
+      return formatTime(timeStr);
+    }
+  };
+
+  const myAppointmentsForDay = useMemo(() => {
+    return (myAppointmentsByDate[selectedDateIso] || [])
+      .filter(a => a.status !== 'Cancelled')
+      .sort((a, b) => a.start_time.localeCompare(b.start_time));
+  }, [myAppointmentsByDate, selectedDateIso]);
 
   return (
     <div className="layout-main">
@@ -145,14 +189,28 @@ const DoctorCalendarPage = () => {
                     fontWeight: isToday ? 700 : 500,
                     cursor: 'pointer',
                     display: 'flex',
+                    flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
                     boxShadow: isSelected ? 'var(--shadow-soft)' : 'none',
                     transition: 'all 0.15s ease',
+                    position: 'relative'
                   }}
                   title={cell.toLocaleDateString()}
                 >
-                  {cell.getDate()}
+                  <span style={{ fontSize: '1rem' }}>{cell.getDate()}</span>
+                  {myAppointmentsByDate[cell.toISOString().split('T')[0]]?.filter(a => a.status !== 'Cancelled').length > 0 && !isSelected && (
+                    <div style={{
+                      position: 'absolute', top: '4px', right: '4px',
+                      backgroundColor: 'var(--primary)', color: 'white',
+                      fontSize: '0.6rem', fontWeight: 700,
+                      width: '14px', height: '14px', borderRadius: '50%',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      border: '1px solid white'
+                    }}>
+                      {myAppointmentsByDate[cell.toISOString().split('T')[0]].filter(a => a.status !== 'Cancelled').length}
+                    </div>
+                  )}
                 </button>
               );
             })}
@@ -204,11 +262,16 @@ const DoctorCalendarPage = () => {
                     </div>
                     <div>
                       <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>
-                        Appointment with {a.patientName}
+                        {a.patientName}
                       </div>
                       <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                        {a.time} • {a.type} • {a.status}
+                        {getTimeRange(a.time, a.duration)} • {a.type}
                       </div>
+                      {a.notes && (
+                        <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '4px', fontStyle: 'italic' }}>
+                          "{a.notes}"
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div>

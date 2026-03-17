@@ -6,7 +6,7 @@ const { authenticateToken } = require('../middleware/auth');
 // Get all announcements
 router.get('/', authenticateToken, async (req, res) => {
     try {
-        const hospitalId = req.user.hospital_id;
+        const hospitalId = req.user.hospital_id || 0;
         const [announcements] = await db.execute(
             'SELECT * FROM announcements WHERE hospital_id = ? OR hospital_id IS NULL ORDER BY date DESC, created_at DESC',
             [hospitalId]

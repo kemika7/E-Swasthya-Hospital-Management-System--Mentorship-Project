@@ -8,14 +8,14 @@ router.post('/', authenticateToken, async (req, res) => {
     try {
         if (req.user.role !== 'doctor') return res.status(403).json({ message: 'Access denied' });
 
-        const { title, date } = req.body;
+        const { title, description, date } = req.body;
         if (!title || !date) {
             return res.status(400).json({ message: 'Title and date are required' });
         }
 
         const [result] = await db.execute(
-            'INSERT INTO doctor_plans (doctor_id, title, date, status) VALUES (?, ?, ?, ?)',
-            [req.user.roleId, title, date, 'Pending']
+            'INSERT INTO doctor_plans (doctor_id, title, description, date, status) VALUES (?, ?, ?, ?, ?)',
+            [req.user.roleId, title, description || null, date, 'Pending']
         );
 
         res.status(201).json({ message: 'Plan created successfully', id: result.insertId, title, date, status: 'Pending' });

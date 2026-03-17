@@ -84,7 +84,7 @@ router.post('/register', async (req, res) => {
         const token = jwt.sign(
             { id: null, roleId: patientId, name, role: 'patient' },
             process.env.JWT_SECRET || 'your_jwt_secret_key',
-            { expiresIn: '24h' }
+            { expiresIn: '1h' }
         );
 
         res.status(201).json({
@@ -99,105 +99,6 @@ router.post('/register', async (req, res) => {
 });
 
 
-// Register Doctor
-router.post('/register-doctor', async (req, res) => {
-    let { name, email, password, phone, address, regNumber, specialization, hospital, hospitalId } = req.body;
-
-    if (!validateFullName(name)) return res.status(400).json({ message: 'Please provide your full name (first and last name).' });
-    name = formatName(name);
-
-    if (!validateEmail(email)) return res.status(400).json({ message: 'Invalid email format' });
-    if (!validatePassword(password)) return res.status(400).json({ message: 'Password must be at least 8 chars, with 1 upper, 1 lower, 1 number, and 1 special char.' });
-    if (password.toLowerCase() === email.toLowerCase() || password.toLowerCase() === name.toLowerCase()) {
-        return res.status(400).json({ message: 'Password cannot be the same as email or name.' });
-    }
-    if (phone && !validatePhone(phone)) return res.status(400).json({ message: 'Phone number must be exactly 10 digits.' });
-
-
-    const connection = await db.getConnection();
-    await connection.beginTransaction();
-
-    try {
-        // Check if account already exists with this email or phone
-        const [existingEmailInUsers] = await connection.execute('SELECT * FROM users WHERE email = ?', [email]);
-        const [existingEmailInPatients] = await connection.execute('SELECT * FROM patients WHERE email = ?', [email]);
-
-        if (existingEmailInUsers.length > 0 || existingEmailInPatients.length > 0) {
-            return res.status(400).json({ message: 'An account with this email already exists.' });
-        }
-
-        if (phone) {
-            const [existingPhoneInUsers] = await connection.execute('SELECT * FROM users WHERE phone = ?', [phone]);
-            const [existingPhoneInPatients] = await connection.execute('SELECT * FROM patients WHERE phone = ?', [phone]);
-            if (existingPhoneInUsers.length > 0 || existingPhoneInPatients.length > 0) {
-                return res.status(400).json({ message: 'An account with this phone number already exists.' });
-            }
-        }
-
-        // Find specialty
-        const [specialties] = await connection.execute('SELECT id FROM specialties WHERE name = ?', [specialization]);
-        let specialty_id = specialties.length > 0 ? specialties[0].id : null;
-
-        // Hash password
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
-
-        // Insert into users (now including hospital_id)
-        const [userResult] = await connection.execute(
-            'INSERT INTO users (name, email, phone, password, role, is_verified, hospital_id) VALUES (?, ?, ?, ?, ?, FALSE, ?)',
-            [name, email, phone || '', hashedPassword, 'doctor', hospitalId || null]
-        );
-        const userId = userResult.insertId;
-
-        // Insert into doctors
-        const [doctorResult] = await connection.execute(`
-            INSERT INTO doctors (user_id, specialty_id, specialization, hospital, location, hospital_id) 
-            VALUES (?, ?, ?, ?, ?, ?)
-        `, [userId, specialty_id, specialization, hospital, address, hospitalId || null]);
-        const doctorId = doctorResult.insertId;
-
-        // Skip OTP - mark as verified immediately and auto-login
-        await connection.execute('UPDATE users SET is_verified = TRUE WHERE id = ?', [userId]);
-
-        await connection.commit();
-
-        // Auto-login: issue JWT token so doctor goes straight to dashboard
-        const token = jwt.sign(
-            { id: userId, roleId: doctorId, name, role: 'doctor', hospital_id: hospitalId, hospital_name: hospital },
-            process.env.JWT_SECRET || 'your_jwt_secret_key',
-            { expiresIn: '24h' }
-        );
-
-        res.status(201).json({
-            message: 'Registration successful! Welcome to E-Swasthya.',
-            token,
-            user: { id: userId, roleId: doctorId, name, email, role: 'doctor', hospital_id: hospitalId, hospital_name: hospital }
-        });
-
-    } catch (err) {
-        await connection.rollback();
-
-        // If we created a user but the doctor insertion failed, clean up the orphaned user
-        if (err.code === 'ER_DUP_ENTRY' || err.message.includes('Duplicate')) {
-            try {
-                await connection.execute('DELETE FROM users WHERE email = ? AND role = ?', [email, 'doctor']);
-            } catch (cleanupErr) {
-                console.error('Cleanup error:', cleanupErr);
-            }
-        }
-
-        console.error('[DOCTOR REGISTRATION ERROR]', err.message, err.code || '', err.sqlMessage || '');
-
-        // Provide more specific error messages
-        if (err.code === 'ER_DUP_ENTRY') {
-            return res.status(400).json({ message: 'An account with this email already exists. Please use a different email.' });
-        }
-
-        res.status(500).json({ message: 'Server error during registration. Please try again.' });
-    } finally {
-        connection.release();
-    }
-});
 
 // Login User
 router.post('/login', async (req, res) => {
@@ -280,7 +181,7 @@ router.post('/login', async (req, res) => {
                 hospital_name: user.hospital_name
             },
             process.env.JWT_SECRET || 'your_jwt_secret_key',
-            { expiresIn: '24h' }
+            { expiresIn: '1h' }
         );
 
         res.json({
@@ -336,7 +237,7 @@ router.post('/google-login', async (req, res) => {
         const token = jwt.sign(
             { id: null, roleId, name: patient.name, role: 'patient' },
             process.env.JWT_SECRET || 'your_jwt_secret_key',
-            { expiresIn: '24h' }
+            { expiresIn: '1h' }
         );
 
         res.json({
@@ -401,7 +302,7 @@ router.post('/verify-otp', async (req, res) => {
                 const token = jwt.sign(
                     { id: user.role === 'patient' ? null : user.id, roleId, name: user.name, role: user.role },
                     process.env.JWT_SECRET || 'your_jwt_secret_key',
-                    { expiresIn: '24h' }
+                    { expiresIn: '1h' }
                 );
 
                 // Clear OTP
@@ -427,79 +328,99 @@ router.post('/verify-otp', async (req, res) => {
     }
 });
 
-// Forgot Password -> Request OTP
+
+// Resend registration OTP
+router.post('/resend-otp', async (req, res) => {
+    const { email, type = 'registration' } = req.body;
+    try {
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+        const [existing] = await db.execute('SELECT * FROM otps WHERE email = ? AND type = ?', [email, type]);
+        if (existing.length > 0) {
+            await db.execute('UPDATE otps SET otp = ?, expires_at = ? WHERE email = ? AND type = ?', [otp, expiresAt, email, type]);
+        } else {
+            await db.execute('INSERT INTO otps (email, otp, expires_at, type) VALUES (?, ?, ?, ?)', [email, otp, expiresAt, type]);
+        }
+
+        const { sendOTPEmail } = require('../utils/mailer');
+        await sendOTPEmail(email, otp);
+
+        res.json({ message: 'OTP resent successfully.' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server error during OTP resend' });
+    }
+});
+
+// Forgot Password -> Send Reset Link (JWT)
 router.post('/forgot-password', async (req, res) => {
     const { email } = req.body;
     try {
+        // Generic response as requested: "If your email exists, a reset link has been sent."
+        const genericResponse = { message: 'If your email exists, a reset link has been sent.' };
+
         // Check if user exists
         const [patients] = await db.execute('SELECT * FROM patients WHERE email = ?', [email]);
         const [users] = await db.execute('SELECT * FROM users WHERE email = ?', [email]);
 
         if (patients.length === 0 && users.length === 0) {
-            return res.status(404).json({ message: 'No account found with that email address.' });
+            // Even if user doesn't exist, we send generic response for security
+            return res.json(genericResponse);
         }
 
-        // Generate and send OTP
-        const otp = generateOTP();
-        const expiresAt = new Date(Date.now() + 10 * 60000); // 10 minutes
-        await db.execute('INSERT INTO otps (email, otp, type, expires_at) VALUES (?, ?, ?, ?)', [email, otp, 'reset', expiresAt]);
-        await sendOTP(email, otp, 'reset-password');
+        // Generate short-lived reset token (15 minutes)
+        const resetToken = jwt.sign(
+            { email, purpose: 'password-reset' },
+            process.env.JWT_SECRET || 'your_jwt_secret_key',
+            { expiresIn: '15m' }
+        );
 
-        res.json({ message: 'Password reset OTP sent to email.', email });
+        const { sendResetLink } = require('../utils/mailer');
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        const resetLink = `${frontendUrl}/reset-password?token=${resetToken}`;
+        
+        await sendResetLink(email, resetLink);
+
+        res.json(genericResponse);
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: 'Server error during password reset request' });
     }
 });
 
-// Resend password reset or register OTP
-router.post('/resend-otp', async (req, res) => {
-    const { email, type = 'registration' } = req.body;
-    try {
-        const otp = generateOTP();
-        const expiresAt = new Date(Date.now() + 10 * 60000); // 10 minutes
-
-        // Remove existing active OTPs for this user/type to avoid spam
-        await db.execute('DELETE FROM otps WHERE email = ? AND type = ?', [email, type]);
-
-        await db.execute('INSERT INTO otps (email, otp, type, expires_at) VALUES (?, ?, ?, ?)', [email, otp, type, expiresAt]);
-        await sendOTP(email, otp, type === 'registration' ? 'registration' : 'reset-password');
-
-        res.json({ message: 'New OTP sent successfully.' });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: 'Error resending OTP.' });
-    }
-});
-
-// Reset Password
+// Reset Password (JWT)
 router.post('/reset-password', async (req, res) => {
-    const { email, otp, newPassword } = req.body;
+    const { token, newPassword } = req.body;
 
     try {
+        if (!token) return res.status(400).json({ message: 'Reset token is required.' });
         if (!validatePassword(newPassword)) return res.status(400).json({ message: 'Password must be at least 8 chars, with 1 upper, 1 lower, 1 number, and 1 special char.' });
 
-        const [otps] = await db.execute('SELECT * FROM otps WHERE email = ? AND otp = ? AND type = ? ORDER BY created_at DESC LIMIT 1', [email, otp, 'reset']);
-
-        if (otps.length === 0) {
-            return res.status(400).json({ message: 'Invalid or expired OTP.' });
+        // Verify JWT
+        let decoded;
+        try {
+            decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
+        } catch (jwtErr) {
+            return res.status(400).json({ message: 'Token is invalid or has expired.' });
         }
 
-        const otpRecord = otps[0];
-        if (new Date() > new Date(otpRecord.expires_at)) {
-            return res.status(400).json({ message: 'OTP has expired.' });
+        if (decoded.purpose !== 'password-reset') {
+            return res.status(400).json({ message: 'Invalid token purpose.' });
         }
+
+        const email = decoded.email;
 
         // Hash new password
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(newPassword, salt);
 
-        // Update in both potential tables (only exists in one, but safe to update)
+        // Update in both potential tables
         await db.execute('UPDATE users SET password = ? WHERE email = ?', [hashedPassword, email]);
         await db.execute('UPDATE patients SET password = ? WHERE email = ?', [hashedPassword, email]);
 
-        // Clean up OTPs
-        await db.execute('DELETE FROM otps WHERE email = ? AND type = ?', [email, 'reset']);
+        // In production, you'd invalidate the token by adding to a blacklist or using a 'jti' 
+        // with a database check, but standard short-lived JWTs are often used this way.
 
         res.json({ message: 'Password reset successfully. You can now log in.' });
 

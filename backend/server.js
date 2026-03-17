@@ -273,6 +273,9 @@ async function ensurePatientReportsSchema() {
         patient_id INT NOT NULL,
         file_name VARCHAR(255) NOT NULL,
         file_path VARCHAR(512) NOT NULL,
+        gpt_analysis LONGTEXT NULL,
+        extracted_data LONGTEXT NULL,
+        chart_data LONGTEXT NULL,
         uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (patient_id) REFERENCES patients(patient_id) ON DELETE CASCADE
       )

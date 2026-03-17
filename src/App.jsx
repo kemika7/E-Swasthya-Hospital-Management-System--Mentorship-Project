@@ -11,7 +11,8 @@ const Onboarding = lazy(() => import('./pages/Onboarding'));
 const Login = lazy(() => import('./pages/Login'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const CreateAccountPatient = lazy(() => import('./pages/CreateAccountPatient'));
-const DoctorRegister = lazy(() => import('./pages/DoctorRegister'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 const PatientDashboard = lazy(() => import('./pages/patient/PatientDashboard'));
@@ -106,6 +107,7 @@ const AppShell = () => {
     location.pathname === '/' ||
     location.pathname === '/login' ||
     location.pathname === '/forgot-password' ||
+    location.pathname === '/reset-password' ||
     location.pathname.startsWith('/create-account') ||
     location.pathname.startsWith('/register/');
 
@@ -160,6 +162,14 @@ const AppShell = () => {
             }
           />
           <Route
+            path="/reset-password"
+            element={
+              <Suspense fallback={<div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text)' }}>Loading reset page...</div>}>
+                <ResetPassword />
+              </Suspense>
+            }
+          />
+          <Route
             path="/create-account/patient"
             element={
               isAuthenticated && userRole && userRole !== 'null' ? (
@@ -170,10 +180,6 @@ const AppShell = () => {
                 </main>
               )
             }
-          />
-          <Route
-            path="/register/doctor"
-            element={<Navigate to="/login" replace />}
           />
 
           {/* Patient Portal */}

@@ -102,12 +102,7 @@ export const DoctorSidebar = () => {
             <span>Home</span>
           </NavLink>
         </li>
-        <li>
-          <NavLink to="/doctor/analytics" className={doctorLinkStyle}>
-            <FiBarChart2 size={22} />
-            <span>Analytics</span>
-          </NavLink>
-        </li>
+
         <li>
           <NavLink to="/doctor/calendar" className={doctorLinkStyle}>
             <FiCalendar size={22} />
@@ -123,7 +118,7 @@ export const DoctorSidebar = () => {
         <li>
           <NavLink to="/doctor/report" className={doctorLinkStyle}>
             <FiFileText size={22} />
-            <span>Patient Reports</span>
+            <span>Patient Reports & Analytics</span>
           </NavLink>
         </li>
       </ul>

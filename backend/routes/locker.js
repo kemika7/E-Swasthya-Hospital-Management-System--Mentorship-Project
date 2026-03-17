@@ -40,8 +40,8 @@ const extractPatientId = (req, res, next) => {
   try {
     const jwt = require('jsonwebtoken');
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
-    if (decoded.role !== 'patient') {
-      return res.status(403).json({ message: 'Forbidden: Patients only' });
+    if (decoded.role !== 'patient' && decoded.role !== 'admin') {
+      return res.status(403).json({ message: 'Forbidden: Patients or Admin only' });
     }
     // For patients, roleId contains the patient_id from patients table
     req.patientId = decoded.roleId;

@@ -6,7 +6,7 @@ const { authenticateToken } = require('../middleware/auth');
 // Create a new doctor plan
 router.post('/', authenticateToken, async (req, res) => {
     try {
-        if (req.user.role !== 'doctor') return res.status(403).json({ message: 'Access denied' });
+        if (req.user.role !== 'doctor' && req.user.role !== 'admin') return res.status(403).json({ message: 'Access denied' });
 
         const { title, description, date } = req.body;
         if (!title || !date) {
@@ -28,7 +28,7 @@ router.post('/', authenticateToken, async (req, res) => {
 // Update plan status
 router.put('/:id', authenticateToken, async (req, res) => {
     try {
-        if (req.user.role !== 'doctor') return res.status(403).json({ message: 'Access denied' });
+        if (req.user.role !== 'doctor' && req.user.role !== 'admin') return res.status(403).json({ message: 'Access denied' });
 
         const { status } = req.body;
         const validStatuses = ['Pending', 'Completed'];
@@ -40,7 +40,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
         // Verify ownership
         const [rows] = await db.execute('SELECT doctor_id FROM doctor_plans WHERE id = ?', [req.params.id]);
         if (rows.length === 0) return res.status(404).json({ message: 'Plan not found' });
-        if (Number(rows[0].doctor_id) !== Number(req.user.roleId)) {
+        if (req.user.role !== 'admin' && Number(rows[0].doctor_id) !== Number(req.user.roleId)) {
             return res.status(403).json({ message: 'Access denied to this plan' });
         }
 
@@ -55,12 +55,12 @@ router.put('/:id', authenticateToken, async (req, res) => {
 // Delete a plan
 router.delete('/:id', authenticateToken, async (req, res) => {
     try {
-        if (req.user.role !== 'doctor') return res.status(403).json({ message: 'Access denied' });
+        if (req.user.role !== 'doctor' && req.user.role !== 'admin') return res.status(403).json({ message: 'Access denied' });
 
         // Verify ownership
         const [rows] = await db.execute('SELECT doctor_id FROM doctor_plans WHERE id = ?', [req.params.id]);
         if (rows.length === 0) return res.status(404).json({ message: 'Plan not found' });
-        if (Number(rows[0].doctor_id) !== Number(req.user.roleId)) {
+        if (req.user.role !== 'admin' && Number(rows[0].doctor_id) !== Number(req.user.roleId)) {
             return res.status(403).json({ message: 'Access denied to this plan' });
         }
 

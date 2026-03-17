@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { FiArrowLeft, FiStar, FiClock, FiFilter, FiMapPin } from 'react-icons/fi';
+import { FiArrowLeft, FiStar, FiClock, FiFilter, FiMapPin, FiRefreshCw } from 'react-icons/fi';
 import { apiFetch } from '../../services/apiClient';
+import { useHospital } from '../../context/HospitalContext';
 
 const DoctorListing = () => {
+  const { selectedHospital, clearHospital } = useHospital();
+
   const { categoryId, hospitalId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -20,6 +23,13 @@ const DoctorListing = () => {
   const [hospitalName, setHospitalName] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Redirect if no hospital is selected and we are in patient mode
+  useEffect(() => {
+    if (!selectedHospital && !isHospitalMode) {
+      navigate('/patient/select-hospital');
+    }
+  }, [selectedHospital, isHospitalMode, navigate]);
 
   // Fetch category data (original mode)
   useEffect(() => {
@@ -173,6 +183,7 @@ const DoctorListing = () => {
         </div>
 
         <button
+          onClick={() => { clearHospital(); navigate('/patient/select-hospital'); }}
           style={{
             width: 40,
             height: 40,
@@ -184,8 +195,9 @@ const DoctorListing = () => {
             justifyContent: 'center',
             cursor: 'pointer',
           }}
+          title="Change Hospital"
         >
-          <FiFilter size={18} style={{ color: 'var(--white)' }} />
+          <FiRefreshCw size={18} style={{ color: 'var(--white)' }} />
         </button>
       </div>
 

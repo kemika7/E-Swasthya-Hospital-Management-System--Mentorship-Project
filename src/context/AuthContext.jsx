@@ -13,6 +13,9 @@ export const AuthProvider = ({ children }) => {
   const [userProfile, setUserProfile] = useState(JSON.parse(localStorage.getItem('userProfile')));
 
   const login = (userData) => {
+    // Clear any previous hospital data when a new user logs in
+    clearHospital();
+
     const { token, user } = userData;
     localStorage.setItem('token', token);
     localStorage.setItem('userRole', user.role);
@@ -31,7 +34,10 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     localStorage.removeItem('userRole');
     localStorage.removeItem('userProfile');
-    // Removed clearHospital() to remember hospital selection across patient logins
+    
+    // Clear hospital selection on logout to ensure fresh state for next user
+    clearHospital();
+
     setIsAuthenticated(false);
     setUserRole(null);
     setUserProfile(null);

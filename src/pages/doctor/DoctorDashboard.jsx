@@ -10,7 +10,7 @@ import {
     Tooltip,
 } from 'chart.js';
 import React, { useEffect, useRef, useState } from 'react';
-import { FiActivity, FiBarChart2, FiEdit2, FiPlus, FiTrash2, FiX, FiAlertTriangle, FiUser } from 'react-icons/fi';
+import { FiActivity, FiBarChart2, FiEdit2, FiPlus, FiTrash2, FiX, FiAlertTriangle, FiUser, FiMapPin, FiClock } from 'react-icons/fi';
 import { MdLocalHospital } from 'react-icons/md';
 import ErrorDisplay from '../../components/ErrorDisplay';
 import { Link } from 'react-router-dom';
@@ -724,73 +724,133 @@ const DoctorDashboard = () => {
         </div>
 
         {/* MY PROFILE */}
+        {/* MY PROFILE */}
         <div
           style={{
             backgroundColor: 'var(--white)',
             borderRadius: 16,
-            padding: '1.25rem',
+            padding: '1.5rem',
             boxShadow: 'var(--shadow-soft)',
+            display: 'flex',
+            flexDirection: 'column',
           }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h2 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text)', margin: 0 }}>
-              My Profile
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+            <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <FiUser style={{ color: 'var(--primary)' }} /> My Profile
             </h2>
             <button 
               type="button" 
               onClick={() => setIsEditingProfile(true)}
-              style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: 4 }}
+              style={{ border: 'none', background: 'rgba(82, 178, 191, 0.1)', color: 'var(--primary)', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
+              title="Edit Profile"
             >
-              <FiEdit2 size={18} style={{ color: 'var(--primary)' }} />
+              <FiEdit2 size={16} />
             </button>
           </div>
-          <div style={{ fontSize: '0.9rem' }}>
-            <div style={{ fontWeight: 600, color: 'var(--text)', marginBottom: '0.25rem' }}>Dr. {fullProfile?.name || doctorFullName || 'Doctor'}</div>
-            <div style={{ color: 'var(--text)', opacity: 0.8, marginBottom: '0.5rem' }}>{fullProfile?.specialization || 'Healthcare Provider'}</div>
-            <div style={{ color: 'var(--text)', opacity: 0.8, marginBottom: '1rem' }}>{fullProfile?.location || 'Location Not Set'}</div>
 
-            <div style={{ display: 'grid', gap: '0.35rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(23,23,16,0.1)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ opacity: 0.8 }}>Date of Birth</span>
-                <span>{fullProfile?.dob ? new Date(fullProfile.dob).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Jan 15, 1985'}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ opacity: 0.8 }}>Blood Group</span>
-                <span>{fullProfile?.blood_group || 'O+'}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ opacity: 0.8 }}>Working Hours</span>
-                <span>{fullProfile?.working_hours || '9 AM - 5 PM'}</span>
+          <div style={{ display: 'flex', gap: '1.25rem', marginBottom: '1.5rem' }}>
+             <div style={{
+               width: 70, height: 70, borderRadius: '50%', backgroundColor: 'rgba(82, 178, 191, 0.2)',
+               display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', fontWeight: 700, fontSize: '1.5rem'
+             }}>
+               {(fullProfile?.name || doctorFullName || 'D').charAt(0)}
+             </div>
+             <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text)', marginBottom: '0.2rem' }}>
+                  Dr. {fullProfile?.name || doctorFullName}
+                </div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 600, marginBottom: '0.4rem' }}>
+                  {fullProfile?.specialization || 'General Health'}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', color: '#64748b' }}>
+                  <FiMapPin size={12} /> {fullProfile?.location || 'Kathmandu, Nepal'}
+                </div>
+             </div>
+          </div>
+
+          <div style={{ 
+            display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', padding: '1rem', 
+            backgroundColor: '#f8fafc', borderRadius: 12, marginBottom: '1.5rem' 
+          }}>
+            <div>
+              <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.2rem' }}>D.O.B</div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)' }}>
+                {fullProfile?.dob ? new Date(fullProfile.dob).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Jan 15, 1985'}
               </div>
             </div>
-            <button 
-              onClick={() => setIsRequestModalOpen(true)}
-              style={{ 
-                marginTop: '1.25rem', width: '100%', padding: '0.6rem', borderRadius: 8, 
-                backgroundColor: 'rgba(82,178,191,0.1)', color: 'var(--primary)', border: '1px solid var(--primary)',
-                fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer'
-              }}
-            >
-              Request Leave / Schedule Change
-            </button>
-            <div style={{ marginTop: '1rem' }}>
-              <h3 style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Your Recent Requests</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                {Array.isArray(myRequests) && myRequests.length > 0 ? myRequests.slice(0, 3).map(r => (
-                  <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', padding: '0.4rem', backgroundColor: '#f8fafc', borderRadius: 6 }}>
-                    <span style={{ fontWeight: 500 }}>{r.type || 'Request'}</span>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                      <span style={{ 
-                        color: r.status === 'Approved' ? '#10b981' : r.status === 'Rejected' ? '#ef4444' : '#f59e0b',
-                        fontWeight: 600
-                      }}>{r.status || 'Pending'}</span>
-                      {r.admin_note && <span style={{ fontSize: '0.65rem', color: '#64748b', maxWidth: '150px', textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis' }}>Note: {r.admin_note}</span>}
-                    </div>
-                  </div>
-                )) : (
-                  <div style={{ fontSize: '0.75rem', color: '#94a3b8', textAlign: 'center' }}>No requests yet</div>
-                )}
+            <div>
+              <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.2rem' }}>Blood Group</div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)' }}>
+                {fullProfile?.blood_group || 'O+'}
               </div>
+            </div>
+            <div style={{ gridColumn: 'span 2' }}>
+              <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.2rem' }}>Working Hours</div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <FiClock size={12} /> {fullProfile?.working_hours || '09:00 AM - 05:00 PM'}
+              </div>
+            </div>
+          </div>
+
+          <button 
+            onClick={() => setIsRequestModalOpen(true)}
+            style={{ 
+              width: '100%', padding: '0.8rem', borderRadius: 12, 
+              backgroundColor: 'var(--primary)', color: 'white', border: 'none',
+              fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+              boxShadow: '0 4px 12px rgba(82, 178, 191, 0.2)'
+            }}
+          >
+            <FiPlus size={18} /> Request Leave / Change
+          </button>
+
+          <div style={{ marginTop: '1.5rem', flex: 1 }}>
+            <h3 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', marginBottom: '0.75rem' }}>Recent Requests</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', maxHeight: '250px', overflowY: 'auto', paddingRight: '4px' }}>
+              {Array.isArray(myRequests) && myRequests.length > 0 ? myRequests.map(r => {
+                const data = typeof r.request_data === 'string' ? JSON.parse(r.request_data) : r.request_data;
+                const formattedDates = r.type === 'Leave' 
+                  ? `${new Date(data.startDate).toLocaleDateString()} - ${new Date(data.endDate).toLocaleDateString()}`
+                  : `${new Date(data.targetDate).toLocaleDateString()}`;
+                
+                return (
+                  <div key={r.id} style={{ 
+                    padding: '0.85rem', backgroundColor: '#f8fafc', 
+                    borderRadius: 12, border: '1px solid #e2e8f0',
+                    display: 'flex', flexDirection: 'column', gap: '0.4rem'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <div style={{ fontWeight: 700, color: 'var(--text)', fontSize: '0.85rem' }}>{r.type === 'Leave' ? '🌴 Leave' : '📅 Schedule'}</div>
+                        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--primary)', marginTop: '2px' }}>
+                          {formattedDates}
+                        </div>
+                      </div>
+                      <div style={{ 
+                        fontSize: '0.65rem', padding: '0.2rem 0.5rem', borderRadius: 6, fontWeight: 700,
+                        backgroundColor: r.status === 'Approved' ? '#dcfce7' : r.status === 'Rejected' ? '#fee2e2' : '#fef3c7',
+                        color: r.status === 'Approved' ? '#15803d' : r.status === 'Rejected' ? '#b91c1c' : '#b45309'
+                      }}>
+                        {r.status}
+                      </div>
+                    </div>
+                    {data.reason && (
+                      <div style={{ fontSize: '0.7rem', color: '#64748b', fontStyle: 'italic', borderTop: '1px dashed #e2e8f0', paddingTop: '0.4rem' }}>
+                        "{data.reason}"
+                      </div>
+                    )}
+                    {r.admin_note && (
+                      <div style={{ fontSize: '0.7rem', color: '#b45309', backgroundColor: '#fffbeb', padding: '0.4rem', borderRadius: 6, marginTop: '2px' }}>
+                        <strong>Note:</strong> {r.admin_note}
+                      </div>
+                    )}
+                  </div>
+                );
+              }) : (
+                <div style={{ fontSize: '0.8rem', color: '#94a3b8', textAlign: 'center', padding: '1rem' }}>No requests submitted yet.</div>
+              )}
             </div>
           </div>
         </div>
@@ -988,75 +1048,276 @@ const DoctorDashboard = () => {
         </div>
       </div>
 
+      {/* REQUEST MODAL */}
+      {isRequestModalOpen && (
+        <div style={{
+          position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.7)', 
+          backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', 
+          justifyContent: 'center', zIndex: 110, padding: '1rem'
+        }}>
+          <div className="card" style={{ 
+            width: '100%', maxWidth: '550px', maxHeight: '90vh', overflowY: 'auto',
+            padding: '2rem', backgroundColor: 'var(--white)', borderRadius: 24,
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>Request Form</h2>
+              <button 
+                onClick={() => setIsRequestModalOpen(false)} 
+                style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', padding: '0.5rem', cursor: 'pointer', display: 'flex' }}
+              >
+                <FiX size={20} color="#64748b" />
+              </button>
+            </div>
+
+            <div style={{ 
+              display: 'flex', backgroundColor: '#f1f5f9', borderRadius: 12, 
+              padding: '0.25rem', marginBottom: '1.5rem' 
+            }}>
+              {['Leave', 'Schedule'].map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setRequestType(t)}
+                  style={{
+                    flex: 1, padding: '0.75rem', borderRadius: 10, border: 'none',
+                    backgroundColor: requestType === t ? 'white' : 'transparent',
+                    color: requestType === t ? 'var(--primary)' : '#64748b',
+                    fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer',
+                    boxShadow: requestType === t ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {t === 'Leave' ? 'Request Leave' : 'Schedule Change'}
+                </button>
+              ))}
+            </div>
+
+            <form onSubmit={handleSubmitRequest} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              {requestType === 'Leave' ? (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>Start Date</label>
+                      <input 
+                        type="date" 
+                        required 
+                        className="input-field"
+                        style={{ width: '100%', padding: '0.75rem', borderRadius: 10, border: '1px solid #e2e8f0' }}
+                        onChange={(e) => setRequestForm({...requestForm, startDate: e.target.value})}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>End Date</label>
+                      <input 
+                        type="date" 
+                        required 
+                        className="input-field"
+                        style={{ width: '100%', padding: '0.75rem', borderRadius: 10, border: '1px solid #e2e8f0' }}
+                        onChange={(e) => setRequestForm({...requestForm, endDate: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>Reason for Leave</label>
+                    <textarea 
+                      required 
+                      placeholder="Please specify the reason..."
+                      style={{ 
+                        width: '100%', padding: '0.75rem', borderRadius: 10, border: '1px solid #e2e8f0',
+                        minHeight: '100px', resize: 'vertical'
+                      }}
+                      onChange={(e) => setRequestForm({...requestForm, reason: e.target.value})}
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>Effective Date</label>
+                    <input 
+                      type="date" 
+                      required 
+                      className="input-field"
+                      style={{ width: '100%', padding: '0.75rem', borderRadius: 10, border: '1px solid #e2e8f0' }}
+                      onChange={(e) => setRequestForm({...requestForm, targetDate: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.75rem', fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>New Available Slots</label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '0.5rem' }}>
+                      {PREDEFINED_SLOTS.map(slot => (
+                        <button
+                          key={slot}
+                          type="button"
+                          onClick={() => {
+                            const current = requestForm.availability?.timeSlots || [];
+                            const updated = current.includes(slot) ? current.filter(s => s !== slot) : [...current, slot];
+                            setRequestForm({
+                              ...requestForm, 
+                              availability: { 
+                                ...requestForm.availability, 
+                                days: DAY_NAMES, 
+                                timeSlots: updated 
+                              }
+                            });
+                          }}
+                          style={{
+                            padding: '0.5rem', borderRadius: 8, fontSize: '0.8rem', fontWeight: 600,
+                            border: requestForm.availability?.timeSlots?.includes(slot) ? '2px solid var(--primary)' : '1px solid #e2e8f0',
+                            backgroundColor: requestForm.availability?.timeSlots?.includes(slot) ? 'rgba(82, 178, 191, 0.1)' : 'white',
+                            color: requestForm.availability?.timeSlots?.includes(slot) ? 'var(--primary)' : '#64748b',
+                            cursor: 'pointer', transition: 'all 0.2s'
+                          }}
+                        >
+                          {formatTime(slot.split('-')[0])} - {formatTime(slot.split('-')[1])}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>Reason for Change</label>
+                    <textarea 
+                      required 
+                      placeholder="Why do you need to change your schedule?"
+                      style={{ 
+                        width: '100%', padding: '0.75rem', borderRadius: 10, border: '1px solid #e2e8f0',
+                        minHeight: '80px', resize: 'vertical'
+                      }}
+                      onChange={(e) => setRequestForm({...requestForm, reason: e.target.value})}
+                    />
+                  </div>
+                </>
+              )}
+
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                <button 
+                  type="button" 
+                  className="btn-outline" 
+                  onClick={() => setIsRequestModalOpen(false)}
+                  style={{ flex: 1, padding: '0.8rem', borderRadius: 12, border: '1px solid #e2e8f0', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={submittingRequest}
+                  style={{ 
+                    flex: 1, padding: '0.8rem', borderRadius: 12, border: 'none',
+                    backgroundColor: 'var(--primary)', color: 'white', fontWeight: 700, 
+                    cursor: submittingRequest ? 'not-allowed' : 'pointer',
+                    opacity: submittingRequest ? 0.7 : 1
+                  }}
+                >
+                  {submittingRequest ? 'Submitting...' : 'Submit Request'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* EDIT PROFILE MODAL */}
       {isEditingProfile && (
         <div style={{
-          position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100
+          position: 'fixed', inset: 0, backgroundColor: 'rgba(15, 23, 42, 0.7)', 
+          backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', 
+          justifyContent: 'center', zIndex: 110, padding: '1rem'
         }}>
-          <div className="card" style={{ width: '100%', maxWidth: '500px', padding: '2rem', backgroundColor: 'var(--white)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-              <h3 style={{ margin: 0 }}>Edit Profile</h3>
-              <button onClick={() => setIsEditingProfile(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-                <FiX size={24} />
+          <div className="card" style={{ 
+            width: '100%', maxWidth: '500px', padding: '2rem', 
+            backgroundColor: 'var(--white)', borderRadius: 24,
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' 
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+              <h3 style={{ margin: 0, fontWeight: 700 }}>Edit Profile</h3>
+              <button 
+                onClick={() => setIsEditingProfile(false)} 
+                style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', padding: '0.5rem', cursor: 'pointer', display: 'flex' }}
+              >
+                <FiX size={20} color="#64748b" />
               </button>
             </div>
-            <form onSubmit={handleProfileUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <form onSubmit={handleProfileUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div>
-                <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.85rem', fontWeight: 500 }}>Full Name</label>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>Full Name</label>
                 <input 
                   className="input-field" 
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: 10, border: '1px solid #e2e8f0' }}
                   value={profileForm.name} 
                   onChange={e => setProfileForm({...profileForm, name: e.target.value})} 
                   required 
                 />
               </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.85rem', fontWeight: 500 }}>Specialization</label>
-                <input 
-                  className="input-field" 
-                  value={profileForm.specialization} 
-                  onChange={e => setProfileForm({...profileForm, specialization: e.target.value})} 
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.85rem', fontWeight: 500 }}>Location</label>
-                <input 
-                  className="input-field" 
-                  value={profileForm.location} 
-                  onChange={e => setProfileForm({...profileForm, location: e.target.value})} 
-                />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>Specialization</label>
+                  <input 
+                    className="input-field" 
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: 10, border: '1px solid #e2e8f0' }}
+                    value={profileForm.specialization} 
+                    onChange={e => setProfileForm({...profileForm, specialization: e.target.value})} 
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>Location</label>
+                  <input 
+                    className="input-field" 
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: 10, border: '1px solid #e2e8f0' }}
+                    value={profileForm.location} 
+                    onChange={e => setProfileForm({...profileForm, location: e.target.value})} 
+                  />
+                </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.85rem', fontWeight: 500 }}>Date of Birth</label>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>Date of Birth</label>
                   <input 
                     type="date"
                     className="input-field" 
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: 10, border: '1px solid #e2e8f0' }}
                     value={profileForm.dob} 
                     onChange={e => setProfileForm({...profileForm, dob: e.target.value})} 
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.85rem', fontWeight: 500 }}>Blood Group</label>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>Blood Group</label>
                   <input 
                     className="input-field" 
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: 10, border: '1px solid #e2e8f0' }}
                     value={profileForm.blood_group} 
                     onChange={e => setProfileForm({...profileForm, blood_group: e.target.value})} 
                   />
                 </div>
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.85rem', fontWeight: 500 }}>Working Hours</label>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', fontWeight: 600, color: '#334155' }}>Working Hours</label>
                 <input 
                   className="input-field" 
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: 10, border: '1px solid #e2e8f0' }}
                   value={profileForm.working_hours} 
-                  placeholder="e.g. 9 AM - 5 PM"
+                  placeholder="e.g. 09:00 AM - 05:00 PM"
                   onChange={e => setProfileForm({...profileForm, working_hours: e.target.value})} 
                 />
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
-                <button type="button" className="btn btn-outline" onClick={() => setIsEditingProfile(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Save Changes</button>
+                <button 
+                  type="button" 
+                  className="btn-outline" 
+                  onClick={() => setIsEditingProfile(false)}
+                  style={{ flex: 1, padding: '0.8rem', borderRadius: 12, border: '1px solid #e2e8f0', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn-primary"
+                  style={{ 
+                    flex: 1, padding: '0.8rem', borderRadius: 12, border: 'none',
+                    backgroundColor: 'var(--primary)', color: 'white', fontWeight: 700, cursor: 'pointer'
+                  }}
+                >
+                  Save Changes
+                </button>
               </div>
             </form>
           </div>

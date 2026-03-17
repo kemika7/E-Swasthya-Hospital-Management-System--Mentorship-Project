@@ -82,6 +82,7 @@ router.get('/doctors', authenticateToken, isAdmin, async (req, res) => {
 
 // POST /api/admin/add-doctor
 router.post('/add-doctor', authenticateToken, isAdmin, async (req, res) => {
+    console.log('[DEBUG] add-doctor body:', req.body);
     try {
         const { 
             name, email, phone, password, 

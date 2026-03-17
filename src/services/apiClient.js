@@ -20,7 +20,8 @@ export async function apiFetch(path, options = {}) {
   const data = isJson ? await resp.json() : await resp.text();
 
   if (!resp.ok) {
-    const error = new Error(typeof data === 'string' ? data : data?.message || `Request failed with status ${resp.status}`);
+    const errorMsg = typeof data === 'string' ? data : (data?.error || data?.message || `Request failed with status ${resp.status}`);
+    const error = new Error(errorMsg);
     error.status = resp.status;
     error.path = path;
     console.error(`API Error [${resp.status}] ${path}:`, data);

@@ -33,37 +33,12 @@ router.get('/patient', authenticateToken, async (req, res) => {
     }
 });
 
-// Get medical categories, optionally filtered by hospital
+// Get medical categories (all active ones, regardless of hospital/doctors)
 router.get('/categories', authenticateToken, async (req, res) => {
     try {
-        const hospitalId = req.query.hospital_id ? parseInt(req.query.hospital_id) : null;
-
-        let categories;
-        if (hospitalId) {
-            // Get categories that have at least one active doctor in the selected hospital
-            [categories] = await db.execute(`
-                SELECT DISTINCT mc.id, mc.name, mc.description
-                FROM medical_categories mc
-                JOIN specialties s ON s.category_id = mc.id
-                JOIN doctors d ON d.specialty_id = s.id
-                WHERE mc.status = 'Active'
-                AND d.hospital_id = ?
-                ORDER BY mc.name ASC
-                LIMIT 20
-            `, [hospitalId]);
-
-            // Fallback: if hospital has no categorized doctors, return all active categories
-            if (!categories || categories.length === 0) {
-                [categories] = await db.execute(
-                    'SELECT id, name, description FROM medical_categories WHERE status = "Active" ORDER BY name ASC LIMIT 12'
-                );
-            }
-        } else {
-            [categories] = await db.execute(
-                'SELECT id, name, description FROM medical_categories WHERE status = "Active" ORDER BY name ASC LIMIT 12'
-            );
-        }
-
+        const [categories] = await db.execute(
+            'SELECT id, name, description FROM medical_categories WHERE status = "Active" ORDER BY name ASC LIMIT 20'
+        );
         res.json(categories.map(c => ({ id: c.id, name: c.name, description: c.description })));
     } catch (err) {
         console.error(err);

@@ -27,6 +27,7 @@ const PatientChatbot = lazy(() => import('./pages/patient/PatientChatbot'));
 
 const HospitalsPage = lazy(() => import('./pages/patient/HospitalsPage'));
 const HospitalSpecializationsPage = lazy(() => import('./pages/patient/HospitalSpecializationsPage'));
+const HospitalCategoryDoctorsPage = lazy(() => import('./pages/patient/HospitalCategoryDoctorsPage'));
 const SelectHospitalPage = lazy(() => import('./pages/patient/SelectHospitalPage'));
 
 const DoctorDashboard = lazy(() => import('./pages/doctor/DoctorDashboard'));
@@ -53,6 +54,7 @@ const PatientLayout = () => (
       <Route path="category/:categoryId" element={<DoctorListing />} />
       <Route path="hospitals" element={<HospitalsPage />} />
       <Route path="hospital/:hospitalId" element={<HospitalSpecializationsPage />} />
+      <Route path="hospital/:hospitalId/category/:categoryId/doctors" element={<HospitalCategoryDoctorsPage />} />
       <Route path="hospital/:hospitalId/doctors" element={<DoctorListing />} />
       <Route path="doctor/:doctorId" element={<DoctorProfile />} />
       <Route path="appointments" element={<Appointments />} />

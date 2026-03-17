@@ -91,15 +91,14 @@ router.get('/hospitals', async (req, res) => {
     }
 });
 
-// Get unique specializations for a hospital's doctors
+// Get all active specializations (used for display in hospital details)
 router.get('/hospitals/:hospitalId/specializations', async (req, res) => {
     try {
         const [rows] = await db.execute(
-            `SELECT DISTINCT d.specialization 
-             FROM doctors d 
-             WHERE d.hospital_id = ? AND d.specialization IS NOT NULL
-             ORDER BY d.specialization`,
-            [req.params.hospitalId]
+            `SELECT DISTINCT name as specialization 
+             FROM specialties 
+             WHERE status = 'Active'
+             ORDER BY name`
         );
         res.json(rows.map(r => r.specialization));
     } catch (err) {

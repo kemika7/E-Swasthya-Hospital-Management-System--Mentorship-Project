@@ -3,6 +3,7 @@ import { FiMessageSquare, FiX, FiSend, FiPlus, FiCalendar } from 'react-icons/fi
 import { Link, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../services/apiClient';
 import { useHospital } from '../context/HospitalContext';
+import { useAuth } from '../context/AuthContext';
 import '../styles/SwasthyaAI.css';
 
 const QUICK_REPLIES = [
@@ -11,11 +12,15 @@ const QUICK_REPLIES = [
   "I have a headache",
   "I need a skin doctor",
   "My child is sick",
+  "I feel anxious and stressed",
+  "I have difficulty breathing",
+  "I have stomach pain",
 ];
 
 const SwasthyaAI = () => {
   const navigate = useNavigate();
   const { selectedHospital } = useHospital();
+  const { userProfile } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
     { 
@@ -47,76 +52,92 @@ const SwasthyaAI = () => {
     }
   }, [messages, isOpen]);
 
-  const renderMessageContent = (text, isModel) => {
-    // Parse [text](url) into Link elements
-    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
-    const parts = [];
-    let lastIndex = 0;
-    let match;
-
-    while ((match = linkRegex.exec(text)) !== null) {
-      if (match.index > lastIndex) {
-        parts.push(text.substring(lastIndex, match.index));
-      }
-      
-      const isDoctorLink = match[2].includes('/patient/doctor/');
-      
-      parts.push(
-        <div key={match.index} style={{ margin: '0.5rem 0' }}>
-            <Link
-            to={match[2]}
-            style={{
-                color: isModel ? 'var(--primary)' : 'white',
-                textDecoration: 'none',
-                fontWeight: 600,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                backgroundColor: isModel ? 'rgba(59,130,246,0.1)' : 'rgba(255,255,255,0.2)',
-                padding: '0.4rem 0.8rem',
-                borderRadius: '8px',
-                border: isModel ? '1px solid var(--primary)' : '1px solid white'
-            }}
-            >
-            {isDoctorLink && <FiPlus size={14} />}
-            {match[1]}
+  const parseInlineMini = (segment, segKey, isModel) => {
+    let remaining = segment;
+    remaining = remaining.replace(/\*\*(.+?)\*\*/g, (_, c) => `\x00BOLD:${c}\x00`);
+    remaining = remaining.replace(/\*(.+?)\*/g, (_, c) => `\x00ITALIC:${c}\x00`);
+    remaining = remaining.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label, url) => `\x00LINK:${label}|${url}\x00`);
+    const parts = remaining.split('\x00').filter(Boolean);
+    return parts.map((part, i) => {
+      if (part.startsWith('BOLD:')) return <strong key={`${segKey}-b${i}`}>{part.slice(5)}</strong>;
+      if (part.startsWith('ITALIC:')) return <em key={`${segKey}-i${i}`} style={{ opacity: 0.85 }}>{part.slice(7)}</em>;
+      if (part.startsWith('LINK:')) {
+        const [label, url] = part.slice(5).split('|');
+        const isDoctorLink = url.includes('/patient/doctor/');
+        return (
+          <span key={`${segKey}-l${i}`} style={{ display: 'inline-block', margin: '0.25rem 0' }}>
+            <Link to={url} style={{
+              color: isModel ? 'var(--primary)' : 'white', textDecoration: 'none', fontWeight: 600,
+              display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+              backgroundColor: isModel ? 'rgba(59,130,246,0.1)' : 'rgba(255,255,255,0.2)',
+              padding: '0.35rem 0.75rem', borderRadius: '8px',
+              border: isModel ? '1px solid var(--primary)' : '1px solid white', fontSize: '0.88rem',
+            }}>
+              {isDoctorLink && <FiPlus size={13} />}{label}
             </Link>
-        </div>
-      );
-      lastIndex = linkRegex.lastIndex;
-    }
+          </span>
+        );
+      }
+      return <span key={`${segKey}-t${i}`}>{part}</span>;
+    });
+  };
 
-    if (lastIndex < text.length) {
-      parts.push(text.substring(lastIndex));
+  const renderMessageContent = (text, isModel) => {
+    const lines = text.split('\n');
+    const elements = [];
+    let listBuffer = [];
+    let lk = 0;
+
+    const flushList = () => {
+      if (listBuffer.length === 0) return;
+      elements.push(
+        <ul key={`ul-${lk++}`} style={{ margin: '0.3rem 0 0.3rem 1rem', padding: 0 }}>
+          {listBuffer.map((item, idx) => (
+            <li key={idx} style={{ marginBottom: '0.2rem', lineHeight: 1.55 }}>
+              {parseInlineMini(item, `li-${lk}-${idx}`, isModel)}
+            </li>
+          ))}
+        </ul>
+      );
+      listBuffer = [];
+    };
+
+    for (const line of lines) {
+      const bullet = line.match(/^[\s]*[-•]\s+(.*)/);
+      if (bullet) {
+        listBuffer.push(bullet[1]);
+      } else {
+        flushList();
+        if (line.trim() === '') {
+          elements.push(<br key={`br-${lk++}`} />);
+        } else {
+          elements.push(
+            <span key={`ln-${lk++}`} style={{ display: 'block', lineHeight: 1.55 }}>
+              {parseInlineMini(line, `ln-${lk}`, isModel)}
+            </span>
+          );
+        }
+      }
     }
+    flushList();
 
     return (
-        <div style={{ whiteSpace: 'pre-wrap' }}>
-            {parts.length > 0 ? parts : text}
-            {isModel && text.includes('/patient/doctor/') && (
-                <button 
-                    onClick={() => navigate('/patient/appointments')}
-                    style={{
-                        marginTop: '0.8rem',
-                        padding: '0.6rem 1rem',
-                        borderRadius: '8px',
-                        border: 'none',
-                        backgroundColor: '#22c55e',
-                        color: 'white',
-                        fontSize: '0.85rem',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        width: 'fit-content'
-                    }}
-                >
-                    <FiCalendar size={16} />
-                    Book Appointment
-                </button>
-            )}
-        </div>
+      <div style={{ wordBreak: 'break-word' }}>
+        {elements}
+        {isModel && text.includes('/patient/doctor/') && (
+          <button
+            onClick={() => navigate('/patient/appointments')}
+            style={{
+              marginTop: '0.8rem', padding: '0.6rem 1rem', borderRadius: '8px',
+              border: 'none', backgroundColor: '#22c55e', color: 'white',
+              fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: '0.5rem', width: 'fit-content',
+            }}
+          >
+            <FiCalendar size={16} /> Book Appointment
+          </button>
+        )}
+      </div>
     );
   };
 
@@ -137,7 +158,8 @@ const SwasthyaAI = () => {
         body: JSON.stringify({
           history: messages,
           message: userMessage,
-          hospitalId: selectedHospital?.id
+          hospitalId: selectedHospital?.id,
+          patientId: userProfile?.id
         })
       });
 

@@ -1,8 +1,10 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useAuth } from './AuthContext';
 
 const AppointmentContext = createContext(null);
 
 export const AppointmentProvider = ({ children }) => {
+  const { userRole, userProfile } = useAuth();
   const [appointmentDetails, setAppointmentDetails] = useState({
     day: 25,
     month: 12,
@@ -19,22 +21,32 @@ export const AppointmentProvider = ({ children }) => {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const fetchAppointments = async () => {
+  const fetchAppointments = React.useCallback(async () => {
+    if (!userRole || userRole === 'null') return;
     setLoading(true);
     try {
       const { apiFetch } = await import('../services/apiClient');
-      const data = await apiFetch('/appointments');
+      
+      let endpoint = '/appointments';
+      if (userRole === 'doctor' && userProfile?.roleId) {
+        endpoint = `/doctor/${userProfile.roleId}/appointments`;
+      }
+      
+      const data = await apiFetch(endpoint);
       setAppointments(data);
     } catch (err) {
       console.error('Failed to fetch appointments:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [userRole, userProfile?.roleId]);
 
   useEffect(() => {
     fetchAppointments();
-  }, []);
+    // 30-second polling for real-time synchronization
+    const interval = setInterval(fetchAppointments, 30000);
+    return () => clearInterval(interval);
+  }, [fetchAppointments]);
 
   const updateAppointmentDetails = (updates) => {
     setAppointmentDetails((prev) => ({ ...prev, ...updates }));

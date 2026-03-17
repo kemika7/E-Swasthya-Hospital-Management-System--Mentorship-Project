@@ -89,7 +89,10 @@ const DocumentLocker = () => {
     if (!file) return;
 
     const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
-    if (!allowedTypes.includes(file.type)) {
+    const extension = file.name.split('.').pop().toLowerCase();
+    const isAllowedExtension = ['pdf', 'jpg', 'jpeg', 'png'].includes(extension);
+
+    if (!allowedTypes.includes(file.type) && !isAllowedExtension) {
       alert('Only PDF, JPG, and PNG files are allowed.');
       return;
     }
@@ -495,7 +498,7 @@ const DocumentLocker = () => {
           ref={fileInputRef} 
           onChange={handleFileChange} 
           style={{ display: 'none' }} 
-          accept=".pdf,.jpg,.jpeg,.png"
+          accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
         />
         <div
           onClick={handleUploadClick}

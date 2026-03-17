@@ -29,15 +29,14 @@ router.get('/', authenticateToken, async (req, res) => {
 
         // Enforce data isolation: if the user has a hospital_id (e.g., admin or doctor),
         // restrict the query to only doctors from that hospital.
-        if (req.user && req.user.hospital_id) {
+        const effectiveHospitalId = req.user?.hospital_id || req.query.hospital_id || req.query.hospitalId;
+        
+        if (effectiveHospitalId) {
             query += ' AND d.hospital_id = ?';
-            params.push(req.user.hospital_id);
-        } else if (req.query.hospital_id) {
-            // Fallback for public/patient queries if they provide a filter
-            query += ' AND d.hospital_id = ?';
-            params.push(req.query.hospital_id);
+            params.push(effectiveHospitalId);
         }
 
+        query += ' ORDER BY u.name';
         const [doctors] = await db.execute(query, params);
         res.json(doctors);
     } catch (err) {
@@ -136,7 +135,215 @@ router.get('/hospitals/:hospitalId/doctors', async (req, res) => {
         res.status(500).json({ message: 'Server error fetching hospital doctors' });
     }
 });
+// ─── Logged-in Doctor Profile & Requests ────────────────────────────
 
+// Get logged in doctor profile
+router.get('/profile', authenticateToken, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const [doctor] = await db.execute(`
+            SELECT d.*, u.name, u.email, u.role, h.name as hospital_name
+            FROM doctors d
+            JOIN users u ON d.user_id = u.id
+            LEFT JOIN hospitals h ON d.hospital_id = h.id
+            WHERE u.id = ?
+        `, [userId]);
+
+        if (!doctor || doctor.length === 0) {
+            return res.status(404).json({ message: 'Doctor profile not found. Please log in again.' });
+        }
+
+        res.json(doctor[0]);
+    } catch (err) {
+        console.error('[PROFILE FETCH ERROR]', err);
+        res.status(500).json({ message: 'Error loading profile data. Please try again later.' });
+    }
+});
+
+// Update logged in doctor profile (Doctor only)
+router.put('/profile', authenticateToken, async (req, res) => {
+    try {
+        if (req.user.role !== 'doctor') return res.status(403).json({ message: 'Access denied. Only doctors can update their own profile.' });
+
+        const userId = req.user.id;
+        const { name, specialization, location, dob, blood_group, working_hours } = req.body;
+
+        const connection = await db.getConnection();
+        await connection.beginTransaction();
+
+        try {
+            // Update name in users table if provided
+            if (name) {
+                await connection.execute('UPDATE users SET name = ? WHERE id = ?', [name, userId]);
+            }
+
+            // Define allowable fields for the doctors table
+            let doctorQuery = 'UPDATE doctors SET ';
+            let params = [];
+            let setClauses = [];
+
+            if (specialization !== undefined) { setClauses.push('specialization = ?'); params.push(specialization); }
+            if (location !== undefined) { setClauses.push('location = ?'); params.push(location); }
+            if (dob !== undefined) { setClauses.push('dob = ?'); params.push(dob); }
+            if (blood_group !== undefined) { setClauses.push('blood_group = ?'); params.push(blood_group); }
+            if (working_hours !== undefined) { setClauses.push('working_hours = ?'); params.push(working_hours); }
+
+            if (setClauses.length > 0) {
+                doctorQuery += setClauses.join(', ') + ' WHERE user_id = ?';
+                params.push(userId);
+                await connection.execute(doctorQuery, params);
+            }
+
+            await connection.commit();
+            res.json({ message: 'Profile updated successfully' });
+        } catch (err) {
+            await connection.rollback();
+            throw err;
+        } finally {
+            connection.release();
+        }
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server error updating profile' });
+    }
+});
+
+// Submit a request (Doctor only)
+router.post('/requests', authenticateToken, async (req, res) => {
+    try {
+        if (req.user.role !== 'doctor') return res.status(403).json({ message: 'Access denied' });
+        
+        const { type, request_data } = req.body;
+        const [doctor] = await db.execute('SELECT id FROM doctors WHERE user_id = ?', [req.user.id]);
+        if (doctor.length === 0) return res.status(404).json({ message: 'Doctor record not found' });
+
+        await db.execute(
+            'INSERT INTO doctor_requests (doctor_id, type, request_data) VALUES (?, ?, ?)',
+            [doctor[0].id, type, JSON.stringify(request_data)]
+        );
+
+        res.status(201).json({ message: 'Request submitted successfully' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server error submitting request' });
+    }
+});
+
+// Get requests for logged-in doctor
+router.get('/requests', authenticateToken, async (req, res) => {
+    try {
+        if (req.user.role !== 'doctor') return res.status(403).json({ message: 'Access denied' });
+        
+        const [doctor] = await db.execute('SELECT id FROM doctors WHERE user_id = ?', [req.user.id]);
+        if (doctor.length === 0) return res.status(404).json({ message: 'Doctor record not found' });
+
+        const [requests] = await db.execute(
+            'SELECT * FROM doctor_requests WHERE doctor_id = ? ORDER BY created_at DESC',
+            [doctor[0].id]
+        );
+        res.json(requests);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server error fetching requests' });
+    }
+});
+
+// Admin: Get all requests
+router.get('/admin/requests', authenticateToken, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access denied' });
+        
+        const [requests] = await db.execute(`
+            SELECT r.*, u.name as doctor_name 
+            FROM doctor_requests r
+            JOIN doctors d ON r.doctor_id = d.id
+            JOIN users u ON d.user_id = u.id
+            WHERE d.hospital_id = ?
+            ORDER BY r.status = 'Pending' DESC, r.created_at DESC
+        `, [req.user.hospital_id]);
+        
+        res.json(requests);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server error fetching requests' });
+    }
+});
+
+// Admin: Approve/Reject request
+router.put('/admin/requests/:id', authenticateToken, async (req, res) => {
+    try {
+        if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access denied' });
+        
+        const { status, admin_note, adjusted_data } = req.body;
+        const requestId = req.params.id;
+
+        const [requestRows] = await db.execute('SELECT * FROM doctor_requests WHERE id = ?', [requestId]);
+        if (requestRows.length === 0) return res.status(404).json({ message: 'Request not found' });
+        
+        const request = requestRows[0];
+        const data = adjusted_data || (typeof request.request_data === 'string' ? JSON.parse(request.request_data) : request.request_data);
+
+        const connection = await db.getConnection();
+        await connection.beginTransaction();
+
+        try {
+            await connection.execute(
+                'UPDATE doctor_requests SET status = ?, admin_note = ? WHERE id = ?',
+                [status, admin_note, requestId]
+            );
+
+            if (status === 'Approved') {
+                if (request.type === 'Leave') {
+                    // Fetch current doctor state
+                    const [docRows] = await connection.execute('SELECT availability, unavailable_dates FROM doctors WHERE id = ?', [request.doctor_id]);
+                    const doc = docRows[0];
+                    let currentUnavailable = doc.unavailable_dates ? (typeof doc.unavailable_dates === 'string' ? JSON.parse(doc.unavailable_dates) : doc.unavailable_dates) : [];
+                    let currentAvailability = doc.availability ? (typeof doc.availability === 'string' ? JSON.parse(doc.availability) : doc.availability) : { days: [], timeSlots: [], exceptions: {} };
+                    if (!currentAvailability.exceptions) currentAvailability.exceptions = {};
+
+                    const leaveDates = data.leaveDates || [];
+                    leaveDates.forEach(ld => {
+                        if (ld.fullDay) {
+                            if (!currentUnavailable.includes(ld.date)) {
+                                currentUnavailable.push(ld.date);
+                            }
+                            if (currentAvailability.exceptions[ld.date]) {
+                                delete currentAvailability.exceptions[ld.date];
+                            }
+                        } else {
+                            const globalSlots = currentAvailability.timeSlots || [];
+                            const unavailableSlots = ld.slots || [];
+                            const availableSlotsForDate = globalSlots.filter(s => !unavailableSlots.includes(s));
+                            
+                            currentAvailability.exceptions[ld.date] = availableSlotsForDate;
+                            currentUnavailable = currentUnavailable.filter(d => d !== ld.date);
+                        }
+                    });
+
+                    await connection.execute(
+                        'UPDATE doctors SET unavailable_dates = ?, availability = ? WHERE id = ?', 
+                        [JSON.stringify(currentUnavailable), JSON.stringify(currentAvailability), request.doctor_id]
+                    );
+                } else if (request.type === 'Schedule') {
+                    await connection.execute('UPDATE doctors SET availability = ? WHERE id = ?', [JSON.stringify(data.availability), request.doctor_id]);
+                }
+            }
+
+            await connection.commit();
+            res.json({ message: `Request ${status.toLowerCase()} successfully` });
+        } catch (err) {
+            await connection.rollback();
+            throw err;
+        } finally {
+            connection.release();
+        }
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server error updating request' });
+    }
+});
+
+// ─── Doctor Parameter Routes ──────────────────────────
 // Get specific doctor profile
 router.get('/:id', async (req, res) => {
     try {
@@ -163,28 +370,7 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// Get logged in doctor profile
-router.get('/profile', authenticateToken, async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const [doctor] = await db.execute(`
-            SELECT d.*, u.name, u.email, u.role, h.name as hospital_name
-            FROM doctors d
-            JOIN users u ON d.user_id = u.id
-            LEFT JOIN hospitals h ON d.hospital_id = h.id
-            WHERE u.id = ?
-        `, [userId]);
 
-        if (doctor.length === 0) {
-            return res.status(404).json({ message: 'Doctor profile not found' });
-        }
-
-        res.json(doctor[0]);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: 'Server error fetching profile' });
-    }
-});
 
 
 
@@ -193,7 +379,7 @@ router.post('/', authenticateToken, async (req, res) => {
     try {
         if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access denied' });
 
-        const { name, email, phone, password, specialty_id: inputSpecialtyId, specialization, experience, bio, location, working_hours, fee, qualification, rating, hospital_id: bodyHospitalId } = req.body;
+        const { name, email, phone, password, specialty_id: inputSpecialtyId, specialization, experience, bio, location, working_hours, fee, qualification, rating, hospital_id: bodyHospitalId, availability, unavailable_dates } = req.body;
         // Use hospital from body if provided (e.g. for mega-admins), else use admin's own hospital_id
         const hospital_id = bodyHospitalId || req.user.hospital_id;
         const specialty_id = (inputSpecialtyId && inputSpecialtyId !== '') ? inputSpecialtyId : null;
@@ -258,8 +444,8 @@ router.post('/', authenticateToken, async (req, res) => {
 
             // Insert into doctors
             await connection.execute(`
-                INSERT INTO doctors (user_id, specialty_id, specialization, experience, bio, location, working_hours, fee, hospital_id, qualification, rating) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO doctors (user_id, specialty_id, specialization, experience, bio, location, working_hours, fee, hospital_id, qualification, rating, availability, unavailable_dates) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `, [
                 userId, 
                 specialty_id, 
@@ -271,7 +457,9 @@ router.post('/', authenticateToken, async (req, res) => {
                 fee || 0, 
                 hospital_id,
                 qualification || null,
-                rating || 0.0
+                rating || 0.0,
+                JSON.stringify(availability || { days: [], timeSlots: [] }),
+                JSON.stringify(unavailable_dates || [])
             ]);
 
             await connection.commit();
@@ -288,60 +476,14 @@ router.post('/', authenticateToken, async (req, res) => {
     }
 });
 
-// Update logged in doctor profile (Doctor only)
-router.put('/profile', authenticateToken, async (req, res) => {
-    try {
-        if (req.user.role !== 'doctor') return res.status(403).json({ message: 'Access denied. Only doctors can update their own profile.' });
 
-        const userId = req.user.id;
-        const { name, specialization, location, dob, blood_group, working_hours } = req.body;
-
-        const connection = await db.getConnection();
-        await connection.beginTransaction();
-
-        try {
-            // Update name in users table if provided
-            if (name) {
-                await connection.execute('UPDATE users SET name = ? WHERE id = ?', [name, userId]);
-            }
-
-            // Define allowable fields for the doctors table
-            let doctorQuery = 'UPDATE doctors SET ';
-            let params = [];
-            let setClauses = [];
-
-            if (specialization !== undefined) { setClauses.push('specialization = ?'); params.push(specialization); }
-            if (location !== undefined) { setClauses.push('location = ?'); params.push(location); }
-            if (dob !== undefined) { setClauses.push('dob = ?'); params.push(dob); }
-            if (blood_group !== undefined) { setClauses.push('blood_group = ?'); params.push(blood_group); }
-            if (working_hours !== undefined) { setClauses.push('working_hours = ?'); params.push(working_hours); }
-
-            if (setClauses.length > 0) {
-                doctorQuery += setClauses.join(', ') + ' WHERE user_id = ?';
-                params.push(userId);
-                await connection.execute(doctorQuery, params);
-            }
-
-            await connection.commit();
-            res.json({ message: 'Profile updated successfully' });
-        } catch (err) {
-            await connection.rollback();
-            throw err;
-        } finally {
-            connection.release();
-        }
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: 'Server error updating profile' });
-    }
-});
 
 // Update doctor
 router.put('/:id', authenticateToken, async (req, res) => {
     try {
         if (req.user.role !== 'admin') return res.status(403).json({ message: 'Access denied' });
 
-        const { name, specialty_id, specialization, experience, hospital, bio, location, working_hours, fee, qualification, rating } = req.body;
+        const { name, specialty_id, specialization, experience, hospital, bio, location, working_hours, fee, qualification, rating, availability, unavailable_dates } = req.body;
         const doctorId = req.params.id;
 
         const connection = await db.getConnection();
@@ -362,9 +504,22 @@ router.put('/:id', authenticateToken, async (req, res) => {
 
             await connection.execute(`
                 UPDATE doctors 
-                SET specialty_id = ?, specialization = ?, experience = ?, bio = ?, location = ?, working_hours = ?, fee = ?, qualification = ?, rating = ?
+                SET specialty_id = ?, specialization = ?, experience = ?, bio = ?, location = ?, working_hours = ?, fee = ?, qualification = ?, rating = ?, availability = ?, unavailable_dates = ?
                 WHERE id = ?
-            `, [specialty_id, specialization, experience, bio, location, working_hours, fee, qualification, rating, doctorId]);
+            `, [
+                specialty_id, 
+                specialization, 
+                experience, 
+                bio, 
+                location, 
+                working_hours, 
+                fee, 
+                qualification, 
+                rating, 
+                JSON.stringify(availability), 
+                JSON.stringify(unavailable_dates), 
+                doctorId
+            ]);
 
             await connection.commit();
             res.json({ message: 'Doctor updated successfully' });

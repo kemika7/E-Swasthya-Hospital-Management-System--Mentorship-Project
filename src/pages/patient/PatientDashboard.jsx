@@ -20,6 +20,7 @@ import {
   FiPhone,
   FiBriefcase,
   FiBookOpen,
+  FiAlertTriangle,
 } from 'react-icons/fi';
 import {
   MdLocalHospital,
@@ -43,6 +44,8 @@ import {
 import { GiStomach } from 'react-icons/gi';
 import { useAuth } from '../../context/AuthContext';
 import { useHospital } from '../../context/HospitalContext';
+import ErrorDisplay from '../../components/ErrorDisplay';
+
 
 // Map icon strings to components
 const iconMap = {
@@ -91,22 +94,9 @@ const PatientDashboard = () => {
   const [doctors, setDoctors] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [dashboardError, setDashboardError] = useState(null);
+  const [doctorsError, setDoctorsError] = useState(null);
   const [doctorsLoading, setDoctorsLoading] = useState(false);
-
-  useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        const { apiFetch } = await import('../../services/apiClient');
-        const data = await apiFetch('/dashboard/patient');
-        setDashboardData(data);
-      } catch (err) {
-        console.error('Failed to fetch dashboard:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchDashboard();
-  }, []);
 
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
@@ -114,14 +104,36 @@ const PatientDashboard = () => {
   const [isBookingSubmitting, setIsBookingSubmitting] = useState(false);
 
   const fetchDashboard = async () => {
+    setDashboardError(null);
     try {
       const { apiFetch } = await import('../../services/apiClient');
       const data = await apiFetch('/dashboard/patient');
       setDashboardData(data);
     } catch (err) {
       console.error('Failed to fetch dashboard:', err);
+      setDashboardError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchDoctors = async () => {
+    setDoctorsLoading(true);
+    setDoctorsError(null);
+    try {
+      const { apiFetch } = await import('../../services/apiClient');
+      let endpoint = '/doctors';
+      if (selectedHospital?.id) {
+        endpoint = `/doctors/hospitals/${selectedHospital.id}/doctors`;
+      }
+      const data = await apiFetch(endpoint);
+      setDoctors(data);
+    } catch (err) {
+      console.error('Failed to fetch doctors:', err);
+      setDoctorsError(err.message);
+      setDoctors([]);
+    } finally {
+      setDoctorsLoading(false);
     }
   };
 
@@ -130,23 +142,8 @@ const PatientDashboard = () => {
   }, []);
 
   useEffect(() => {
-    const fetchDoctors = async () => {
-      if (!selectedHospital) return;
-      setDoctorsLoading(true);
-      try {
-        const { apiFetch } = await import('../../services/apiClient');
-        const data = await apiFetch(`/doctors/hospitals/${selectedHospital.id}/doctors`);
-        setDoctors(data);
-      } catch (err) {
-        console.error('Failed to fetch doctors:', err);
-        setDoctors([]);
-      } finally {
-        setDoctorsLoading(false);
-      }
-    };
     fetchDoctors();
   }, [selectedHospital]);
-
   const filteredDoctors = useMemo(() => {
     if (!searchQuery.trim()) return doctors;
     const q = searchQuery.toLowerCase();
@@ -170,7 +167,7 @@ const PatientDashboard = () => {
         method: 'POST',
         body: JSON.stringify({
           doctorId: selectedDoctor.id,
-          hospitalId: selectedHospital.id,
+          hospitalId: selectedHospital?.id || selectedDoctor.hospital_id,
           date: bookingDetails.date,
           time: bookingDetails.time,
         })
@@ -234,6 +231,14 @@ const PatientDashboard = () => {
 
       {/* UPCOMING APPOINTMENTS SECTION */}
       <div>
+        {dashboardError && (
+          <div style={{ marginBottom: '1.5rem' }}>
+            <ErrorDisplay 
+              message={`Failed to load dashboard data: ${dashboardError}`} 
+              onRetry={fetchDashboard} 
+            />
+          </div>
+        )}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-sm)' }}>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text)' }}>Upcoming Appointments</h2>
           <button onClick={() => navigate('/patient/appointments')} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 600, cursor: 'pointer', fontSize: '0.9rem' }}>
@@ -270,6 +275,27 @@ const PatientDashboard = () => {
         )}
       </div>
 
+      {/* HEALTH TRACKER QUICK ACCESS */}
+      <div 
+        onClick={() => navigate('/patient/reports')}
+        style={{ 
+          width: '100%', padding: '1.25rem', backgroundColor: 'var(--white)', borderRadius: 16,
+          boxShadow: 'var(--shadow-soft)', cursor: 'pointer', border: '1px solid rgba(15, 23, 42, 0.05)',
+          display: 'flex', alignItems: 'center', gap: '1rem', transition: 'transform 0.2s'
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+        onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+      >
+        <div style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
+          <FiActivity size={24} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>Health Tracker</h3>
+          <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-light)' }}>Monitor your vitals, weight, and daily habits.</p>
+        </div>
+        <div style={{ color: 'var(--primary)', fontWeight: 600, fontSize: '1.25rem' }}>→</div>
+      </div>
+
       {/* CATEGORIES SECTION */}
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-sm)' }}>
@@ -296,11 +322,11 @@ const PatientDashboard = () => {
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-sm)' }}>
           <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text)' }}>
-            Available Doctors in {selectedHospital?.name || 'Your Hospital'}
+            Available Doctors in {selectedHospital?.name || 'All Hospitals'}
           </h2>
           <button 
             type="button" 
-            onClick={() => { clearHospital(); navigate('/patient/select-hospital'); }} 
+            onClick={() => navigate('/patient/hospitals')} 
             className="btn btn-outline"
             style={{ 
               fontSize: '0.85rem', 
@@ -312,11 +338,17 @@ const PatientDashboard = () => {
               borderColor: 'var(--primary)'
             }}
           >
-            Change Hospital
+            {selectedHospital ? 'Change Hospital' : 'Select Hospital'}
           </button>
         </div>
 
-        {doctorsLoading ? (
+        {doctorsError ? (
+          <ErrorDisplay 
+            message={doctorsError} 
+            onRetry={fetchDoctors} 
+            style={{ margin: '1rem 0' }}
+          />
+        ) : doctorsLoading ? (
           <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>Loading doctors...</div>
         ) : filteredDoctors.length > 0 ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
@@ -394,7 +426,7 @@ const PatientDashboard = () => {
           }}>
             <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--text)', marginBottom: '0.5rem' }}>Book Appointment</h2>
             <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
-              Booking for <strong style={{ color: 'var(--primary)' }}>{selectedDoctor?.doctor_name || selectedDoctor?.name}</strong> at <strong style={{ color: 'var(--primary)' }}>{selectedHospital?.name}</strong>
+              Booking for <strong style={{ color: 'var(--primary)' }}>{selectedDoctor?.doctor_name || selectedDoctor?.name}</strong>
             </p>
 
             <form onSubmit={handleBookAppointment} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>

@@ -30,6 +30,7 @@ app.use(express.json());
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/doctors', require('./routes/doctors'));
 app.use('/api/appointments', require('./routes/appointments'));
+app.use('/api/doctor', require('./routes/doctorAppointments'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/announcements', require('./routes/announcements'));
 app.use('/api/patients', require('./routes/patients'));
@@ -68,7 +69,6 @@ async function ensurePatientSchema() {
       await db.execute('ALTER TABLE patients ADD COLUMN mpin VARCHAR(255) NULL');
       console.log('[DB] Added missing mpin column to patients table.');
     }
-    
     // Create patient_documents table
     await db.execute(`
       CREATE TABLE IF NOT EXISTS patient_documents (
@@ -104,7 +104,6 @@ async function ensurePatientSchema() {
       )
     `);
     console.log('[DB] reports table ready.');
-    
   } catch (err) {
     // patients table may not exist yet - that's okay
     console.warn('[DB] Could not patch patients schema:', err.message);
@@ -143,6 +142,14 @@ async function ensureHospitalSchema() {
     if (!colNames.includes('phone')) {
       await db.execute('ALTER TABLE doctors ADD COLUMN phone VARCHAR(20) NULL');
       console.log('[DB] Added phone column to doctors table.');
+    }
+    if (!colNames.includes('availability')) {
+      await db.execute('ALTER TABLE doctors ADD COLUMN availability LONGTEXT NULL');
+      console.log('[DB] Added availability column to doctors table.');
+    }
+    if (!colNames.includes('unavailable_dates')) {
+      await db.execute('ALTER TABLE doctors ADD COLUMN unavailable_dates LONGTEXT NULL');
+      console.log('[DB] Added unavailable_dates column to doctors table.');
     }
   } catch (err) {
     console.warn('[DB] Could not patch doctors schema:', err.message);
@@ -228,6 +235,44 @@ async function ensureHealthSchema() {
   }
 }
 
+// Auto-patch: ensure doctor_plans table exists
+async function ensureDoctorPlansSchema() {
+  try {
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS doctor_plans (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        doctor_id INT NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        date DATE NOT NULL,
+        status ENUM('Pending', 'Completed') DEFAULT 'Pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (doctor_id) REFERENCES doctors(id) ON DELETE CASCADE
+      )
+    `);
+    console.log('[DB] doctor_plans table ready.');
+  } catch (err) {
+    console.warn('[DB] Could not create doctor_plans table:', err.message);
+  }
+}
+
+// Auto-patch: ensure patient_reports table exists
+async function ensurePatientReportsSchema() {
+  try {
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS patient_reports (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        patient_id INT NOT NULL,
+        file_name VARCHAR(255) NOT NULL,
+        file_path VARCHAR(512) NOT NULL,
+        uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (patient_id) REFERENCES patients(patient_id) ON DELETE CASCADE
+      )
+    `);
+    console.log('[DB] patient_reports table ready.');
+  } catch (err) {
+    console.warn('[DB] Could not create patient_reports table:', err.message);
+  }
+}
 // Auto-patch: ensure document_locker table exists
 async function ensureLockerSchema() {
   try {
@@ -241,7 +286,6 @@ async function ensureLockerSchema() {
         FOREIGN KEY (patient_id) REFERENCES patients(patient_id) ON DELETE CASCADE
       )
     `);
-    
     await db.execute(`
       CREATE TABLE IF NOT EXISTS patient_documents (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -260,6 +304,54 @@ async function ensureLockerSchema() {
   }
 }
 
+// Auto-patch: ensure doctor_requests table exists
+async function ensureRequestSchema() {
+  try {
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS doctor_requests (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        doctor_id INT NOT NULL,
+        type ENUM('Leave', 'Schedule') NOT NULL,
+        request_data LONGTEXT NOT NULL,
+        status ENUM('Pending', 'Approved', 'Rejected') DEFAULT 'Pending',
+        admin_note TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX (doctor_id),
+        INDEX (status)
+      )
+    `);
+    console.log('[DB] doctor_requests table ready.');
+  } catch (err) {
+    console.warn('[DB] Could not create doctor_requests table:', err.message);
+  }
+}
+
+// Auto-patch: ensure doctor_plans table exists
+async function ensurePlansSchema() {
+  try {
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS doctor_plans (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        doctor_id INT NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        description TEXT NULL,
+        date DATE NOT NULL,
+        status ENUM('Pending', 'Completed') DEFAULT 'Pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX (doctor_id),
+        INDEX (date)
+      )
+    `);
+    const [cols] = await db.execute('DESCRIBE doctor_plans');
+    if (!cols.map(c => c.Field).includes('description')) {
+      await db.execute('ALTER TABLE doctor_plans ADD COLUMN description TEXT NULL AFTER title');
+      console.log('[DB] Added description column to doctor_plans table.');
+    }
+    console.log('[DB] doctor_plans table ready.');
+  } catch (err) {
+    console.warn('[DB] Could not create doctor_plans table:', err.message);
+  }
+}
 app.listen(PORT, async () => {
   console.log(`Server is running on port ${PORT}`);
   await ensurePatientSchema();
@@ -267,4 +359,8 @@ app.listen(PORT, async () => {
   await ensureAnnouncementSchema();
   await ensureHealthSchema();
   await ensureLockerSchema();
+  await ensureDoctorPlansSchema();
+  await ensurePatientReportsSchema();
+  await ensureRequestSchema();
+  await ensurePlansSchema();
 });

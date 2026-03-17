@@ -11,7 +11,8 @@ router.get('/patient', authenticateToken, async (req, res) => {
 
         // Upcoming appointment
         const [upcoming] = await db.execute(`
-      SELECT a.*, u.name as doctorName, d.specialization as specialty 
+      SELECT a.appointment_id as id, a.patient_id, a.doctor_id, a.date, a.time, a.duration, a.status, a.appointment_type as type, a.notes, a.created_at, u.name as doctorName, d.specialization as specialty 
+
       FROM appointments a
       JOIN doctors d ON a.doctor_id = d.id
       JOIN users u ON d.user_id = u.id
@@ -37,19 +38,22 @@ router.get('/patient', authenticateToken, async (req, res) => {
 router.get('/doctor', authenticateToken, async (req, res) => {
     try {
         const doctorId = req.user.roleId;
-        const hospitalId = req.user.hospital_id;
+        const hospitalId = req.user.hospital_id || 0;
         if (!doctorId) return res.status(400).json({ message: 'Doctor profile not found' });
 
         // Statistics
         const [stats] = await db.execute(`
             SELECT 
                 COUNT(*) as total,
-                SUM(CASE WHEN date = CURDATE() THEN 1 ELSE 0 END) as today,
-                SUM(CASE WHEN status = 'Scheduled' THEN 1 ELSE 0 END) as pending
+                COALESCE(SUM(CASE WHEN date = CURDATE() THEN 1 ELSE 0 END), 0) as today,
+                COALESCE(SUM(CASE WHEN status = 'Scheduled' THEN 1 ELSE 0 END), 0) as pending
+
             FROM appointments a
             JOIN doctors d ON a.doctor_id = d.id
             WHERE a.doctor_id = ? AND a.status != 'Cancelled' AND d.hospital_id = ?
         `, [doctorId, hospitalId]);
+
+        const statsRow = (stats && stats[0]) ? stats[0] : { total: 0, today: 0, pending: 0 };
 
         // Scheduled events summary (Real data based on appointment types)
         const [events] = await db.execute(`
@@ -63,7 +67,8 @@ router.get('/doctor', authenticateToken, async (req, res) => {
 
         // Today's activities
         const [activities] = await db.execute(`
-            SELECT a.time, p.name as title
+            SELECT a.appointment_id, a.time, p.name as title, a.status
+
             FROM appointments a
             JOIN patients p ON a.patient_id = p.patient_id
             JOIN doctors d ON a.doctor_id = d.id
@@ -73,19 +78,33 @@ router.get('/doctor', authenticateToken, async (req, res) => {
 
         // Upcoming appointments
         const [upcoming] = await db.execute(`
-            SELECT a.appointment_id as id, a.date, a.time, a.status, a.appointment_type, p.name as patientName
+            SELECT a.appointment_id as id, a.patient_id, a.doctor_id, a.date, a.time, a.duration, a.status, a.appointment_type as type, a.notes, a.created_at, p.name as patientName
+
             FROM appointments a
             JOIN patients p ON a.patient_id = p.patient_id
             JOIN doctors d ON a.doctor_id = d.id
             WHERE a.doctor_id = ? AND (a.date > CURDATE() OR (a.date = CURDATE() AND a.time >= CURTIME()))
             AND a.status = 'Scheduled' AND d.hospital_id = ?
             ORDER BY a.date ASC, a.time ASC
-            LIMIT 5
         `, [doctorId, hospitalId]);
+
+        // Dates with appointments for calendar highlights
+        const [indicatorRows] = await db.execute(`
+            SELECT DISTINCT date
+            FROM appointments
+            WHERE doctor_id = ? AND status = 'Scheduled'
+        `, [doctorId]);
+        const appointmentDates = indicatorRows.map(r => {
+            if (r.date instanceof Date) {
+               return r.date.toISOString().split('T')[0];
+            }
+            return r.date;
+        });
 
         // Today's custom plans
         const [doctorPlans] = await db.execute(`
-            SELECT id, title, status, date
+            SELECT id, title, description, status, date
+
             FROM doctor_plans
             WHERE doctor_id = ? AND date = CURDATE()
             ORDER BY created_at ASC
@@ -93,30 +112,36 @@ router.get('/doctor', authenticateToken, async (req, res) => {
 
         res.json({
             stats: {
-                offline: stats[0].total,
-                online: stats[0].pending
+                offline: statsRow.total || 0,
+                online: statsRow.pending || 0,
+                laboratory: 0
             },
             scheduledEvents: {
-                labels: events.map(e => e.label),
-                values: events.map(e => e.count)
+                labels: (events || []).map(e => e.label),
+                values: (events || []).map(e => e.count)
             },
-            todayCount: stats[0].today,
-            activities: activities.map(a => ({
+            todayCount: statsRow.today || 0,
+            activities: (activities || []).map(a => ({
+                id: a.appointment_id,
                 time: a.time,
-                title: `Consultation: ${a.title}`
+                title: `Consultation: ${a.title}`,
+                status: a.status
             })),
-            upcomingAppointments: upcoming.map(u => ({
+            upcomingAppointments: (upcoming || []).map(u => ({
                 id: u.id,
                 date: u.date,
                 time: u.time,
-                type: u.appointment_type,
-                patientName: u.patientName
+                type: u.type,
+                patientName: u.patientName,
+                notes: u.notes
             })),
-            doctorPlans: doctorPlans.map(p => ({
+            appointmentDates,
+            doctorPlans: (doctorPlans || []).map(p => ({
                 id: p.id,
                 title: p.title,
                 status: p.status,
-                date: p.date
+                description: p.description
+
             }))
         });
     } catch (err) {
@@ -152,7 +177,8 @@ router.get('/admin', authenticateToken, async (req, res) => {
 
         // Recent Appointments
         const [recentAppointments] = await db.execute(`
-            SELECT a.*, p.name as patientName, ud.name as doctorName
+            SELECT a.appointment_id as id, a.patient_id, a.doctor_id, a.date, a.time, a.duration, a.status, a.appointment_type as type, a.notes, a.created_at, p.name as patientName, ud.name as doctorName
+
             FROM appointments a
             JOIN patients p ON a.patient_id = p.patient_id
             JOIN doctors d ON a.doctor_id = d.id
@@ -195,7 +221,8 @@ router.get('/admin', authenticateToken, async (req, res) => {
                 data: analytics.map(a => a.count)
             },
             appointments: recentAppointments.map(a => ({
-                id: a.appointment_id,
+                id: a.id,
+
                 patientName: a.patientName,
                 doctorName: a.doctorName,
                 date: a.date,

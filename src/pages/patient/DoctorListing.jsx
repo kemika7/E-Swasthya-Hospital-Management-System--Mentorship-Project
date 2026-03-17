@@ -24,12 +24,8 @@ const DoctorListing = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Redirect if no hospital is selected and we are in patient mode
-  useEffect(() => {
-    if (!selectedHospital && !isHospitalMode) {
-      navigate('/patient/select-hospital');
-    }
-  }, [selectedHospital, isHospitalMode, navigate]);
+  // No longer forcing redirect if no hospital is selected.
+  // Patients can view all doctors by category.
 
   // Fetch category data (original mode)
   useEffect(() => {
@@ -81,7 +77,11 @@ const DoctorListing = () => {
             path += `?specialization=${encodeURIComponent(selectedSpecialty)}`;
           }
         } else {
+          // Patient categorical view: ALWAYS include hospital filtering
           path = `/doctors?category_id=${categoryId}`;
+          if (selectedHospital?.id) {
+            path += `&hospital_id=${selectedHospital.id}`;
+          }
           if (selectedSpecialtyId) {
             path += `&specialty_id=${selectedSpecialtyId}`;
           }
@@ -183,7 +183,7 @@ const DoctorListing = () => {
         </div>
 
         <button
-          onClick={() => { clearHospital(); navigate('/patient/select-hospital'); }}
+          onClick={() => navigate('/patient/hospitals')}
           style={{
             width: 40,
             height: 40,

@@ -74,6 +74,7 @@ const DoctorAppointments = () => {
                   <th style={{ textAlign: 'left', padding: '0.75rem' }}>Date</th>
                   <th style={{ textAlign: 'left', padding: '0.75rem' }}>Time</th>
                   <th style={{ textAlign: 'left', padding: '0.75rem' }}>Type</th>
+                  <th style={{ textAlign: 'left', padding: '0.75rem', maxWidth: '200px' }}>Notes</th>
                   <th style={{ textAlign: 'left', padding: '0.75rem' }}>Status</th>
                   <th style={{ textAlign: 'right', padding: '0.75rem' }}>Action</th>
                 </tr>
@@ -85,6 +86,9 @@ const DoctorAppointments = () => {
                     <td style={{ padding: '0.75rem' }}>{formatDate(app.date)}</td>
                     <td style={{ padding: '0.75rem' }}>{formatTime(app.time)}</td>
                     <td style={{ padding: '0.75rem' }}>{app.type}</td>
+                    <td style={{ padding: '0.75rem', maxWidth: '200px', fontSize: '0.85rem', color: '#64748b', fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={app.notes}>
+                      {app.notes ? `"${app.notes}"` : '-'}
+                    </td>
                     <td style={{ padding: '0.75rem' }}>
                       <span style={{
                         color: app.status === 'Completed' ? '#22c55e' : app.status === 'Cancelled' ? '#ef4444' : '#3b82f6',

@@ -4,7 +4,7 @@ import Navbar from './components/Navbar';
 import DashboardLayout from './components/DashboardLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './context/AuthContext';
-import { useHospital } from './context/HospitalContext';
+import RequireHospital from './components/RequireHospital';
 
 // Pages
 const Onboarding = lazy(() => import('./pages/Onboarding'));
@@ -27,6 +27,7 @@ const PatientChatbot = lazy(() => import('./pages/patient/PatientChatbot'));
 
 const HospitalsPage = lazy(() => import('./pages/patient/HospitalsPage'));
 const HospitalSpecializationsPage = lazy(() => import('./pages/patient/HospitalSpecializationsPage'));
+const HospitalCategoryDoctorsPage = lazy(() => import('./pages/patient/HospitalCategoryDoctorsPage'));
 const SelectHospitalPage = lazy(() => import('./pages/patient/SelectHospitalPage'));
 
 const DoctorDashboard = lazy(() => import('./pages/doctor/DoctorDashboard'));
@@ -43,36 +44,30 @@ const AppointmentsManagement = lazy(() => import('./pages/admin/AppointmentsMana
 const TransactionsManagement = lazy(() => import('./pages/admin/TransactionsManagement'));
 const ReportsManagement = lazy(() => import('./pages/admin/ReportsManagement'));
 
-// Guard: patients without a hospital selection are redirected to select-hospital
-const RequireHospital = ({ children }) => {
-  const { selectedHospital } = useHospital();
-  if (!selectedHospital) {
-    return <Navigate to="/patient/select-hospital" replace />;
-  }
-  return children;
-};
-
 const PatientLayout = () => (
   <DashboardLayout>
     <Routes>
       <Route path="select-hospital" element={<SelectHospitalPage />} />
-      <Route index element={<RequireHospital><PatientDashboard /></RequireHospital>} />
-      <Route path="dashboard" element={<RequireHospital><PatientDashboard /></RequireHospital>} />
-      <Route path="doctors" element={<RequireHospital><CategoriesPage /></RequireHospital>} />
-      <Route path="category/:categoryId" element={<RequireHospital><DoctorListing /></RequireHospital>} />
-      <Route path="hospitals" element={<RequireHospital><HospitalsPage /></RequireHospital>} />
-      <Route path="hospital/:hospitalId" element={<RequireHospital><HospitalSpecializationsPage /></RequireHospital>} />
-      <Route path="hospital/:hospitalId/doctors" element={<RequireHospital><DoctorListing /></RequireHospital>} />
-      <Route path="doctor/:doctorId" element={<RequireHospital><DoctorProfile /></RequireHospital>} />
-      <Route path="appointments" element={<RequireHospital><Appointments /></RequireHospital>} />
-      <Route path="reports" element={<RequireHospital><Reports /></RequireHospital>} />
-      <Route path="patient-reports" element={<RequireHospital><PatientReports /></RequireHospital>} />
-      <Route path="locker" element={<RequireHospital><DocumentLocker /></RequireHospital>} />
-      <Route path="chatbot" element={<RequireHospital><PatientChatbot /></RequireHospital>} />
-      <Route path="*" element={<Navigate to="/patient/select-hospital" replace />} />
-    </Routes >
-  </DashboardLayout >
+      <Route index element={<PatientDashboard />} />
+      <Route path="dashboard" element={<PatientDashboard />} />
+      <Route path="doctors" element={<CategoriesPage />} />
+      <Route path="category/:categoryId" element={<DoctorListing />} />
+      <Route path="hospitals" element={<HospitalsPage />} />
+      <Route path="hospital/:hospitalId" element={<HospitalSpecializationsPage />} />
+      <Route path="hospital/:hospitalId/category/:categoryId/doctors" element={<HospitalCategoryDoctorsPage />} />
+      <Route path="hospital/:hospitalId/doctors" element={<DoctorListing />} />
+      <Route path="doctor/:doctorId" element={<DoctorProfile />} />
+      <Route path="appointments" element={<Appointments />} />
+      <Route path="reports" element={<Reports />} />
+      <Route path="patient-reports" element={<PatientReports />} />
+      <Route path="locker" element={<DocumentLocker />} />
+      <Route path="chatbot" element={<PatientChatbot />} />
+      <Route path="*" element={<Navigate to="/patient/dashboard" replace />} />
+    </Routes>
+  </DashboardLayout>
 );
+
+
 
 const DoctorLayout = () => (
   <DashboardLayout>

@@ -13,9 +13,6 @@ export const AuthProvider = ({ children }) => {
   const [userProfile, setUserProfile] = useState(JSON.parse(localStorage.getItem('userProfile')));
 
   const login = (userData) => {
-    // Clear any previous hospital data when a new user logs in
-    clearHospital();
-
     const { token, user } = userData;
     localStorage.setItem('token', token);
     localStorage.setItem('userRole', user.role);

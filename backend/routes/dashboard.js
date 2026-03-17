@@ -26,13 +26,26 @@ router.get('/patient', authenticateToken, async (req, res) => {
 
         res.json({
             upcomingAppointment: upcoming[0] || null,
-            categories: categories.map((c) => ({ id: c.id, name: c.name, icon: 'FiActivity' }))
         });
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: err.message || 'Server error fetching dashboard data' });
     }
 });
+
+// Get medical categories (all active ones, regardless of hospital/doctors)
+router.get('/categories', authenticateToken, async (req, res) => {
+    try {
+        const [categories] = await db.execute(
+            'SELECT id, name, description FROM medical_categories WHERE status = "Active" ORDER BY name ASC LIMIT 20'
+        );
+        res.json(categories.map(c => ({ id: c.id, name: c.name, description: c.description })));
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: err.message || 'Server error fetching categories' });
+    }
+});
+
 
 // Get doctor dashboard stats
 router.get('/doctor', authenticateToken, async (req, res) => {

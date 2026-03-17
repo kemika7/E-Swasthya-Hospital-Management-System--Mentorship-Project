@@ -93,15 +93,14 @@ router.get('/hospitals', async (req, res) => {
     }
 });
 
-// Get unique specializations for a hospital's doctors
+// Get all active specializations (used for display in hospital details)
 router.get('/hospitals/:hospitalId/specializations', async (req, res) => {
     try {
         const [rows] = await db.execute(
-            `SELECT DISTINCT d.specialization 
-             FROM doctors d 
-             WHERE d.hospital_id = ? AND d.specialization IS NOT NULL
-             ORDER BY d.specialization`,
-            [req.params.hospitalId]
+            `SELECT DISTINCT name as specialization 
+             FROM specialties 
+             WHERE status = 'Active'
+             ORDER BY name`
         );
         res.json(rows.map(r => r.specialization));
     } catch (err) {
@@ -113,21 +112,26 @@ router.get('/hospitals/:hospitalId/specializations', async (req, res) => {
 // Get doctors for a hospital (optionally filtered by specialization)
 router.get('/hospitals/:hospitalId/doctors', async (req, res) => {
     try {
-        const { specialization } = req.query;
+        const { hospitalId } = req.params;
+        const { spec, specialization } = req.query;
+        const targetSpec = spec || specialization;
+        
         let query = `
-            SELECT d.*, u.name as doctor_name, u.email,
-                   s.name as specialty_name, h.name as hospital_name
-            FROM doctors d
+            SELECT d.*, u.name as doctor_name, u.email, u.phone,
+                   s.name as specialty_name, c.name as category_name,
+                   h.name as hospital_name
+            FROM doctors d 
             JOIN users u ON d.user_id = u.id
             LEFT JOIN specialties s ON d.specialty_id = s.id
+            LEFT JOIN medical_categories c ON s.category_id = c.id
             LEFT JOIN hospitals h ON d.hospital_id = h.id
             WHERE d.hospital_id = ?
         `;
-        const params = [req.params.hospitalId];
+        const params = [hospitalId];
 
-        if (specialization) {
+        if (targetSpec) {
             query += ' AND d.specialization = ?';
-            params.push(specialization);
+            params.push(targetSpec);
         }
 
         query += ' ORDER BY u.name';
@@ -138,6 +142,7 @@ router.get('/hospitals/:hospitalId/doctors', async (req, res) => {
         res.status(500).json({ message: 'Server error fetching hospital doctors' });
     }
 });
+
 // ─── Logged-in Doctor Profile & Requests ────────────────────────────
 
 // Get logged in doctor profile
@@ -391,15 +396,24 @@ router.put('/admin/requests/:id', authenticateToken, async (req, res) => {
 // Get doctor availability for a specific date
 router.get('/:id/availability', async (req, res) => {
     try {
+        const doctorId = req.params.id;
         const { date } = req.query;
-        if (!date) return res.status(400).json({ message: 'Date is required' });
 
-        const [rows] = await db.execute('SELECT availability, unavailable_dates FROM doctors WHERE id = ?', [req.params.id]);
-        if (rows.length === 0) {
+        if (!date) {
+            return res.status(400).json({ message: 'Date parameter is required' });
+        }
+
+        // 1. Fetch doctor's base availability and unavailable dates
+        const [doctorRows] = await db.execute(
+            'SELECT availability, unavailable_dates FROM doctors WHERE id = ?',
+            [doctorId]
+        );
+
+        if (doctorRows.length === 0) {
             return res.status(404).json({ message: 'Doctor not found' });
         }
 
-        const doctor = rows[0];
+        const doctor = doctorRows[0];
         // Default availability if null: all weekdays, standard slots
         const defaultAvailability = {
             days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
@@ -422,7 +436,7 @@ router.get('/:id/availability', async (req, res) => {
         if (!availability.days) availability.days = defaultAvailability.days;
         if (!availability.timeSlots) availability.timeSlots = defaultAvailability.timeSlots;
 
-        // 1. Check if doctor is on leave
+        // 2. Check if doctor is on leave
         if (unavailableDates.includes(date)) {
             return res.json({ 
                 available: false, 
@@ -432,9 +446,9 @@ router.get('/:id/availability', async (req, res) => {
             });
         }
 
-        // 2. Check if weekday is scheduled
+        // 3. Check if weekday is scheduled
         const dayName = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date(date));
-        if (!availability.days.includes(dayName)) {
+        if (!availability.days || !availability.days.includes(dayName)) {
             return res.json({ 
                 available: false, 
                 message: `Doctor is not scheduled for ${dayName}s`, 
@@ -443,41 +457,66 @@ router.get('/:id/availability', async (req, res) => {
             });
         }
 
-        // 3. Handle specific date exceptions (if any)
-        let slots = availability.timeSlots;
+        // 4. Handle specific date exceptions (if any)
+        let scheduledSlots = availability.timeSlots;
         if (availability.exceptions && availability.exceptions[date]) {
-            slots = availability.exceptions[date];
+            scheduledSlots = availability.exceptions[date];
         }
 
-        // 4. Filter out already booked slots
-        const [bookedAppointments] = await db.execute(
+        // 5. Fetch existing appointments for this doctor on this date
+        const [appointments] = await db.execute(
             'SELECT time FROM appointments WHERE doctor_id = ? AND date = ? AND status != "Cancelled"',
-            [req.params.id, date]
+            [doctorId, date]
         );
-        
-        const bookedTimes = bookedAppointments.map(a => a.time.substring(0, 5));
 
-        const availableSlots = slots.filter(slot => {
-            const slotTime24 = slot.includes('AM') || slot.includes('PM') 
-                ? convertTo24Hour(slot).substring(0, 5) 
-                : slot.substring(0, 5);
-            return !bookedTimes.includes(slotTime24);
+        const bookedTimes = appointments.map(a => a.time.substring(0, 5));
+
+        const convertToHHmm = (timeStr) => {
+            if (!timeStr) return "";
+            if (timeStr.includes('AM') || timeStr.includes('PM')) {
+                const [time, modifier] = timeStr.split(' ');
+                let [hours, minutes] = time.split(':');
+                if (hours === '12') hours = '00';
+                if (modifier === 'PM' && hours !== '12') {
+                    hours = parseInt(hours, 10) + 12;
+                }
+                return `${String(hours).padStart(2, '0')}:${minutes}`;
+            }
+            return timeStr.substring(0, 5);
+        };
+
+        let availableSlots = scheduledSlots.filter(slot => {
+            const slotHHmm = convertToHHmm(slot);
+            return !bookedTimes.includes(slotHHmm);
         });
+
+        // 6. If date is today, filter out past slots
+        const now = new Date();
+        const todayStr = now.toISOString().split('T')[0];
+        
+        if (date === todayStr) {
+            availableSlots = availableSlots.filter(slot => {
+                const slotTimeStr = convertToHHmm(slot); // "HH:mm"
+                const [hours, minutes] = slotTimeStr.split(':').map(Number);
+                const slotDateTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
+                return slotDateTime > now;
+            });
+        }
 
         res.json({
             available: availableSlots.length > 0,
             slots: availableSlots,
-            allDaySlots: availability.timeSlots
+            allDaySlots: scheduledSlots
         });
+
     } catch (err) {
         console.error('[AVAILABILITY FETCH ERROR]', err);
-        res.status(500).json({ message: 'Server error fetching availability' });
+        res.status(500).json({ message: 'Error checking availability' });
     }
 });
 
 // Get specific doctor profile
-router.get('/:id', async (req, res) => {
-    try {
+router.get('/:id', async (req, res) => {    try {
         const [doctor] = await db.execute(`
             SELECT d.*, u.name as doctor_name, u.email, 
                    s.name as specialty_name, c.name as category_name,
@@ -512,11 +551,6 @@ function convertTo24Hour(timeStr) {
     }
     return `${String(hours).padStart(2, '0')}:${minutes}:00`;
 }
-
-
-
-
-
 // Create doctor (Admin only)
 router.post('/', authenticateToken, async (req, res) => {
     try {

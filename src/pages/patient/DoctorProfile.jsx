@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
   FiArrowLeft,
   FiMapPin,
@@ -15,10 +15,13 @@ import {
 } from 'react-icons/fi';
 import { apiFetch } from '../../services/apiClient';
 import { useAppointment } from '../../context/AppointmentContext';
+import { useHospital } from '../../context/HospitalContext';
 
 const DoctorProfile = () => {
   const { doctorId } = useParams();
   const navigate = useNavigate();
+  const { selectedHospital } = useHospital();
+  const location = useLocation();
   const { updateAppointmentDetails, bookAppointment, appointments } = useAppointment();
 
   const [doctor, setDoctor] = useState(null);
@@ -130,6 +133,12 @@ const DoctorProfile = () => {
   };
 
   const handleConfirmBooking = async () => {
+    if (!selectedHospital) {
+      if (window.confirm('Please select a hospital from the Hospital section first. Would you like to go there now?')) {
+        navigate('/patient/hospitals', { state: { from: location } });
+      }
+      return;
+    }
     const convertTo24Hour = (timeStr) => {
       const [time, modifier] = timeStr.split(' ');
       let [hours, minutes] = time.split(':');

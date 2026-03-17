@@ -117,141 +117,155 @@ const HospitalsPage = () => {
       ) : (
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-          gap: '1rem',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+          gap: '1.5rem',
         }}>
           {filtered.map((hospital, idx) => {
             const color = HOSPITAL_COLORS[idx % HOSPITAL_COLORS.length];
             const icon = HOSPITAL_ICONS[idx % HOSPITAL_ICONS.length];
-            const typeStyle = TYPE_STYLES[hospital.type] || TYPE_STYLES.Private;
             const isHovered = hoveredId === hospital.id;
 
             return (
               <div
                 key={hospital.id}
-                onClick={() => navigate(`/patient/hospital/${hospital.id}`)}
                 onMouseEnter={() => setHoveredId(hospital.id)}
                 onMouseLeave={() => setHoveredId(null)}
                 style={{
                   backgroundColor: 'var(--white)',
-                  borderRadius: 16,
-                  padding: '1.2rem',
-                  cursor: 'pointer',
+                  borderRadius: 24,
+                  padding: '1.5rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '1.25rem',
                   boxShadow: isHovered
-                    ? `0 8px 30px ${color}25`
-                    : '0 2px 8px rgba(0,0,0,0.04)',
-                  border: `1px solid ${isHovered ? color + '40' : '#f1f5f9'}`,
+                    ? '0 12px 24px rgba(0,0,0,0.06)'
+                    : '0 4px 12px rgba(0,0,0,0.03)',
+                  border: '1px solid',
+                  borderColor: selectedHospital?.id === hospital.id ? 'var(--primary)' : '#f1f5f9',
                   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  transform: isHovered ? 'translateY(-4px)' : 'none',
-                  position: 'relative',
-                  overflow: 'hidden',
+                  transform: isHovered ? 'translateY(-6px)' : 'none',
+                  cursor: 'default'
                 }}
               >
-                {/* Accent bar */}
-                <div style={{
-                  position: 'absolute', top: 0, left: 0, right: 0, height: 3,
-                  background: `linear-gradient(90deg, ${color}, ${color}88)`,
-                  opacity: isHovered ? 1 : 0,
-                  transition: 'opacity 0.3s',
-                }} />
-
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-                  {/* Icon */}
+                {/* Visual Header / Icon area */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                   <div style={{
-                    width: 52, height: 52, borderRadius: 14,
+                    width: 60, height: 60, borderRadius: 16,
                     background: `${color}12`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '1.5rem', flexShrink: 0,
-                    transition: 'transform 0.3s',
-                    transform: isHovered ? 'scale(1.1)' : 'scale(1)',
+                    fontSize: '1.8rem', flexShrink: 0
                   }}>
                     {icon}
                   </div>
-
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
-                      <h3 style={{
-                        fontSize: '0.95rem', fontWeight: 600,
-                        color: 'var(--text)', marginBottom: '0.3rem',
-                        lineHeight: 1.3,
-                      }}>
-                        {hospital.name}
-                      </h3>
-                      <span style={{
-                        fontSize: '0.7rem', fontWeight: 600,
-                        padding: '0.15rem 0.5rem', borderRadius: 6,
-                        backgroundColor: typeStyle.bg, color: typeStyle.color,
-                        whiteSpace: 'nowrap', flexShrink: 0,
-                      }}>
-                        {typeStyle.label}
-                      </span>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.4rem' }}>
-                      <FiMapPin size={13} color="#94a3b8" />
-                      <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{hospital.location}</span>
-                    </div>
-
-                    {hospital.phone && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', marginBottom: '0.5rem' }}>
-                        <FiPhone size={12} color="#94a3b8" />
-                        <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>{hospital.phone}</span>
-                      </div>
-                    )}
-
-                    <p style={{
-                      fontSize: '0.78rem', color: '#94a3b8',
-                      lineHeight: 1.4, margin: 0,
-                      display: '-webkit-box', WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                    <h2 style={{
+                      fontSize: '1.2rem',
+                      fontWeight: 800,
+                      color: '#0f172a',
+                      marginBottom: '0.2rem',
+                      lineHeight: 1.3
                     }}>
-                      {hospital.description}
-                    </p>
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedHospital({ id: hospital.id, name: hospital.name });
-                      }}
-                      style={{
-                        width: '100%',
-                        padding: '0.6rem',
-                        borderRadius: 10,
-                        backgroundColor: selectedHospital?.id === hospital.id ? 'var(--primary)' : 'rgba(82,178,191,0.1)',
-                        color: selectedHospital?.id === hospital.id ? 'var(--white)' : 'var(--primary)',
-                        border: 'none',
-                        fontSize: '0.85rem',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '0.4rem',
-                        transition: 'all 0.2s',
-                      }}
-                    >
-                      {selectedHospital?.id === hospital.id ? (
-                        <>
-                          <FiCheckCircle size={14} /> Selected
-                        </>
-                      ) : (
-                        'Select as My Hospital'
-                      )}
-                    </button>
+                      {hospital.name}
+                    </h2>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                      <span style={{
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        color: '#64748b',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.02em'
+                      }}>
+                        {hospital.type || 'Private'}
+                      </span>
+                      <span style={{ width: 4, height: 4, borderRadius: '50%', backgroundColor: '#cbd5e1' }} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.8rem', color: '#64748b' }}>
+                        <FiMapPin size={12} />
+                        <span>{hospital.location}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <FiChevronRight
-                  size={18}
-                  color={isHovered ? color : '#cbd5e1'}
-                  style={{
-                    transition: 'all 0.3s',
-                    transform: isHovered ? 'translateX(3px)' : 'none',
-                    flexShrink: 0, marginTop: 4,
-                  }}
-                />
+                <div style={{ height: 1, backgroundColor: '#f1f5f9' }} />
+
+                {/* Body Content */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {hospital.phone && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: '#64748b' }}>
+                      <FiPhone size={14} style={{ color: 'var(--primary)', opacity: 0.7 }} />
+                      <span>{hospital.phone}</span>
+                    </div>
+                  )}
+                  <p style={{
+                    fontSize: '0.85rem',
+                    color: '#64748b',
+                    lineHeight: 1.5,
+                    margin: 0,
+                    display: '-webkit-box',
+                    WebkitLineClamp: 3,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden'
+                  }}>
+                    {hospital.description || 'Dedicated to providing high-quality healthcare services with modern facilities and experienced medical professionals.'}
+                  </p>
+                </div>
+
+                {/* Actions */}
+                <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  <button
+                    onClick={() => {
+                      setSelectedHospital({ id: hospital.id, name: hospital.name });
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '0.85rem',
+                      borderRadius: 14,
+                      backgroundColor: selectedHospital?.id === hospital.id ? 'var(--primary)' : 'rgba(82, 178, 191, 0.08)',
+                      color: selectedHospital?.id === hospital.id ? 'var(--white)' : 'var(--primary)',
+                      border: 'none',
+                      fontSize: '0.9rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    {selectedHospital?.id === hospital.id ? (
+                      <><FiCheckCircle size={18} /> Selected as My Hospital</>
+                    ) : (
+                      'Select as My Hospital'
+                    )}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedHospital({ id: hospital.id, name: hospital.name });
+                      navigate(`/patient/hospital/${hospital.id}`);
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      backgroundColor: 'transparent',
+                      color: '#64748b',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: 14,
+                      fontSize: '0.85rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.4rem',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#f8fafc'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
+                    onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.borderColor = '#e2e8f0'; }}
+                  >
+                    View Details <FiChevronRight size={14} />
+                  </button>
+                </div>
               </div>
             );
           })}

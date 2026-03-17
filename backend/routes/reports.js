@@ -35,6 +35,7 @@ const upload = multer({
   limits: { fileSize: 20 * 1024 * 1024 } // 20MB limit
 });
 
+<<<<<<< HEAD
 // ─── Local auth shim (for existing admin routes that use their own inline auth) ─
 const auth = (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -61,6 +62,117 @@ const isAdmin = (req, res, next) => {
     res.status(403).json({ message: 'Forbidden: Admin only' });
   }
 };
+=======
+// ════════════════════════════════════════════════════════════════════════════
+// NEW PATIENT REPORTS FEATURE
+// ════════════════════════════════════════════════════════════════════════════
+
+// POST /api/reports/upload-report  → Patient uploads a PDF report
+router.post('/upload-report', authenticateToken, authorizeRoles('patient'), upload.single('report'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded or file is not a valid PDF.' });
+    }
+
+    const patientId = req.user.roleId;
+    const fileName = req.file.originalname;
+    const filePath = '/uploads/reports/' + path.basename(req.file.path);
+
+    const [result] = await db.execute(
+      'INSERT INTO patient_reports (patient_id, file_name, file_path) VALUES (?, ?, ?)',
+      [patientId, fileName, filePath]
+    );
+
+    res.status(201).json({
+      message: 'Report uploaded successfully',
+      report: {
+        id: result.insertId,
+        file_name: fileName,
+        file_path: filePath,
+        uploaded_at: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    console.error('Upload patient report error:', error);
+    res.status(500).json({ message: 'Server error uploading report' });
+  }
+});
+
+// Multer error handler for this router
+router.use((err, req, res, next) => {
+  if (err && err.message === 'Only PDF files are allowed') {
+    return res.status(400).json({ message: 'Only PDF files are allowed. Please upload a valid PDF.' });
+  }
+  next(err);
+});
+
+// GET /api/reports/my-patient-reports  → Patient fetches their own reports
+router.get('/my-patient-reports', authenticateToken, authorizeRoles('patient'), async (req, res) => {
+  try {
+    const patientId = req.user.roleId;
+    const [rows] = await db.execute(
+      'SELECT * FROM patient_reports WHERE patient_id = ? ORDER BY uploaded_at DESC',
+      [patientId]
+    );
+    res.json(rows);
+  } catch (error) {
+    console.error('Fetch my patient reports error:', error);
+    res.status(500).json({ message: 'Server error fetching reports' });
+  }
+});
+
+// GET /api/reports/patient-reports/:patientId  → Doctor fetches a patient's reports
+router.get('/patient-reports/:patientId', authenticateToken, authorizeRoles('doctor'), async (req, res) => {
+  try {
+    const doctorId = req.user.roleId;
+    const { patientId } = req.params;
+
+    // Access control: doctor must have at least one appointment with this patient
+    const [assigned] = await db.execute(
+      'SELECT 1 FROM appointments WHERE doctor_id = ? AND patient_id = ? LIMIT 1',
+      [doctorId, patientId]
+    );
+
+    if (assigned.length === 0) {
+      return res.status(403).json({ message: 'Access denied: Patient is not assigned to you.' });
+    }
+
+    const [rows] = await db.execute(
+      'SELECT * FROM patient_reports WHERE patient_id = ? ORDER BY uploaded_at DESC',
+      [patientId]
+    );
+
+    res.json(rows);
+  } catch (error) {
+    console.error('Fetch patient reports (doctor) error:', error);
+    res.status(500).json({ message: 'Server error fetching patient reports' });
+  }
+});
+
+// GET /api/reports/my-patients  → Doctor fetches their assigned patients (for dropdown)
+router.get('/my-patients', authenticateToken, authorizeRoles('doctor'), async (req, res) => {
+  try {
+    const doctorId = req.user.roleId;
+    const [rows] = await db.execute(
+      `SELECT DISTINCT p.patient_id as id, p.name, p.email
+       FROM patients p
+       JOIN appointments a ON p.patient_id = a.patient_id
+       WHERE a.doctor_id = ?
+       ORDER BY p.name ASC`,
+      [doctorId]
+    );
+
+    res.json(rows);
+  } catch (error) {
+    console.error('Fetch my-patients error:', error);
+    res.status(500).json({ message: 'Server error fetching patients' });
+  }
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// EXISTING ADMIN REPORT ROUTES (unchanged)
+// ════════════════════════════════════════════════════════════════════════════
+>>>>>>> 7a318fb (Add chatbot feature)
 
 // 1. GET /api/reports/my-report - Get report status for logged-in patient
 router.get('/my-report', authenticateToken, async (req, res) => {

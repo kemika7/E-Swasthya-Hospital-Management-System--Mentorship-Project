@@ -111,6 +111,7 @@ router.get('/hospitals/:hospitalId/specializations', async (req, res) => {
 // Get doctors for a hospital (optionally filtered by specialization)
 router.get('/hospitals/:hospitalId/doctors', async (req, res) => {
     try {
+<<<<<<< HEAD
         const { specialization } = req.query;
         let query = `
             SELECT d.*, u.name as doctor_name, u.email,
@@ -128,6 +129,27 @@ router.get('/hospitals/:hospitalId/doctors', async (req, res) => {
         }
 
         query += ' ORDER BY u.name';
+=======
+        const { hospitalId } = req.params;
+        const { spec } = req.query;
+        
+        let query = `
+            SELECT d.*, u.name as doctor_name, u.email, u.phone,
+                   s.name as specialty_name, c.name as category_name
+            FROM doctors d 
+            JOIN users u ON d.user_id = u.id
+            LEFT JOIN specialties s ON d.specialty_id = s.id
+            LEFT JOIN medical_categories c ON s.category_id = c.id
+            WHERE d.hospital_id = ?
+        `;
+        const params = [hospitalId];
+
+        if (spec) {
+            query += ' AND d.specialization = ?';
+            params.push(spec);
+        }
+
+>>>>>>> 7a318fb (Add chatbot feature)
         const [doctors] = await db.execute(query, params);
         res.json(doctors);
     } catch (err) {
@@ -135,6 +157,10 @@ router.get('/hospitals/:hospitalId/doctors', async (req, res) => {
         res.status(500).json({ message: 'Server error fetching hospital doctors' });
     }
 });
+<<<<<<< HEAD
+=======
+
+>>>>>>> 7a318fb (Add chatbot feature)
 // ─── Logged-in Doctor Profile & Requests ────────────────────────────
 
 // Get logged in doctor profile

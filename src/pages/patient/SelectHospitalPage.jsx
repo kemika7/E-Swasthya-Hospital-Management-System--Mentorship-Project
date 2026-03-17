@@ -79,9 +79,15 @@ const SelectHospitalPage = () => {
         <h1 style={{ color: '#fff', fontSize: '1.4rem', fontWeight: 700, marginBottom: '0.3rem' }}>
           🏥 Select Your Hospital
         </h1>
+        {location.state?.from && (
+          <p style={{ color: '#fff', backgroundColor: 'rgba(255,255,255,0.2)', padding: '0.5rem 1rem', borderRadius: 8, fontSize: '0.9rem', marginBottom: '1rem' }}>
+            Please select a hospital to continue to your requested page.
+          </p>
+        )}
         <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.9rem', marginBottom: '1rem' }}>
           Please select your hospital to continue to your dashboard
         </p>
+
 
         {/* Search */}
         <div style={{

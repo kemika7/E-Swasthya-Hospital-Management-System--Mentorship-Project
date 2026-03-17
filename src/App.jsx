@@ -4,7 +4,7 @@ import Navbar from './components/Navbar';
 import DashboardLayout from './components/DashboardLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 import { useAuth } from './context/AuthContext';
-import { useHospital } from './context/HospitalContext';
+import RequireHospital from './components/RequireHospital';
 
 // Pages
 const Onboarding = lazy(() => import('./pages/Onboarding'));
@@ -56,6 +56,7 @@ const PatientLayout = () => (
   <DashboardLayout>
     <Routes>
       <Route path="select-hospital" element={<SelectHospitalPage />} />
+<<<<<<< HEAD
       <Route index element={<RequireHospital><PatientDashboard /></RequireHospital>} />
       <Route path="dashboard" element={<RequireHospital><PatientDashboard /></RequireHospital>} />
       <Route path="doctors" element={<RequireHospital><CategoriesPage /></RequireHospital>} />
@@ -72,7 +73,29 @@ const PatientLayout = () => (
       <Route path="*" element={<Navigate to="/patient/select-hospital" replace />} />
     </Routes >
   </DashboardLayout >
+=======
+      <Route index element={<PatientDashboard />} />
+      <Route path="dashboard" element={<PatientDashboard />} />
+      <Route path="hospitals" element={<HospitalsPage />} />
+      <Route path="hospital/:hospitalId" element={<HospitalSpecializationsPage />} />
+      <Route path="hospital/:hospitalId/doctors" element={<DoctorListing />} />
+      <Route path="reports" element={<Reports />} />
+      <Route path="patient-reports" element={<PatientReports />} />
+      <Route path="locker" element={<DocumentLocker />} />
+      
+      {/* Routes that strictly need a hospital context */}
+      <Route path="doctors" element={<CategoriesPage />} />
+      <Route path="category/:categoryId" element={<DoctorListing />} />
+      <Route path="doctor/:doctorId" element={<DoctorProfile />} />
+      <Route path="appointments" element={<Appointments />} />
+
+      <Route path="*" element={<Navigate to="/patient/dashboard" replace />} />
+    </Routes>
+  </DashboardLayout>
+>>>>>>> 7a318fb (Add chatbot feature)
 );
+
+
 
 const DoctorLayout = () => (
   <DashboardLayout>

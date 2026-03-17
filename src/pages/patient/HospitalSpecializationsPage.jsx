@@ -1,41 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FiArrowLeft, FiMapPin, FiPhone, FiChevronRight } from 'react-icons/fi';
+import { FiArrowLeft, FiMapPin, FiPhone } from 'react-icons/fi';
 import { apiFetch } from '../../services/apiClient';
-
-const SPEC_CONFIG = {
-  Cardiology:       { icon: '❤️', color: '#ef4444', bg: '#fef2f2' },
-  Neurology:        { icon: '🧠', color: '#8b5cf6', bg: '#f5f3ff' },
-  Orthopedics:      { icon: '🦴', color: '#f59e0b', bg: '#fffbeb' },
-  Pediatrics:       { icon: '👶', color: '#ec4899', bg: '#fdf2f8' },
-  Dermatology:      { icon: '🧴', color: '#14b8a6', bg: '#f0fdfa' },
-  Gynecology:       { icon: '🤰', color: '#e11d48', bg: '#fff1f2' },
-  Ophthalmology:    { icon: '👁️', color: '#06b6d4', bg: '#ecfeff' },
-  ENT:              { icon: '👂', color: '#6366f1', bg: '#eef2ff' },
-  Gastroenterology: { icon: '🫁', color: '#22c55e', bg: '#f0fdf4' },
-  Pulmonology:      { icon: '🌬️', color: '#3b82f6', bg: '#eff6ff' },
-};
-
-const DEFAULT_SPEC = { icon: '⚕️', color: '#64748b', bg: '#f8fafc' };
+import DoctorCategories from '../../components/DoctorCategories';
 
 const HospitalSpecializationsPage = () => {
   const { hospitalId } = useParams();
   const navigate = useNavigate();
   const [hospital, setHospital] = useState(null);
-  const [specializations, setSpecializations] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [hoveredSpec, setHoveredSpec] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [hospitals, specs] = await Promise.all([
-          apiFetch('/doctors/hospitals'),
-          apiFetch(`/doctors/hospitals/${hospitalId}/specializations`),
-        ]);
-        const found = hospitals.find(h => String(h.id) === String(hospitalId));
+        const data = await apiFetch('/doctors/hospitals');
+        const found = data.find(h => String(h.id) === String(hospitalId));
         setHospital(found || null);
-        setSpecializations(specs);
       } catch (err) {
         console.error('Failed to fetch hospital data:', err);
       } finally {
@@ -120,87 +100,17 @@ const HospitalSpecializationsPage = () => {
       {/* Section Title */}
       <div style={{ marginBottom: '1rem', paddingLeft: '0.2rem' }}>
         <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text)', marginBottom: '0.2rem' }}>
-          Choose a Specialization
+          Doctor Categories
         </h2>
         <p style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
-          {specializations.length} specializations available
+          Select a category to view available doctors
         </p>
       </div>
 
-      {/* Specialization Cards Grid */}
-      {specializations.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
-          <p style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🩺</p>
-          <p>No specializations found for this hospital.</p>
-        </div>
-      ) : (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-          gap: '0.8rem',
-        }}>
-          {specializations.map((spec, idx) => {
-            const config = SPEC_CONFIG[spec] || DEFAULT_SPEC;
-            const isHovered = hoveredSpec === spec;
-
-            return (
-              <div
-                key={spec}
-                onClick={() => navigate(`/patient/hospital/${hospitalId}/doctors?spec=${encodeURIComponent(spec)}`)}
-                onMouseEnter={() => setHoveredSpec(spec)}
-                onMouseLeave={() => setHoveredSpec(null)}
-                style={{
-                  backgroundColor: 'var(--white)',
-                  borderRadius: 16,
-                  padding: '1.2rem',
-                  cursor: 'pointer',
-                  boxShadow: isHovered
-                    ? `0 8px 25px ${config.color}20`
-                    : '0 2px 8px rgba(0,0,0,0.04)',
-                  border: `1px solid ${isHovered ? config.color + '30' : '#f1f5f9'}`,
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  transform: isHovered ? 'translateY(-3px)' : 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '1rem',
-                }}
-              >
-                <div style={{
-                  width: 52, height: 52, borderRadius: 14,
-                  background: config.bg,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '1.5rem', flexShrink: 0,
-                  transition: 'transform 0.3s',
-                  transform: isHovered ? 'scale(1.1) rotate(5deg)' : 'scale(1)',
-                }}>
-                  {config.icon}
-                </div>
-
-                <div style={{ flex: 1 }}>
-                  <h3 style={{
-                    fontSize: '0.95rem', fontWeight: 600,
-                    color: 'var(--text)', marginBottom: '0.15rem',
-                  }}>
-                    {spec}
-                  </h3>
-                  <p style={{ fontSize: '0.78rem', color: '#94a3b8', margin: 0 }}>
-                    View doctors
-                  </p>
-                </div>
-
-                <FiChevronRight
-                  size={18}
-                  color={isHovered ? config.color : '#cbd5e1'}
-                  style={{
-                    transition: 'all 0.3s',
-                    transform: isHovered ? 'translateX(3px)' : 'none',
-                  }}
-                />
-              </div>
-            );
-          })}
-        </div>
-      )}
+      <DoctorCategories
+        hospitalId={hospitalId}
+        hospitalName={hospital?.name}
+      />
 
       {/* View All Doctors Button */}
       <div style={{ marginTop: '1.5rem' }}>

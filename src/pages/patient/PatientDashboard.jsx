@@ -21,6 +21,8 @@ import {
   FiBriefcase,
   FiBookOpen,
   FiAlertTriangle,
+  FiMapPin,
+  FiCheckCircle,
 } from 'react-icons/fi';
 import {
   MdLocalHospital,
@@ -45,6 +47,7 @@ import { GiStomach } from 'react-icons/gi';
 import { useAuth } from '../../context/AuthContext';
 import { useHospital } from '../../context/HospitalContext';
 import ErrorDisplay from '../../components/ErrorDisplay';
+import DoctorCategories from '../../components/DoctorCategories';
 
 
 // Map icon strings to components
@@ -83,7 +86,7 @@ const iconMap = {
 
 const PatientDashboard = () => {
   const { userProfile } = useAuth();
-  const { selectedHospital } = useHospital();
+  const { selectedHospital, setSelectedHospital } = useHospital();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -102,6 +105,8 @@ const PatientDashboard = () => {
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [bookingDetails, setBookingDetails] = useState({ date: '', time: '' });
   const [isBookingSubmitting, setIsBookingSubmitting] = useState(false);
+  const [hospitals, setHospitals] = useState([]);
+  const [isHospitalSelectorOpen, setIsHospitalSelectorOpen] = useState(false);
 
   const fetchDashboard = async () => {
     setDashboardError(null);
@@ -139,6 +144,16 @@ const PatientDashboard = () => {
 
   useEffect(() => {
     fetchDashboard();
+    const fetchHospitals = async () => {
+      try {
+        const { apiFetch } = await import('../../services/apiClient');
+        const data = await apiFetch('/doctors/hospitals');
+        setHospitals(data);
+      } catch (err) {
+        console.error('Failed to fetch hospitals:', err);
+      }
+    };
+    fetchHospitals();
   }, []);
 
   useEffect(() => {
@@ -156,6 +171,12 @@ const PatientDashboard = () => {
 
   const handleBookAppointment = async (e) => {
     e.preventDefault();
+    if (!selectedHospital) {
+      if (window.confirm('Please select a hospital to book an appointment. Would you like to select one now?')) {
+        navigate('/patient/select-hospital', { state: { from: location } });
+      }
+      return;
+    }
     if (!bookingDetails.date || !bookingDetails.time) {
       alert('Please select both date and time');
       return;
@@ -229,93 +250,141 @@ const PatientDashboard = () => {
         </button>
       </div>
 
-      {/* UPCOMING APPOINTMENTS SECTION */}
-      <div>
-        {dashboardError && (
-          <div style={{ marginBottom: '1.5rem' }}>
-            <ErrorDisplay 
-              message={`Failed to load dashboard data: ${dashboardError}`} 
-              onRetry={fetchDashboard} 
-            />
+      {/* TOP ROW: Appointments & Tracker */}
+      <div style={{ 
+        display: 'flex', 
+        gap: 'var(--space-lg)', 
+        flexWrap: 'wrap',
+        alignItems: 'stretch'
+      }}>
+        {/* UPCOMING APPOINTMENTS SECTION */}
+        <div style={{ flex: '1 1 400px' }}>
+          {dashboardError && (
+            <div style={{ marginBottom: '1.5rem' }}>
+              <ErrorDisplay 
+                message={`Failed to load dashboard data: ${dashboardError}`} 
+                onRetry={fetchDashboard} 
+              />
+            </div>
+          )}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-sm)' }}>
+            <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text)' }}>Upcoming Appointments</h2>
+            <button onClick={() => navigate('/patient/appointments')} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 600, cursor: 'pointer', fontSize: '0.85rem' }}>
+              View Schedule
+            </button>
           </div>
-        )}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-sm)' }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text)' }}>Upcoming Appointments</h2>
-          <button onClick={() => navigate('/patient/appointments')} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 600, cursor: 'pointer', fontSize: '0.9rem' }}>
-            View Schedule
-          </button>
-        </div>
 
-        {dashboardData.upcomingAppointment ? (
-          <div style={{ width: '100%', backgroundColor: 'var(--primary)', borderRadius: 16, padding: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div style={{ width: 64, height: 64, borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <FiUser size={32} style={{ color: 'var(--white)' }} />
+          {dashboardData.upcomingAppointment ? (
+            <div style={{ width: '100%', height: 'calc(100% - 2.5rem)', backgroundColor: 'var(--primary)', borderRadius: 20, padding: '1.25rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
+                <div style={{ width: 56, height: 56, borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <FiUser size={28} style={{ color: 'var(--white)' }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--white)', marginBottom: '0.2rem' }}>{dashboardData.upcomingAppointment.doctorName}</div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--white)', opacity: 0.85 }}>{dashboardData.upcomingAppointment.specialty}</div>
+                </div>
               </div>
-              <div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--white)', marginBottom: '0.25rem' }}>{dashboardData.upcomingAppointment.doctorName}</div>
-                <div style={{ fontSize: '0.9rem', color: 'var(--white)', opacity: 0.9 }}>{dashboardData.upcomingAppointment.specialty}</div>
+              <div style={{ backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 14, padding: '0.8rem 1rem', display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <FiCalendar size={15} style={{ color: 'var(--white)' }} />
+                  <span style={{ fontSize: '0.85rem', color: 'var(--white)', fontWeight: 500 }}>{formatDate(dashboardData.upcomingAppointment.date)}</span>
+                </div>
+                <div style={{ width: 1, height: 16, backgroundColor: 'rgba(255,255,255,0.2)' }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <FiClock size={15} style={{ color: 'var(--white)' }} />
+                  <span style={{ fontSize: '0.85rem', color: 'var(--white)', fontWeight: 500 }}>{formatTime(dashboardData.upcomingAppointment.time)}</span>
+                </div>
               </div>
             </div>
-            <div style={{ backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 12, padding: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <FiCalendar size={16} style={{ color: 'var(--white)' }} />
-                <span style={{ fontSize: '0.85rem', color: 'var(--white)' }}>{formatDate(dashboardData.upcomingAppointment.date)}</span>
+          ) : (
+            <div style={{ height: 'calc(100% - 2.5rem)', padding: '2rem', textAlign: 'center', backgroundColor: '#f8fafc', border: '2px dashed #e2e8f0', borderRadius: 20, color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+              <FiCalendar size={24} style={{ marginBottom: '0.5rem', opacity: 0.5 }} />
+              <span style={{ fontSize: '0.9rem' }}>No upcoming appointments.</span>
+            </div>
+          )}
+        </div>
+
+        {/* HEALTH TRACKER QUICK ACCESS */}
+        <div style={{ flex: '1 1 300px' }}>
+          <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text)', marginBottom: 'var(--space-sm)' }}>Health Overview</h2>
+          <div 
+            onClick={() => navigate('/patient/reports')}
+            style={{ 
+              height: 'calc(100% - 2.5rem)', padding: '1.5rem', backgroundColor: 'var(--white)', borderRadius: 20,
+              boxShadow: '0 4px 20px rgba(0,0,0,0.03)', cursor: 'pointer', border: '1px solid #f1f5f9',
+              display: 'flex', flexDirection: 'column', gap: '1rem', transition: 'all 0.3s ease',
+              justifyContent: 'center'
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 24px rgba(0,0,0,0.06)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.03)'; }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <div style={{ width: 50, height: 50, borderRadius: 14, backgroundColor: 'rgba(82,178,191,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
+                <FiActivity size={24} />
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <FiClock size={16} style={{ color: 'var(--white)' }} />
-                <span style={{ fontSize: '0.85rem', color: 'var(--white)' }}>{formatTime(dashboardData.upcomingAppointment.time)}</span>
+              <div style={{ flex: 1 }}>
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#0f172a' }}>Personal Health Tracker</h3>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b', marginTop: '0.2rem' }}>Monitor vitals & daily habits</p>
               </div>
             </div>
-          </div>
-        ) : (
-          <div style={{ padding: '2rem', textAlign: 'center', backgroundColor: 'rgba(148,163,184,0.1)', borderRadius: 16, color: 'var(--text-secondary)' }}>
-            No upcoming appointments found.
-          </div>
-        )}
-      </div>
+            
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: '1fr 1fr', 
+              gap: '0.8rem',
+              marginTop: '0.5rem'
+            }}>
+              <div style={{ padding: '0.6rem', borderRadius: 12, backgroundColor: '#f8fafc', border: '1px solid #f1f5f9' }}>
+                <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase' }}>Steps</div>
+                <div style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>8,432</div>
+              </div>
+              <div style={{ padding: '0.6rem', borderRadius: 12, backgroundColor: '#f8fafc', border: '1px solid #f1f5f9' }}>
+                <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase' }}>Sleep</div>
+                <div style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>7.5h</div>
+              </div>
+            </div>
 
-      {/* HEALTH TRACKER QUICK ACCESS */}
-      <div 
-        onClick={() => navigate('/patient/reports')}
-        style={{ 
-          width: '100%', padding: '1.25rem', backgroundColor: 'var(--white)', borderRadius: 16,
-          boxShadow: 'var(--shadow-soft)', cursor: 'pointer', border: '1px solid rgba(15, 23, 42, 0.05)',
-          display: 'flex', alignItems: 'center', gap: '1rem', transition: 'transform 0.2s'
-        }}
-        onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
-        onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-      >
-        <div style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
-          <FiActivity size={24} />
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between',
+              color: 'var(--primary)',
+              fontSize: '0.85rem',
+              fontWeight: 600,
+              marginTop: '0.5rem'
+            }}>
+              <span>View full report</span>
+              <FiBriefcase size={16} />
+            </div>
+          </div>
         </div>
-        <div style={{ flex: 1 }}>
-          <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 700 }}>Health Tracker</h3>
-          <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-light)' }}>Monitor your vitals, weight, and daily habits.</p>
-        </div>
-        <div style={{ color: 'var(--primary)', fontWeight: 600, fontSize: '1.25rem' }}>→</div>
       </div>
 
       {/* CATEGORIES SECTION */}
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-sm)' }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text)' }}>Medical Categories</h2>
-          <button type="button" onClick={() => navigate('/patient/doctors')} style={{ border: 'none', background: 'transparent', color: 'var(--primary)', fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer' }}>
+          <div>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text)', marginBottom: '0.2rem' }}>Doctor Categories</h2>
+            {selectedHospital && (
+              <p style={{ fontSize: '0.8rem', color: '#94a3b8', margin: 0 }}>Specializations at {selectedHospital.name}</p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate('/patient/doctors')}
+            style={{ border: 'none', background: 'transparent', color: 'var(--primary)', fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer' }}
+          >
             See all
           </button>
         </div>
-        <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '0.5rem', scrollbarWidth: 'none', msOverflowStyle: 'none' }} onWheel={(e) => { e.currentTarget.scrollLeft += e.deltaY; }}>
-          <style>{`div::-webkit-scrollbar { display: none; }`}</style>
-          {(dashboardData.categories || []).map((category) => {
-            const IconComponent = iconMap[category.name] || iconMap[category.title] || iconMap[category.icon] || FiActivity;
-            return (
-              <div key={category.id} onClick={() => navigate(`/patient/category/${category.id}`)} style={{ minWidth: 100, width: 100, height: 100, backgroundColor: 'rgba(148,163,184,0.15)', borderRadius: 16, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                <IconComponent size={32} style={{ color: 'var(--text)' }} />
-                <div style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--text)', textAlign: 'center', padding: '0 0.5rem' }}>{category.title || category.name}</div>
-              </div>
-            );
-          })}
-        </div>
+
+        {/* DoctorCategories receives hospitalId as a prop — fully reactive */}
+        <DoctorCategories
+          hospitalId={selectedHospital?.id || null}
+          hospitalName={selectedHospital?.name || ''}
+          onSelectHospital={() => setIsHospitalSelectorOpen(true)}
+        />
       </div>
 
       {/* DOCTORS SECTION */}
@@ -326,7 +395,7 @@ const PatientDashboard = () => {
           </h2>
           <button 
             type="button" 
-            onClick={() => navigate('/patient/hospitals')} 
+            onClick={() => setIsHospitalSelectorOpen(!isHospitalSelectorOpen)} 
             className="btn btn-outline"
             style={{ 
               fontSize: '0.85rem', 
@@ -335,81 +404,242 @@ const PatientDashboard = () => {
               alignItems: 'center', 
               gap: '0.4rem',
               color: 'var(--primary)',
-              borderColor: 'var(--primary)'
+              borderColor: 'var(--primary)',
+              borderRadius: 10,
+              backgroundColor: isHospitalSelectorOpen ? 'rgba(82, 178, 191, 0.05)' : 'transparent'
             }}
           >
-            {selectedHospital ? 'Change Hospital' : 'Select Hospital'}
+            {selectedHospital ? (
+              <><MdLocalHospital size={16} /> {selectedHospital.name}</>
+            ) : (
+              'Select Hospital'
+            )}
+            <FiFilter size={14} style={{ marginLeft: '0.2rem', transform: isHospitalSelectorOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.3s' }} />
           </button>
         </div>
 
-        {doctorsError ? (
-          <ErrorDisplay 
-            message={doctorsError} 
-            onRetry={fetchDoctors} 
-            style={{ margin: '1rem 0' }}
-          />
-        ) : doctorsLoading ? (
-          <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>Loading doctors...</div>
-        ) : filteredDoctors.length > 0 ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
-            {filteredDoctors.map((doc) => (
-              <div
-                key={doc.id}
-                style={{
-                  backgroundColor: 'var(--white)', borderRadius: 16, padding: '1.25rem',
-                  boxShadow: 'var(--shadow-soft)', border: '1px solid rgba(15, 23, 42, 0.05)',
-                  transition: 'transform 0.2s', display: 'flex', flexDirection: 'column', gap: '0.75rem'
-                }}
-                onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-4px)'}
-                onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
-              >
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                  <div style={{
-                    width: 60, height: 60, borderRadius: 12, backgroundColor: 'rgba(82,178,191,0.1)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)'
-                  }}>
-                    <FiUser size={30} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text)' }}>{doc.doctor_name || doc.name}</h3>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 500 }}>{doc.specialization}</div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', backgroundColor: '#fef3c7', padding: '0.25rem 0.5rem', borderRadius: 8 }}>
-                    <FiStar size={12} fill="#f59e0b" color="#f59e0b" />
-                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#92400e' }}>{doc.rating || '4.5'}</span>
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <FiBookOpen size={14} /> <span>{doc.qualification || 'MBBS'}</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    <FiBriefcase size={14} /> <span>{doc.experience} yrs exp</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', gridColumn: 'span 2' }}>
-                    <FiPhone size={14} /> <span>{doc.phone || 'Contact Support'}</span>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => { setSelectedDoctor(doc); setIsBookingModalOpen(true); }}
+        {/* COMPACT HOSPITAL SELECTOR (COLLAPSIBLE) */}
+        {isHospitalSelectorOpen && (
+          <div style={{ 
+            backgroundColor: 'var(--primary-light)', 
+            borderRadius: 24, 
+            padding: '1.5rem', 
+            marginBottom: '1.5rem',
+            border: '2px dashed var(--primary)',
+            animation: 'fadeIn 0.3s ease'
+          }}>
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', 
+              gap: '1.25rem' 
+            }}>
+              {hospitals.map(h => (
+                <div
+                  key={h.id}
                   style={{
-                    width: '100%', padding: '0.75rem', borderRadius: 12, backgroundColor: 'var(--primary)',
-                    color: 'var(--white)', border: 'none', fontWeight: 600, cursor: 'pointer', marginTop: '0.5rem'
+                    backgroundColor: 'var(--white)',
+                    borderRadius: 18,
+                    padding: '1.25rem',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.03)',
+                    border: '1px solid',
+                    borderColor: selectedHospital?.id === h.id ? 'var(--primary)' : '#f1f5f9',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.75rem',
+                    transition: 'all 0.3s ease',
+                    position: 'relative'
                   }}
                 >
-                  Book Appointment
-                </button>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <h4 style={{ 
+                        fontSize: '1.1rem', 
+                        fontWeight: 700, 
+                        color: '#0f172a', 
+                        margin: 0,
+                        lineHeight: '1.4'
+                      }}>
+                        {h.name}
+                      </h4>
+                      <span style={{
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        padding: '0.2rem 0.5rem',
+                        borderRadius: 6,
+                        backgroundColor: h.type === 'Government' ? '#dbeafe' : '#fce7f3',
+                        color: h.type === 'Government' ? '#1e40af' : '#9d174d',
+                        textTransform: 'uppercase'
+                      }}>
+                        {h.type || 'Private'}
+                      </span>
+                    </div>
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.6rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', color: '#64748b' }}>
+                        <FiMapPin size={13} style={{ color: 'var(--primary)', opacity: 0.7 }} />
+                        <span>{h.location || 'Kathmandu, Nepal'}</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', color: '#64748b' }}>
+                        <FiPhone size={13} style={{ color: 'var(--primary)', opacity: 0.7 }} />
+                        <span>{h.phone || '+977 1-4XXXXXX'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setSelectedHospital({ id: h.id, name: h.name });
+                      setIsHospitalSelectorOpen(false);
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      borderRadius: 12,
+                      backgroundColor: selectedHospital?.id === h.id ? 'var(--primary)' : 'rgba(82, 178, 191, 0.08)',
+                      color: selectedHospital?.id === h.id ? 'var(--white)' : 'var(--primary)',
+                      border: 'none',
+                      fontSize: '0.85rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.5rem'
+                    }}
+                  >
+                    {selectedHospital?.id === h.id ? (
+                      <><FiCheckCircle size={16} /> Selected</>
+                    ) : (
+                      'Select as My Hospital'
+                    )}
+                  </button>
+                </div>
+              ))}
+              
+              {/* Add New Hospital / View All Card */}
+              <div
+                onClick={() => navigate('/patient/hospitals')}
+                style={{
+                  backgroundColor: 'rgba(82, 178, 191, 0.03)',
+                  borderRadius: 18,
+                  padding: '1.25rem',
+                  border: '2px dashed #cbd5e1',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.75rem',
+                  cursor: 'pointer',
+                  minHeight: 180,
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.backgroundColor = 'rgba(82, 178, 191, 0.06)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.backgroundColor = 'rgba(82, 178, 191, 0.03)'; }}
+              >
+                <div style={{ width: 48, height: 48, borderRadius: '50%', backgroundColor: 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+                  <FiSearch size={20} />
+                </div>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#475569' }}>View All Hospitals</div>
+                  <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.2rem' }}>Browse the complete list</div>
+                </div>
               </div>
-            ))}
-          </div>
-        ) : (
-          <div style={{ padding: '3rem', textAlign: 'center', backgroundColor: 'rgba(148,163,184,0.1)', borderRadius: 16, color: 'var(--text-secondary)' }}>
-            <FiUsers size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
-            <p>{searchQuery ? 'No doctors match your search.' : 'No doctors available in this hospital yet.'}</p>
+            </div>
           </div>
         )}
+
+        <div style={{ 
+          maxHeight: '600px', 
+          overflowY: 'auto', 
+          padding: '0.5rem',
+          margin: '-0.5rem', // Offset padding to keep alignment
+          scrollbarWidth: 'thin',
+          scrollbarColor: 'var(--primary) transparent'
+        }}>
+          {doctorsError ? (
+            <ErrorDisplay 
+              message={doctorsError} 
+              onRetry={fetchDoctors} 
+              style={{ margin: '1rem 0' }}
+            />
+          ) : doctorsLoading ? (
+            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>Loading doctors...</div>
+          ) : filteredDoctors.length > 0 ? (
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', 
+              gap: '1.25rem' 
+            }}>
+              {filteredDoctors.map((doc) => (
+                <div
+                  key={doc.id}
+                  style={{
+                    backgroundColor: 'var(--white)', borderRadius: 20, padding: '1.5rem',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.03)', border: '1px solid #f1f5f9',
+                    transition: 'all 0.3s ease', display: 'flex', flexDirection: 'column', gap: '1rem'
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-5px)'; e.currentTarget.style.boxShadow = '0 12px 24px rgba(0,0,0,0.08)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.03)'; }}
+                >
+                  <div style={{ display: 'flex', gap: '1.25rem', alignItems: 'center' }}>
+                    <div style={{
+                      width: 64, height: 64, borderRadius: 16, backgroundColor: 'rgba(82,178,191,0.08)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)',
+                      fontSize: '1.8rem'
+                    }}>
+                      <FiUser size={32} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.2rem' }}>{doc.doctor_name || doc.name}</h3>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 600, letterSpacing: '0.01em' }}>{doc.specialization}</div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', backgroundColor: '#fffbeb', padding: '0.4rem 0.6rem', borderRadius: 10, border: '1px solid #fef3c7' }}>
+                      <FiStar size={14} fill="#f59e0b" color="#f59e0b" />
+                      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#92400e' }}>{doc.rating || '4.5'}</span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', fontSize: '0.85rem', color: '#64748b' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#f8fafc', padding: '0.5rem', borderRadius: 8 }}>
+                      <FiBookOpen size={15} style={{ color: 'var(--primary)' }} /> <span>{doc.qualification || 'MBBS'}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#f8fafc', padding: '0.5rem', borderRadius: 8 }}>
+                      <FiBriefcase size={15} style={{ color: 'var(--primary)' }} /> <span>{doc.experience}+ yrs</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', gridColumn: 'span 2', backgroundColor: '#f8fafc', padding: '0.5rem', borderRadius: 8 }}>
+                      <FiPhone size={14} style={{ color: 'var(--primary)' }} /> <span>{doc.phone || 'Contact Support'}</span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => { setSelectedDoctor(doc); setIsBookingModalOpen(true); }}
+                    style={{
+                      width: '100%', padding: '0.9rem', borderRadius: 14, backgroundColor: 'var(--primary)',
+                      color: 'var(--white)', border: 'none', fontWeight: 700, cursor: 'pointer', marginTop: '0.5rem',
+                      transition: 'filter 0.2s'
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.filter = 'brightness(1.1)'}
+                    onMouseLeave={e => e.currentTarget.style.filter = 'none'}
+                  >
+                    Book Appointment
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ padding: '4rem 2rem', textAlign: 'center', backgroundColor: '#f8fafc', borderRadius: 24, border: '2px dashed #e2e8f0', color: 'var(--text-secondary)' }}>
+              <FiUsers size={48} style={{ marginBottom: '1.5rem', opacity: 0.3 }} />
+              <p style={{ fontSize: '1.1rem', fontWeight: 500 }}>{searchQuery ? 'No doctors match your search.' : 'No doctors available in this hospital yet.'}</p>
+              <button 
+                onClick={() => setSearchQuery('')}
+                style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 600, cursor: 'pointer', marginTop: '0.5rem' }}
+              >
+                Clear search
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* BOOKING MODAL */}

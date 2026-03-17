@@ -55,6 +55,7 @@ const Reports = () => {
     medical: { conditions: '', allergies: '', surgeries: '', medications: '' },
     vitals: { systolic: '', diastolic: '', bpm: '', sugar: '', hdl: '', ldl: '', spo2: '', temperature: '' },
     notes: '',
+    date: new Date().toISOString().split('T')[0],
     history: []
   });
   const [loading, setLoading] = useState(true);
@@ -153,13 +154,20 @@ const Reports = () => {
   };
 
   const handleInputChange = (section, field, value) => {
-    setHealthData(prev => ({
-      ...prev,
-      [section]: {
-        ...prev[section],
+    if (section === 'root') {
+      setHealthData(prev => ({
+        ...prev,
         [field]: value
-      }
-    }));
+      }));
+    } else {
+      setHealthData(prev => ({
+        ...prev,
+        [section]: {
+          ...prev[section],
+          [field]: value
+        }
+      }));
+    }
   };
 
   const handleSave = async (e) => {
@@ -197,7 +205,8 @@ const Reports = () => {
         cholesterol_ldl: healthData.vitals.ldl,
         spo2: healthData.vitals.spo2,
         temperature: healthData.vitals.temperature,
-        notes: healthData.notes
+        notes: healthData.notes,
+        date: healthData.date
       };
 
       await apiFetch('/health/save', {
@@ -311,7 +320,8 @@ const Reports = () => {
       {view === 'dashboard' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3" style={{ gap: '1.5rem' }}>
           
-          {/* SUMMARY & BMI CARD */}
+          {/* COMPARISON SECTION */}
+          <ComparisonSection history={healthData.history} />
           <section className="card md:col-span-1" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             <div className="card-header">
                 <h3 className="card-title">Body Composition</h3>
@@ -525,6 +535,7 @@ const Reports = () => {
                       <FormInput label="Height (cm)" type="number" placeholder="Ex: 175" value={healthData.personal.height} onChange={v => handleInputChange('personal', 'height', v)} />
                       <FormInput label="Weight (kg)" type="number" placeholder="Ex: 70" value={healthData.personal.weight} onChange={v => handleInputChange('personal', 'weight', v)} />
                   </div>
+                  <FormInput label="Recording Date" type="date" value={healthData.date} onChange={v => handleInputChange('root', 'date', v)} />
                   <div style={{ 
                       padding: '1.25rem', backgroundColor: 'var(--background)', borderRadius: 14, borderLeft: '5px solid var(--primary)',
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center'
@@ -592,6 +603,97 @@ const Reports = () => {
       )}
     </main>
   );
+};
+
+const ComparisonSection = ({ history }) => {
+    const comparison = useMemo(() => {
+        if (!history || history.length < 2) return null;
+        
+        const latest = history[history.length - 1];
+        // Find a record from ~6 months ago
+        const latestDate = new Date(latest.date);
+        const sixMonthsAgo = new Date(latestDate);
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+        
+        // Find the record closest to six months ago
+        let baseline = history[0];
+        let minDiff = Math.abs(new Date(history[0].date) - sixMonthsAgo);
+        
+        for (let i = 1; i < history.length - 1; i++) {
+            const diff = Math.abs(new Date(history[i].date) - sixMonthsAgo);
+            if (diff < minDiff) {
+                minDiff = diff;
+                baseline = history[i];
+            }
+        }
+        
+        // Only show if the baseline is significantly older than the latest (e.g., > 1 month)
+        const timeDiff = latestDate - new Date(baseline.date);
+        if (baseline.date === latest.date || timeDiff < (30 * 24 * 60 * 60 * 1000)) return null;
+
+        const weightDiff = (latest.weight - baseline.weight).toFixed(1);
+        const bmiDiff = (latest.bmi - baseline.bmi).toFixed(1);
+        
+        return {
+            baselineDate: baseline.date,
+            latestDate: latest.date,
+            weightDiff,
+            bmiDiff,
+            weightTrend: weightDiff > 0 ? 'gained' : 'lost',
+            bmiTrend: bmiDiff > 0 ? 'increased' : 'decreased'
+        };
+    }, [history]);
+
+    if (!comparison) return null;
+
+    return (
+        <section className="card md:col-span-1" style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)', border: '1px solid var(--primary)' }}>
+            <div className="card-header">
+                <h3 className="card-title">6-Month Progress</h3>
+                <FiTrendingUp color="var(--primary)" />
+            </div>
+            <div style={{ marginTop: '1rem' }}>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-light)', marginBottom: '1.5rem' }}>
+                    Comparing <strong>{comparison.latestDate}</strong> vs <strong>{comparison.baselineDate}</strong>
+                </p>
+                
+                <div style={{ display: 'grid', gap: '1.25rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-light)' }}>WEIGHT CHANGE</div>
+                            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: comparison.weightDiff > 0 ? 'var(--error)' : 'var(--success)' }}>
+                                {comparison.weightDiff > 0 ? '+' : ''}{comparison.weightDiff} kg
+                            </div>
+                        </div>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 600, padding: '0.25rem 0.75rem', borderRadius: 10, backgroundColor: 'white' }}>
+                            {comparison.weightTrend.toUpperCase()}
+                        </div>
+                    </div>
+                    
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-light)' }}>BMI CHANGE</div>
+                            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: comparison.bmiDiff > 0 ? 'var(--error)' : 'var(--success)' }}>
+                                {comparison.bmiDiff > 0 ? '+' : ''}{comparison.bmiDiff}
+                            </div>
+                        </div>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 600, padding: '0.25rem 0.75rem', borderRadius: 10, backgroundColor: 'white' }}>
+                            {comparison.bmiTrend.toUpperCase()}
+                        </div>
+                    </div>
+                </div>
+
+                <div style={{ marginTop: '2rem', padding: '1rem', backgroundColor: 'rgba(59, 130, 246, 0.1)', borderRadius: 12 }}>
+                    <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 600, lineHeight: 1.4 }}>
+                        {comparison.weightDiff < 0 
+                            ? "Great job on managing your weight! Keep up the healthy lifestyle." 
+                            : "You've gained some weight since 6 months ago. Consider reviewing your daily habits."
+                        }
+                    </p>
+                </div>
+            </div>
+        </section>
+    );
 };
 
 /* HELPER COMPONENTS */

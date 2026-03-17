@@ -35,34 +35,6 @@ const upload = multer({
   limits: { fileSize: 20 * 1024 * 1024 } // 20MB limit
 });
 
-<<<<<<< HEAD
-// ─── Local auth shim (for existing admin routes that use their own inline auth) ─
-const auth = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ message: 'Unauthorized' });
-  }
-
-  const token = authHeader.split(' ')[1];
-  try {
-    const jwt = require('jsonwebtoken');
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
-    req.user = decoded;
-    next();
-  } catch (err) {
-    return res.status(401).json({ message: 'Invalid token' });
-  }
-};
-
-// Admin middleware
-const isAdmin = (req, res, next) => {
-  if (req.user && req.user.role === 'admin') {
-    next();
-  } else {
-    res.status(403).json({ message: 'Forbidden: Admin only' });
-  }
-};
-=======
 // ════════════════════════════════════════════════════════════════════════════
 // NEW PATIENT REPORTS FEATURE
 // ════════════════════════════════════════════════════════════════════════════
@@ -172,7 +144,6 @@ router.get('/my-patients', authenticateToken, authorizeRoles('doctor'), async (r
 // ════════════════════════════════════════════════════════════════════════════
 // EXISTING ADMIN REPORT ROUTES (unchanged)
 // ════════════════════════════════════════════════════════════════════════════
->>>>>>> 7a318fb (Add chatbot feature)
 
 // 1. GET /api/reports/my-report - Get report status for logged-in patient
 router.get('/my-report', authenticateToken, async (req, res) => {

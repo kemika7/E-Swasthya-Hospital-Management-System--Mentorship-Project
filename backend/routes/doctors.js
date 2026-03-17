@@ -111,27 +111,9 @@ router.get('/hospitals/:hospitalId/specializations', async (req, res) => {
 // Get doctors for a hospital (optionally filtered by specialization)
 router.get('/hospitals/:hospitalId/doctors', async (req, res) => {
     try {
-<<<<<<< HEAD
-        const { specialization } = req.query;
-        let query = `
-            SELECT d.*, u.name as doctor_name, u.email,
-                   s.name as specialty_name
-            FROM doctors d
-            JOIN users u ON d.user_id = u.id
-            LEFT JOIN specialties s ON d.specialty_id = s.id
-            WHERE d.hospital_id = ?
-        `;
-        const params = [req.params.hospitalId];
-
-        if (specialization) {
-            query += ' AND d.specialization = ?';
-            params.push(specialization);
-        }
-
-        query += ' ORDER BY u.name';
-=======
         const { hospitalId } = req.params;
-        const { spec } = req.query;
+        const { spec, specialization } = req.query;
+        const targetSpec = spec || specialization;
         
         let query = `
             SELECT d.*, u.name as doctor_name, u.email, u.phone,
@@ -144,12 +126,12 @@ router.get('/hospitals/:hospitalId/doctors', async (req, res) => {
         `;
         const params = [hospitalId];
 
-        if (spec) {
+        if (targetSpec) {
             query += ' AND d.specialization = ?';
-            params.push(spec);
+            params.push(targetSpec);
         }
 
->>>>>>> 7a318fb (Add chatbot feature)
+        query += ' ORDER BY u.name';
         const [doctors] = await db.execute(query, params);
         res.json(doctors);
     } catch (err) {
@@ -157,10 +139,7 @@ router.get('/hospitals/:hospitalId/doctors', async (req, res) => {
         res.status(500).json({ message: 'Server error fetching hospital doctors' });
     }
 });
-<<<<<<< HEAD
-=======
 
->>>>>>> 7a318fb (Add chatbot feature)
 // ─── Logged-in Doctor Profile & Requests ────────────────────────────
 
 // Get logged in doctor profile

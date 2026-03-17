@@ -43,56 +43,26 @@ const AppointmentsManagement = lazy(() => import('./pages/admin/AppointmentsMana
 const TransactionsManagement = lazy(() => import('./pages/admin/TransactionsManagement'));
 const ReportsManagement = lazy(() => import('./pages/admin/ReportsManagement'));
 
-// Guard: patients without a hospital selection are redirected to select-hospital
-const RequireHospital = ({ children }) => {
-  const { selectedHospital } = useHospital();
-  if (!selectedHospital) {
-    return <Navigate to="/patient/select-hospital" replace />;
-  }
-  return children;
-};
-
 const PatientLayout = () => (
   <DashboardLayout>
     <Routes>
       <Route path="select-hospital" element={<SelectHospitalPage />} />
-<<<<<<< HEAD
       <Route index element={<RequireHospital><PatientDashboard /></RequireHospital>} />
       <Route path="dashboard" element={<RequireHospital><PatientDashboard /></RequireHospital>} />
       <Route path="doctors" element={<RequireHospital><CategoriesPage /></RequireHospital>} />
       <Route path="category/:categoryId" element={<RequireHospital><DoctorListing /></RequireHospital>} />
-      <Route path="hospitals" element={<RequireHospital><HospitalsPage /></RequireHospital>} />
-      <Route path="hospital/:hospitalId" element={<RequireHospital><HospitalSpecializationsPage /></RequireHospital>} />
-      <Route path="hospital/:hospitalId/doctors" element={<RequireHospital><DoctorListing /></RequireHospital>} />
+      <Route path="hospitals" element={<HospitalsPage />} />
+      <Route path="hospital/:hospitalId" element={<HospitalSpecializationsPage />} />
+      <Route path="hospital/:hospitalId/doctors" element={<DoctorListing />} />
       <Route path="doctor/:doctorId" element={<RequireHospital><DoctorProfile /></RequireHospital>} />
       <Route path="appointments" element={<RequireHospital><Appointments /></RequireHospital>} />
       <Route path="reports" element={<RequireHospital><Reports /></RequireHospital>} />
       <Route path="patient-reports" element={<RequireHospital><PatientReports /></RequireHospital>} />
       <Route path="locker" element={<RequireHospital><DocumentLocker /></RequireHospital>} />
       <Route path="chatbot" element={<RequireHospital><PatientChatbot /></RequireHospital>} />
-      <Route path="*" element={<Navigate to="/patient/select-hospital" replace />} />
-    </Routes >
-  </DashboardLayout >
-=======
-      <Route index element={<PatientDashboard />} />
-      <Route path="dashboard" element={<PatientDashboard />} />
-      <Route path="hospitals" element={<HospitalsPage />} />
-      <Route path="hospital/:hospitalId" element={<HospitalSpecializationsPage />} />
-      <Route path="hospital/:hospitalId/doctors" element={<DoctorListing />} />
-      <Route path="reports" element={<Reports />} />
-      <Route path="patient-reports" element={<PatientReports />} />
-      <Route path="locker" element={<DocumentLocker />} />
-      
-      {/* Routes that strictly need a hospital context */}
-      <Route path="doctors" element={<CategoriesPage />} />
-      <Route path="category/:categoryId" element={<DoctorListing />} />
-      <Route path="doctor/:doctorId" element={<DoctorProfile />} />
-      <Route path="appointments" element={<Appointments />} />
-
       <Route path="*" element={<Navigate to="/patient/dashboard" replace />} />
     </Routes>
   </DashboardLayout>
->>>>>>> 7a318fb (Add chatbot feature)
 );
 
 

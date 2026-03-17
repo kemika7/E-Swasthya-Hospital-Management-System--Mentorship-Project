@@ -50,7 +50,7 @@ export const PatientSidebar = () => {
         <li>
           <NavLink to="/patient/doctors" className={linkBaseStyle}>
             <FiUsers size={20} />
-            <span>Hospital</span>
+            <span>Medical Categories</span>
           </NavLink>
         </li>
         <li>

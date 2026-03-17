@@ -310,8 +310,11 @@ const DoctorListing = () => {
                     <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text)', marginBottom: '0.2rem' }}>
                       {doc.doctor_name}
                     </h3>
-                    <p style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 500 }}>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 500, marginBottom: '0.2rem' }}>
                       {doc.specialty_name || doc.specialization}
+                    </p>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-light)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <FiMapPin size={12} /> {doc.hospital_name || 'General Hospital'}
                     </p>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', backgroundColor: '#f0fdf4', padding: '0.2rem 0.4rem', borderRadius: 4 }}>

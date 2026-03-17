@@ -126,18 +126,36 @@ router.post('/', authenticateToken, async (req, res) => {
         }
 
         const { availability, unavailable_dates } = doctorRows[0];
-        const parsedAvailability = typeof availability === 'string' ? JSON.parse(availability) : availability;
-        const parsedUnavailable = typeof unavailable_dates === 'string' ? JSON.parse(unavailable_dates) : unavailable_dates;
+        const defaultAvailability = {
+            days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+            timeSlots: [
+                '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',
+                '01:00 PM', '01:30 PM', '02:00 PM', '02:30 PM', '03:00 PM', '03:30 PM', '04:00 PM'
+            ],
+            exceptions: {}
+        };
+
+        const parsedAvailability = availability 
+            ? (typeof availability === 'string' ? JSON.parse(availability) : availability) 
+            : defaultAvailability;
+            
+        const parsedUnavailable = unavailable_dates 
+            ? (typeof unavailable_dates === 'string' ? JSON.parse(unavailable_dates) : unavailable_dates) 
+            : [];
+
+        // Ensure defaults if fields are missing
+        if (!parsedAvailability.days) parsedAvailability.days = defaultAvailability.days;
+        if (!parsedAvailability.timeSlots) parsedAvailability.timeSlots = defaultAvailability.timeSlots;
 
         // 1. Check if date is blocked
-        if (parsedUnavailable && parsedUnavailable.includes(date)) {
+        if (parsedUnavailable.includes(date)) {
             await connection.rollback();
             return res.status(400).json({ message: 'Doctor is unavailable on this date' });
         }
 
         // 2. Check if weekday is scheduled
         const dayName = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date(date));
-        if (!parsedAvailability || !parsedAvailability.days || !parsedAvailability.days.includes(dayName)) {
+        if (!parsedAvailability.days.includes(dayName)) {
             await connection.rollback();
             return res.status(400).json({ message: `Doctor is not scheduled for ${dayName}s` });
         }

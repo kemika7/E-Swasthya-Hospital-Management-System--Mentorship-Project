@@ -87,7 +87,8 @@ router.post('/add-doctor', authenticateToken, isAdmin, async (req, res) => {
             name, email, phone, password, 
             specialization_id, specialty_id, // accept both names
             hospital_id: bodyHospitalId,
-            experience, bio, location, working_hours, fee, qualification, rating
+            experience, bio, location, working_hours, fee, qualification, rating,
+            availability, unavailable_dates
         } = req.body;
 
         const hospital_id = bodyHospitalId || req.user.hospital_id;
@@ -118,12 +119,15 @@ router.post('/add-doctor', authenticateToken, isAdmin, async (req, res) => {
             const userId = userResult.insertId;
 
             await connection.execute(`
-                INSERT INTO doctors (user_id, specialty_id, experience, bio, location, working_hours, fee, hospital_id, qualification, rating) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO doctors (user_id, specialty_id, experience, bio, location, working_hours, fee, hospital_id, qualification, rating, availability, unavailable_dates, phone) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `, [
                 userId, final_specialty_id, experience || 0, bio || '', 
                 location || 'Kathmandu', working_hours || '9 AM - 5 PM', 
-                fee || 0, hospital_id, qualification || null, rating || 0.0
+                fee || 0, hospital_id, qualification || null, rating || 0.0,
+                JSON.stringify(availability || { days: [], timeSlots: [] }),
+                JSON.stringify(unavailable_dates || []),
+                phone || ''
             ]);
 
             await connection.commit();

@@ -9,11 +9,13 @@ router.get('/', authenticateToken, async (req, res) => {
         const { category_id, specialty_id } = req.query;
         let query = `
             SELECT d.*, u.name as doctor_name, u.email, u.phone,
-                   s.name as specialty_name, c.name as category_name
+                   s.name as specialty_name, c.name as category_name,
+                   h.name as hospital_name
             FROM doctors d 
             JOIN users u ON d.user_id = u.id
             LEFT JOIN specialties s ON d.specialty_id = s.id
             LEFT JOIN medical_categories c ON s.category_id = c.id
+            LEFT JOIN hospitals h ON d.hospital_id = h.id
             WHERE 1=1
         `;
         const params = [];
@@ -114,10 +116,11 @@ router.get('/hospitals/:hospitalId/doctors', async (req, res) => {
         const { specialization } = req.query;
         let query = `
             SELECT d.*, u.name as doctor_name, u.email,
-                   s.name as specialty_name
+                   s.name as specialty_name, h.name as hospital_name
             FROM doctors d
             JOIN users u ON d.user_id = u.id
             LEFT JOIN specialties s ON d.specialty_id = s.id
+            LEFT JOIN hospitals h ON d.hospital_id = h.id
             WHERE d.hospital_id = ?
         `;
         const params = [req.params.hospitalId];
@@ -248,6 +251,47 @@ router.get('/requests', authenticateToken, async (req, res) => {
     }
 });
 
+// ─── Direct Leave Management ────────────────────────────────────────
+
+// Toggle leave for a specific date (Doctor only)
+router.post('/leave', authenticateToken, async (req, res) => {
+    try {
+        if (req.user.role !== 'doctor') return res.status(403).json({ message: 'Access denied' });
+
+        const { date } = req.body;
+        if (!date) return res.status(400).json({ message: 'Date is required' });
+
+        // Prevent setting leave for past dates
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const leaveDate = new Date(date);
+        if (leaveDate < today) {
+            return res.status(400).json({ message: 'Cannot manage leave for past dates' });
+        }
+
+        const [doctor] = await db.execute('SELECT id, unavailable_dates FROM doctors WHERE user_id = ?', [req.user.id]);
+        if (doctor.length === 0) return res.status(404).json({ message: 'Doctor record not found' });
+
+        const doctorId = doctor[0].id;
+        let unavailableDates = doctor[0].unavailable_dates ? (typeof doctor[0].unavailable_dates === 'string' ? JSON.parse(doctor[0].unavailable_dates) : doctor[0].unavailable_dates) : [];
+        
+        if (unavailableDates.includes(date)) {
+            // Remove leave
+            unavailableDates = unavailableDates.filter(d => d !== date);
+        } else {
+            // Add leave
+            unavailableDates.push(date);
+        }
+
+        await db.execute('UPDATE doctors SET unavailable_dates = ? WHERE id = ?', [JSON.stringify(unavailableDates), doctorId]);
+
+        res.json({ message: 'Leave status updated successfully', unavailable_dates: unavailableDates });
+    } catch (err) {
+        console.error('[LEAVE TOGGLE ERROR]', err);
+        res.status(500).json({ message: 'Server error updating leave status' });
+    }
+});
+
 // Admin: Get all requests
 router.get('/admin/requests', authenticateToken, async (req, res) => {
     try {
@@ -344,6 +388,93 @@ router.put('/admin/requests/:id', authenticateToken, async (req, res) => {
 });
 
 // ─── Doctor Parameter Routes ──────────────────────────
+// Get doctor availability for a specific date
+router.get('/:id/availability', async (req, res) => {
+    try {
+        const { date } = req.query;
+        if (!date) return res.status(400).json({ message: 'Date is required' });
+
+        const [rows] = await db.execute('SELECT availability, unavailable_dates FROM doctors WHERE id = ?', [req.params.id]);
+        if (rows.length === 0) {
+            return res.status(404).json({ message: 'Doctor not found' });
+        }
+
+        const doctor = rows[0];
+        // Default availability if null: all weekdays, standard slots
+        const defaultAvailability = {
+            days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+            timeSlots: [
+                '09:00 AM', '09:30 AM', '10:00 AM', '10:30 AM', '11:00 AM', '11:30 AM',
+                '01:00 PM', '01:30 PM', '02:00 PM', '02:30 PM', '03:00 PM', '03:30 PM', '04:00 PM'
+            ],
+            exceptions: {}
+        };
+
+        const availability = doctor.availability 
+            ? (typeof doctor.availability === 'string' ? JSON.parse(doctor.availability) : doctor.availability) 
+            : defaultAvailability;
+            
+        const unavailableDates = doctor.unavailable_dates 
+            ? (typeof doctor.unavailable_dates === 'string' ? JSON.parse(doctor.unavailable_dates) : doctor.unavailable_dates) 
+            : [];
+
+        // Ensure defaults if fields are missing in parsed object
+        if (!availability.days) availability.days = defaultAvailability.days;
+        if (!availability.timeSlots) availability.timeSlots = defaultAvailability.timeSlots;
+
+        // 1. Check if doctor is on leave
+        if (unavailableDates.includes(date)) {
+            return res.json({ 
+                available: false, 
+                message: 'Doctor is on leave on this date', 
+                slots: [], 
+                allDaySlots: availability.timeSlots
+            });
+        }
+
+        // 2. Check if weekday is scheduled
+        const dayName = new Intl.DateTimeFormat('en-US', { weekday: 'long' }).format(new Date(date));
+        if (!availability.days.includes(dayName)) {
+            return res.json({ 
+                available: false, 
+                message: `Doctor is not scheduled for ${dayName}s`, 
+                slots: [], 
+                allDaySlots: availability.timeSlots
+            });
+        }
+
+        // 3. Handle specific date exceptions (if any)
+        let slots = availability.timeSlots;
+        if (availability.exceptions && availability.exceptions[date]) {
+            slots = availability.exceptions[date];
+        }
+
+        // 4. Filter out already booked slots
+        const [bookedAppointments] = await db.execute(
+            'SELECT time FROM appointments WHERE doctor_id = ? AND date = ? AND status != "Cancelled"',
+            [req.params.id, date]
+        );
+        
+        const bookedTimes = bookedAppointments.map(a => a.time.substring(0, 5));
+
+        const availableSlots = slots.filter(slot => {
+            const slotTime24 = slot.includes('AM') || slot.includes('PM') 
+                ? convertTo24Hour(slot).substring(0, 5) 
+                : slot.substring(0, 5);
+            return !bookedTimes.includes(slotTime24);
+        });
+
+        res.json({
+            available: availableSlots.length > 0,
+            slots: availableSlots,
+            allDaySlots: availability.timeSlots
+        });
+    } catch (err) {
+        console.error('[AVAILABILITY FETCH ERROR]', err);
+        res.status(500).json({ message: 'Server error fetching availability' });
+    }
+});
+
 // Get specific doctor profile
 router.get('/:id', async (req, res) => {
     try {
@@ -370,6 +501,18 @@ router.get('/:id', async (req, res) => {
     }
 });
 
+// Helper for 24h conversion
+function convertTo24Hour(timeStr) {
+    const [time, modifier] = timeStr.split(' ');
+    let [hours, minutes] = time.split(':');
+    if (hours === '12') hours = '00';
+    if (modifier === 'PM') {
+        hours = parseInt(hours, 10) + 12;
+        if (hours === 24) hours = 12;
+    }
+    return `${String(hours).padStart(2, '0')}:${minutes}:00`;
+}
+
 
 
 
@@ -392,7 +535,7 @@ router.post('/', authenticateToken, async (req, res) => {
         }
 
         // Validate Phone length (10 digits)
-        const phoneRegex = /^\\d{10}$/;
+        const phoneRegex = /^\d{10}$/;
         if (!phoneRegex.test(cleanPhone)) {
             return res.status(400).json({ message: 'Phone number must be exactly 10 digits' });
         }

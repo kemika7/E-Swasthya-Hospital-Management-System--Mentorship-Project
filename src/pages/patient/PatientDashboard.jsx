@@ -150,7 +150,8 @@ const PatientDashboard = () => {
     return doctors.filter(doc => 
       (doc.doctor_name || doc.name || '').toLowerCase().includes(q) ||
       (doc.specialization || '').toLowerCase().includes(q) ||
-      (doc.qualification || '').toLowerCase().includes(q)
+      (doc.qualification || '').toLowerCase().includes(q) ||
+      (doc.hospital_name || '').toLowerCase().includes(q)
     );
   }, [doctors, searchQuery]);
 
@@ -228,6 +229,63 @@ const PatientDashboard = () => {
           <FiFilter size={20} style={{ color: 'var(--white)' }} />
         </button>
       </div>
+
+      {/* SEARCH RESULTS (ELEVATED) */}
+      {searchQuery.trim() && (
+        <div style={{ animation: 'fadeIn 0.3s ease' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-sm)' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text)' }}>
+              Search Results
+            </h2>
+            <button 
+              onClick={() => setSearchQuery('')}
+              style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: '0.9rem' }}
+            >
+              Clear Search
+            </button>
+          </div>
+          {filteredDoctors.length > 0 ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem' }}>
+              {filteredDoctors.map((doc) => (
+                <div
+                  key={doc.id}
+                  onClick={() => navigate(`/patient/doctor/${doc.id}`)}
+                  style={{
+                    backgroundColor: 'var(--white)', borderRadius: 16, padding: '1.25rem',
+                    boxShadow: 'var(--shadow-lg)', border: '1px solid var(--primary)',
+                    transition: 'transform 0.2s', display: 'flex', flexDirection: 'column', gap: '0.75rem',
+                    cursor: 'pointer', position: 'relative'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-4px)'}
+                  onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+                >
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <div style={{
+                      width: 60, height: 60, borderRadius: 12, backgroundColor: 'rgba(82,178,191,0.1)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)'
+                    }}>
+                      <FiUser size={30} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text)' }}>{doc.doctor_name || doc.name}</h3>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 600 }}>{doc.specialization || 'General'}</div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-light)', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                        <FiHome size={12} /> {doc.hospital_name || 'General Hospital'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ padding: '2rem', textAlign: 'center', backgroundColor: 'rgba(239, 68, 68, 0.05)', borderRadius: 16, border: '1px dashed #ef4444' }}>
+              <FiAlertTriangle size={32} style={{ color: '#ef4444', marginBottom: '0.5rem' }} />
+              <p style={{ color: '#ef4444', fontWeight: 500 }}>No results found for "{searchQuery}"</p>
+            </div>
+          )}
+          <hr style={{ margin: '1.5rem 0', border: 'none', borderTop: '1px solid #e2e8f0' }} />
+        </div>
+      )}
 
       {/* UPCOMING APPOINTMENTS SECTION */}
       <div>
@@ -355,13 +413,21 @@ const PatientDashboard = () => {
             {filteredDoctors.map((doc) => (
               <div
                 key={doc.id}
+                onClick={() => navigate(`/patient/doctor/${doc.id}`)}
                 style={{
                   backgroundColor: 'var(--white)', borderRadius: 16, padding: '1.25rem',
                   boxShadow: 'var(--shadow-soft)', border: '1px solid rgba(15, 23, 42, 0.05)',
-                  transition: 'transform 0.2s', display: 'flex', flexDirection: 'column', gap: '0.75rem'
+                  transition: 'all 0.2s', display: 'flex', flexDirection: 'column', gap: '0.75rem',
+                  cursor: 'pointer'
                 }}
-                onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-4px)'}
-                onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+                onMouseEnter={e => {
+                  e.currentTarget.style.transform = 'translateY(-4px)';
+                  e.currentTarget.style.boxShadow = 'var(--shadow-lg)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'var(--shadow-soft)';
+                }}
               >
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                   <div style={{
@@ -373,6 +439,9 @@ const PatientDashboard = () => {
                   <div style={{ flex: 1 }}>
                     <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text)' }}>{doc.doctor_name || doc.name}</h3>
                     <div style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 500 }}>{doc.specialization}</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-light)', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                      <FiHome size={12} /> {doc.hospital_name || 'General Hospital'}
+                    </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', backgroundColor: '#fef3c7', padding: '0.25rem 0.5rem', borderRadius: 8 }}>
                     <FiStar size={12} fill="#f59e0b" color="#f59e0b" />
@@ -393,13 +462,18 @@ const PatientDashboard = () => {
                 </div>
 
                 <button
-                  onClick={() => { setSelectedDoctor(doc); setIsBookingModalOpen(true); }}
+                  onClick={(e) => { 
+                    e.stopPropagation();
+                    setSelectedDoctor(doc); 
+                    setIsBookingModalOpen(true); 
+                  }}
                   style={{
                     width: '100%', padding: '0.75rem', borderRadius: 12, backgroundColor: 'var(--primary)',
-                    color: 'var(--white)', border: 'none', fontWeight: 600, cursor: 'pointer', marginTop: '0.5rem'
+                    color: 'var(--white)', border: 'none', fontWeight: 600, cursor: 'pointer', marginTop: '0.5rem',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
                   }}
                 >
-                  Book Appointment
+                  <FiClock size={16} /> Book Appointment
                 </button>
               </div>
             ))}

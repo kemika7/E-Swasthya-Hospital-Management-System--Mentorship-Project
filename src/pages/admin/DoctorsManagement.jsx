@@ -10,7 +10,6 @@ const DoctorsManagement = () => {
   const [editingDoctor, setEditingDoctor] = useState(null);
   const [viewingDoctor, setViewingDoctor] = useState(null);
   const [message, setMessage] = useState({ text: '', type: '' });
-  const [selectedCategoryId, setSelectedCategoryId] = useState('');
   // Schedule Management State
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [selectedDoctorForSchedule, setSelectedDoctorForSchedule] = useState(null);
@@ -26,7 +25,6 @@ const DoctorsManagement = () => {
   // Fallbacks for data from context
   const safeDoctors = Array.isArray(doctors) ? doctors : [];
   const safeSpecialties = Array.isArray(specialties) ? specialties : [];
-  const safeCategories = Array.isArray(categories) ? categories : [];
   const safeHospitals = Array.isArray(hospitals) ? hospitals : [];
 
   const [formData, setFormData] = useState({
@@ -45,7 +43,7 @@ const DoctorsManagement = () => {
     location: 'Kathmandu',
     qualification: '',
     rating: 0,
-    availability: { days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'], timeSlots: ['09:00-09:30', '09:30-10:00', '10:00-10:30', '10:30-11:00', '11:00-11:30', '11:30-12:00', '13:00-13:30', '13:30-14:00', '14:00-14:30', '14:30-15:00', '15:00-15:30', '15:30-16:00', '16:00-16:30', '16:30-17:00'] },
+    availability: { days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'], timeSlots: ["09:00-10:00", "10:00-11:00", "11:00-12:00", "12:00-13:00", "13:00-14:00", "14:00-15:00", "15:00-16:00", "16:00-17:00"] },
     unavailable_dates: []
   });
 
@@ -80,12 +78,8 @@ const DoctorsManagement = () => {
         availability: doctor.availability ? (typeof doctor.availability === 'string' ? JSON.parse(doctor.availability) : doctor.availability) : { days: [], timeSlots: [] },
         unavailable_dates: doctor.unavailable_dates ? (typeof doctor.unavailable_dates === 'string' ? JSON.parse(doctor.unavailable_dates) : doctor.unavailable_dates) : []
       });
-      // Try to find category for editing
-      const spec = safeSpecialties.find(s => s.id === doctor.specialty_id);
-      setSelectedCategoryId(spec?.category_id || '');
     } else {
       setEditingDoctor(null);
-      setSelectedCategoryId('');
       setFormData({
         name: '',
         email: '',
@@ -102,7 +96,7 @@ const DoctorsManagement = () => {
         location: 'Kathmandu',
         qualification: '',
         rating: 0,
-        availability: { days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'], timeSlots: ['09:00-09:30', '09:30-10:00', '10:00-10:30', '10:30-11:00', '11:00-11:30', '11:30-12:00', '13:00-13:30', '13:30-14:00', '14:00-14:30', '14:30-15:00', '15:00-15:30', '15:30-16:00', '16:00-16:30', '16:30-17:00'] },
+        availability: { days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'], timeSlots: ["09:00-10:00", "10:00-11:00", "11:00-12:00", "12:00-13:00", "13:00-14:00", "14:00-15:00", "15:00-16:00", "16:00-17:00"] },
         unavailable_dates: []
       });
     }
@@ -150,10 +144,6 @@ const DoctorsManagement = () => {
       setMessage({ text: err.message || 'Operation failed. Please check credentials.', type: 'error' });
     }
   };
-
-  const filteredSpecialties = safeSpecialties.filter(spec => 
-    !selectedCategoryId || String(spec.category_id) === String(selectedCategoryId)
-  );
 
   const fetchRequests = async () => {
     setLoadingRequests(true);
@@ -275,10 +265,6 @@ const DoctorsManagement = () => {
       }
     }
   };
-
-  const filteredSpecialties = safeSpecialties.filter(spec => 
-    !selectedCategoryId || String(spec.category_id) === String(selectedCategoryId)
-  );
 
   return (
     <div className="layout-main" style={{ padding: '2rem' }}>
@@ -668,31 +654,14 @@ const DoctorsManagement = () => {
                   <h4 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--primary)', borderBottom: '2px solid var(--primary-light)', paddingBottom: '0.5rem' }}>Professional Details</h4>
                 </div>
 
-                <div style={{ gridColumn: 'span 4' }}>
-                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>Hospital *</label>
-                  <select className="input-field" value={formData.hospital_id} onChange={e => setFormData({ ...formData, hospital_id: e.target.value })} required style={{ appearance: 'auto' }}>
-                      <option value="">Select Hospital</option>
-                      {safeHospitals.map(hosp => (
-                          <option key={hosp.id} value={hosp.id}>{hosp.name}</option>
-                      ))}
-                  </select>
-                </div>
+                {/* Hospital selection hidden - locked to Sanepa Hospital via value */}
+                <input type="hidden" value={formData.hospital_id} />
 
-                <div style={{ gridColumn: 'span 4' }}>
-                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>Medical Category *</label>
-                  <select className="input-field" value={selectedCategoryId} onChange={e => { setSelectedCategoryId(e.target.value); setFormData({ ...formData, specialty_id: '' }); }} required style={{ appearance: 'auto' }}>
-                      <option value="">Select Category</option>
-                      {safeCategories.map(cat => (
-                          <option key={cat.id} value={cat.id}>{cat.name}</option>
-                      ))}
-                  </select>
-                </div>
-
-                <div style={{ gridColumn: 'span 4' }}>
-                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>Speciality *</label>
-                  <select className="input-field" value={formData.specialty_id} onChange={e => setFormData({ ...formData, specialty_id: e.target.value })} required style={{ appearance: 'auto' }} disabled={!selectedCategoryId}>
-                      <option value="">{selectedCategoryId ? 'Select Speciality' : 'Choose Category First'}</option>
-                      {filteredSpecialties.map(spec => (
+                <div style={{ gridColumn: 'span 12' }}>
+                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>Specialization *</label>
+                  <select className="input-field" value={formData.specialty_id} onChange={e => setFormData({ ...formData, specialty_id: e.target.value })} required style={{ appearance: 'auto' }}>
+                      <option value="">Select Speciality</option>
+                      {safeSpecialties.map(spec => (
                           <option key={spec.id} value={spec.id}>{spec.name}</option>
                       ))}
                   </select>
@@ -796,6 +765,8 @@ const DoctorsManagement = () => {
                 <div style={{ gridColumn: 'span 12', display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1.5rem', borderTop: '1px solid #f1f5f9', paddingTop: '1.5rem' }}>
                   <button type="button" className="btn btn-outline" onClick={() => setIsModalOpen(false)} style={{ padding: '0.75rem 2rem' }}>Cancel</button>
                   <button type="submit" className="btn btn-primary" style={{ padding: '0.75rem 2.5rem' }}>{editingDoctor ? 'Update Doctor' : 'Save Doctor'}</button>
+                </div>
+              </form>
             </div>
           </div>
         </div>

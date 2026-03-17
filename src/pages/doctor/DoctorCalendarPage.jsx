@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
-import { FiChevronLeft, FiChevronRight, FiCalendar, FiClock, FiUser } from 'react-icons/fi';
+import React, { useState, useMemo, useEffect } from 'react';
+import { FiChevronLeft, FiChevronRight, FiCalendar, FiClock, FiUser, FiCheckCircle, FiAlertCircle, FiXCircle, FiZap } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import { useAppointment } from '../../context/AppointmentContext';
+import { apiFetch } from '../../services/apiClient';
 
 const DoctorCalendarPage = () => {
   const { userProfile } = useAuth();
@@ -9,9 +10,38 @@ const DoctorCalendarPage = () => {
   const doctorName = userProfile?.name || 'Doctor';
 
   const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
   const startOfCurrentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
   const [currentMonth, setCurrentMonth] = useState(startOfCurrentMonth);
-  const [selectedDate, setSelectedDate] = useState(today);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [unavailableDates, setUnavailableDates] = useState([]);
+  const [loadingLeave, setLoadingLeave] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  const fetchDoctorProfile = async () => {
+    try {
+      const data = await apiFetch('/doctors/profile');
+      let dates = [];
+      if (data.unavailable_dates) {
+        dates = typeof data.unavailable_dates === 'string' 
+          ? JSON.parse(data.unavailable_dates) 
+          : data.unavailable_dates;
+      }
+      setUnavailableDates(dates);
+    } catch (err) {
+      console.error('Failed to fetch doctor profile:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchDoctorProfile();
+  }, []);
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const MAX_MONTHS_AHEAD = 3;
 
@@ -59,10 +89,14 @@ const DoctorCalendarPage = () => {
     return cells;
   }, [firstDayIndex, daysInMonth, currentMonth]);
 
-  const isSameDay = (a, b) =>
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate();
+  const isSameDay = (a, b) => {
+    if (!a || !b) return false;
+    return (
+      a.getFullYear() === b.getFullYear() &&
+      a.getMonth() === b.getMonth() &&
+      a.getDate() === b.getDate()
+    );
+  };
 
   const selectedDateIso = useMemo(() => {
     const y = selectedDate.getFullYear();
@@ -70,6 +104,40 @@ const DoctorCalendarPage = () => {
     const d = String(selectedDate.getDate()).padStart(2, '0');
     return `${y}-${m}-${d}`;
   }, [selectedDate]);
+
+  const isDateOnLeave = (date) => {
+    if (!date) return false;
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    const iso = `${y}-${m}-${d}`;
+    return (unavailableDates || []).includes(iso);
+  };
+
+  const toggleLeave = async () => {
+    const dateStr = selectedDateIso;
+    const selDate = new Date(selectedDate);
+    selDate.setHours(0,0,0,0);
+
+    if (selDate < today) {
+      showToast('Cannot manage leave for past dates', 'error');
+      return;
+    }
+
+    setLoadingLeave(true);
+    try {
+      const res = await apiFetch('/doctors/leave', {
+        method: 'POST',
+        body: JSON.stringify({ date: dateStr })
+      });
+      setUnavailableDates(res.unavailable_dates);
+      showToast(res.message);
+    } catch (err) {
+      showToast(err.message || 'Failed to update leave', 'error');
+    } finally {
+      setLoadingLeave(false);
+    }
+  };
 
   const myAppointmentsByDate = useMemo(() => {
     const map = {};
@@ -124,8 +192,25 @@ const DoctorCalendarPage = () => {
       .sort((a, b) => a.start_time.localeCompare(b.start_time));
   }, [myAppointmentsByDate, selectedDateIso]);
 
+  const isPastDate = selectedDate < today;
+
   return (
     <div className="layout-main">
+      {toast && (
+        <div style={{
+          position: 'fixed', top: '2rem', right: '2rem', zIndex: 9999,
+          padding: '1rem 1.5rem', borderRadius: 12, display: 'flex', alignItems: 'center', gap: '0.75rem',
+          backgroundColor: toast.type === 'error' ? '#fee2e2' : '#dcfce7',
+          color: toast.type === 'error' ? '#991b1b' : '#166534',
+          border: `1px solid ${toast.type === 'error' ? '#fecaca' : '#bbf7d0'}`,
+          boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
+          fontWeight: 600, animation: 'slideIn 0.3s ease'
+        }}>
+          {toast.type === 'error' ? <FiAlertCircle size={20} /> : <FiCheckCircle size={20} />}
+          {toast.message}
+        </div>
+      )}
+
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h2 className="page-title">My Calendar</h2>
@@ -163,7 +248,7 @@ const DoctorCalendarPage = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-2" style={{ gap: '1.25rem' }}>
+      <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: '1.25rem' }}>
         {/* Calendar Card */}
         <div className="card" style={{ padding: '1rem' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.5rem', marginBottom: '0.5rem', textAlign: 'center' }}>
@@ -174,8 +259,10 @@ const DoctorCalendarPage = () => {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.5rem' }}>
             {calendarCells.map((cell, idx) => {
               if (!cell) return <div key={`empty-${idx}`} />;
-              const isToday = isSameDay(cell, today);
+              const isTodayCell = isSameDay(cell, today);
               const isSelected = isSameDay(cell, selectedDate);
+              const leave = isDateOnLeave(cell);
+              
               return (
                 <button
                   key={cell.toISOString()}
@@ -183,10 +270,10 @@ const DoctorCalendarPage = () => {
                   style={{
                     aspectRatio: '1',
                     borderRadius: 12,
-                    border: isSelected ? '2px solid var(--primary)' : '1px solid #e2e8f0',
-                    backgroundColor: isSelected ? 'rgba(82,178,191,0.1)' : '#f8fafc',
-                    color: '#0f172a',
-                    fontWeight: isToday ? 700 : 500,
+                    border: isSelected ? '2px solid var(--primary)' : leave ? '1.5px solid #ef4444' : '1px solid #e2e8f0',
+                    backgroundColor: isSelected ? 'rgba(82,178,191,0.1)' : leave ? '#fef2f2' : (isTodayCell ? '#eff6ff' : '#f8fafc'),
+                    color: leave ? '#dc2626' : (isTodayCell ? '#1e40af' : '#0f172a'),
+                    fontWeight: isTodayCell ? 700 : 500,
                     cursor: 'pointer',
                     display: 'flex',
                     flexDirection: 'column',
@@ -196,13 +283,21 @@ const DoctorCalendarPage = () => {
                     transition: 'all 0.15s ease',
                     position: 'relative'
                   }}
-                  title={cell.toLocaleDateString()}
+                  title={cell.toLocaleDateString() + (leave ? ' (Leave)' : '')}
                 >
                   <span style={{ fontSize: '1rem' }}>{cell.getDate()}</span>
+                  
+                  {leave && (
+                    <div style={{ 
+                      position: 'absolute', bottom: '6px', width: '4px', height: '4px', 
+                      borderRadius: '50%', backgroundColor: '#ef4444' 
+                    }}></div>
+                  )}
+
                   {myAppointmentsByDate[cell.toISOString().split('T')[0]]?.filter(a => a.status !== 'Cancelled').length > 0 && !isSelected && (
                     <div style={{
                       position: 'absolute', top: '4px', right: '4px',
-                      backgroundColor: 'var(--primary)', color: 'white',
+                      backgroundColor: leave ? '#ef4444' : 'var(--primary)', color: 'white',
                       fontSize: '0.6rem', fontWeight: 700,
                       width: '14px', height: '14px', borderRadius: '50%',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -218,92 +313,104 @@ const DoctorCalendarPage = () => {
         </div>
 
         {/* Daily Schedule Panel */}
-        <div className="card" style={{ padding: '1rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-            <FiCalendar />
-            <h3 style={{ margin: 0, fontSize: '1rem' }}>
-              Daily Activities – {selectedDate.toLocaleDateString('en-US', { weekday: 'long' })}, {selectedDate.toLocaleDateString('en-US')}
-            </h3>
-          </div>
-
-          {myAppointmentsForDay.length === 0 ? (
-            <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-              No scheduled activities for this day
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {myAppointmentsForDay.map((a) => (
-                <div
-                  key={a.id}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div className="card" style={{ padding: '1.25rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <FiCalendar color="var(--primary)" />
+                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700 }}>
+                  {selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+                </h3>
+              </div>
+              
+              {!isPastDate && (
+                <button
+                  onClick={toggleLeave}
+                  disabled={loadingLeave}
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '0.75rem',
-                    borderRadius: 12,
-                    backgroundColor: '#f8fafc',
-                    border: '1px solid #e2e8f0',
+                    padding: '0.5rem 1rem', borderRadius: 10, border: 'none',
+                    backgroundColor: isDateOnLeave(selectedDate) ? '#fee2e2' : 'rgba(82,178,191,0.1)',
+                    color: isDateOnLeave(selectedDate) ? '#dc2626' : 'var(--primary)',
+                    fontWeight: 700, fontSize: '0.85rem', cursor: loadingLeave ? 'not-allowed' : 'pointer',
+                    display: 'flex', alignItems: 'center', gap: '0.4rem', transition: 'all 0.2s',
+                    opacity: loadingLeave ? 0.7 : 1
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <div
-                      style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: '50%',
-                        backgroundColor: 'rgba(82,178,191,0.15)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'var(--primary)',
-                      }}
-                    >
-                      <FiClock />
-                    </div>
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>
-                        {a.patientName}
+                  {isDateOnLeave(selectedDate) ? (
+                    <><FiXCircle /> Remove Leave</>
+                  ) : (
+                    <><FiZap /> Mark as Leave</>
+                  )}
+                </button>
+              )}
+            </div>
+
+            {isDateOnLeave(selectedDate) && (
+              <div style={{
+                padding: '0.75rem 1rem', borderRadius: 12, backgroundColor: '#fef2f2',
+                border: '1px solid #fee2e2', color: '#b91c1c', fontSize: '0.85rem',
+                display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem'
+              }}>
+                <FiAlertCircle />
+                <span>You are marked as <strong>on leave</strong> for this date. No new appointments can be booked.</span>
+              </div>
+            )}
+
+            {myAppointmentsForDay.length === 0 ? (
+              <div style={{ 
+                padding: '3rem 1rem', textAlign: 'center', color: '#94a3b8', 
+                backgroundColor: '#f8fafc', borderRadius: 16, border: '1px dashed #e2e8f0'
+              }}>
+                <FiCalendar size={32} style={{ marginBottom: '0.5rem', opacity: 0.3 }} />
+                <p style={{ margin: 0, fontWeight: 500 }}>No scheduled appointments</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {myAppointmentsForDay.map((a) => (
+                  <div
+                    key={a.id}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '0.85rem', borderRadius: 14, backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <div style={{
+                        width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(82,178,191,0.1)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)',
+                      }}>
+                        <FiUser />
                       </div>
-                      <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                        {getTimeRange(a.time, a.duration)} • {a.type}
-                      </div>
-                      {a.notes && (
-                        <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '4px', fontStyle: 'italic' }}>
-                          "{a.notes}"
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#0f172a' }}>
+                          {a.patientName}
                         </div>
-                      )}
+                        <div style={{ fontSize: '0.8rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                          <FiClock size={12} /> {getTimeRange(a.time, a.duration)}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div>
-                    <span
-                      style={{
-                        fontSize: '0.8rem',
-                        fontWeight: 500,
-                        color:
-                          a.status === 'Completed'
-                            ? '#22c55e'
-                            : a.status === 'Cancelled'
-                            ? '#ef4444'
-                            : '#3b82f6',
-                        backgroundColor:
-                          a.status === 'Completed'
-                            ? '#22c55e15'
-                            : a.status === 'Cancelled'
-                            ? '#ef444415'
-                            : '#3b82f615',
-                        padding: '0.25rem 0.5rem',
-                        borderRadius: 6,
-                      }}
-                    >
+                    <span style={{
+                      fontSize: '0.75rem', fontWeight: 700, borderRadius: 8, padding: '0.3rem 0.6rem',
+                      backgroundColor: a.status === 'Completed' ? '#dcfce7' : a.status === 'Cancelled' ? '#fee2e2' : '#eff6ff',
+                      color: a.status === 'Completed' ? '#166534' : a.status === 'Cancelled' ? '#991b1b' : '#1e40af',
+                    }}>
                       {a.status}
                     </span>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
+
+      <style>{`
+        @keyframes slideIn {
+          from { transform: translateY(-20px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 };

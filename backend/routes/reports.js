@@ -176,4 +176,51 @@ router.post('/upload/:id', authenticateToken, authorizeRoles('admin'), upload.si
   }
 });
 
+// 6. GET /api/reports/my-patient-reports - Get all reports for the logged-in patient
+router.get('/my-patient-reports', authenticateToken, async (req, res) => {
+  try {
+    const patientRoleId = req.user.roleId;
+    if (!patientRoleId) {
+      return res.status(400).json({ message: 'Patient ID missing in session.' });
+    }
+
+    const [rows] = await db.execute('SELECT * FROM patient_reports WHERE patient_id = ? ORDER BY uploaded_at DESC', [patientRoleId]);
+    res.json(rows);
+  } catch (error) {
+    console.error('[REPORTS MY-PATIENT-REPORTS ERROR]', error);
+    res.status(500).json({ message: 'Server error fetching patient reports' });
+  }
+});
+
+// 7. POST /api/reports/upload-report - Upload report by patient
+router.post('/upload-report', authenticateToken, upload.single('report'), async (req, res) => {
+  try {
+    const patientRoleId = req.user.roleId;
+    if (!patientRoleId) {
+      return res.status(400).json({ message: 'Patient ID missing in session.' });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    const fileName = req.file.originalname;
+    const filePath = '/uploads/reports/' + path.basename(req.file.path);
+
+    await db.execute(
+      'INSERT INTO patient_reports (patient_id, file_name, file_path) VALUES (?, ?, ?)',
+      [patientRoleId, fileName, filePath]
+    );
+
+    res.status(201).json({ 
+      message: 'Report uploaded successfully', 
+      filePath,
+      file_name: fileName
+    });
+  } catch (error) {
+    console.error('[REPORTS PATIENT UPLOAD ERROR]', error);
+    res.status(500).json({ message: 'Server error uploading report' });
+  }
+});
+
 module.exports = router;

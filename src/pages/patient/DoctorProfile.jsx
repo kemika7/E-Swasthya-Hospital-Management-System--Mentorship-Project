@@ -256,7 +256,7 @@ const DoctorProfile = () => {
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                       <span style={{ opacity: 0.7 }}>Hospital</span>
-                      <span style={{ fontWeight: 600 }}>{doctor.hospital || 'N/A'}</span>
+                      <span style={{ fontWeight: 600 }}>{doctor.hospital_name || 'General Hospital'}</span>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                       <span style={{ opacity: 0.7 }}>Working Hours</span>
@@ -419,6 +419,10 @@ const DoctorProfile = () => {
                   <FiChevronDown color="#94a3b8" />
                 </div>
                 <div
+                  onClick={() => {
+                    const el = document.getElementById('available-time-section');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }}
                   style={{
                     flex: 1,
                     backgroundColor: 'var(--white)',
@@ -428,11 +432,15 @@ const DoctorProfile = () => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
                   }}
+                  onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--primary)'}
+                  onMouseLeave={(e) => e.currentTarget.style.borderColor = '#e2e8f0'}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <FiClock style={{ color: 'var(--primary)' }} />
-                    <span style={{ fontSize: '0.9rem', color: '#0f172a' }}>
+                    <span style={{ fontSize: '0.9rem', color: selectedTime ? 'var(--primary)' : '#0f172a', fontWeight: selectedTime ? 600 : 400 }}>
                       {selectedTime || 'Select Time'}
                     </span>
                   </div>
@@ -530,7 +538,7 @@ const DoctorProfile = () => {
               </div>
 
               {/* TIME SLOT SECTION */}
-              <div>
+              <div id="available-time-section">
                 <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#0f172a', marginBottom: '1rem' }}>
                   Available Time
                 </h3>

@@ -11,6 +11,7 @@ import {
   FiActivity,
   FiCpu,
   FiBarChart2,
+  FiUploadCloud,
 } from 'react-icons/fi';
 import { FaCalendarCheck } from 'react-icons/fa';
 import logo from '../assets/images/logo.png';
@@ -64,6 +65,12 @@ export const PatientSidebar = () => {
           </NavLink>
         </li>
         <li>
+          <NavLink to="/patient/patient-reports" className={linkBaseStyle}>
+            <FiUploadCloud size={20} />
+            <span>My Reports</span>
+          </NavLink>
+        </li>
+        <li>
           <NavLink to="/patient/locker" className={linkBaseStyle}>
             <FiLock size={20} />
             <span>Document Locker</span>
@@ -109,7 +116,7 @@ export const DoctorSidebar = () => {
         <li>
           <NavLink to="/doctor/report" className={doctorLinkStyle}>
             <FiFileText size={22} />
-            <span>Report</span>
+            <span>Patient Reports</span>
           </NavLink>
         </li>
       </ul>

@@ -83,7 +83,7 @@ router.post('/', authenticateToken, async (req, res) => {
         });
         const [result] = await db.execute(
             'INSERT INTO appointments (patient_id, doctor_id, hospital_id, date, time, duration, status, appointment_type, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [finalPatientId, finalDoctorId, finalHospitalId, date, time, duration || 30, 'Pending', appointment_type || 'Consultation', notes || null]
+            [finalPatientId, finalDoctorId, finalHospitalId, date, time, duration || 30, 'Scheduled', appointment_type || 'Consultation', notes || null]
         );
         console.log('Backend [POST /appointments]: Insert successful, ID:', result.insertId);
         res.status(201).json({ message: 'Appointment booked successfully', appointmentId: result.insertId });

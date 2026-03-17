@@ -298,6 +298,22 @@ const PatientDashboard = () => {
           <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text)' }}>
             Available Doctors in {selectedHospital?.name || 'Your Hospital'}
           </h2>
+          <button 
+            type="button" 
+            onClick={() => { clearHospital(); navigate('/patient/select-hospital'); }} 
+            className="btn btn-outline"
+            style={{ 
+              fontSize: '0.85rem', 
+              padding: '0.5rem 1rem', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.4rem',
+              color: 'var(--primary)',
+              borderColor: 'var(--primary)'
+            }}
+          >
+            Change Hospital
+          </button>
         </div>
 
         {doctorsLoading ? (

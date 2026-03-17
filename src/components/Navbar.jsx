@@ -1,5 +1,5 @@
 import React from 'react';
-import { useLocation, Link } from 'react-router-dom';
+import { useLocation, Link, useNavigate } from 'react-router-dom';
 import { FiLogOut, FiUser } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { useHospital } from '../context/HospitalContext';
@@ -7,8 +7,9 @@ import logo from '../assets/images/logo.png';
 
 const Navbar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { userProfile, logout, isAuthenticated } = useAuth();
-  const { selectedHospital } = useHospital();
+  const { selectedHospital, clearHospital } = useHospital();
 
   const isAuthPage = location.pathname === '/' || location.pathname === '/login';
 
@@ -32,9 +33,28 @@ const Navbar = () => {
         {selectedHospital && (
           <>
             <span style={{ color: 'rgba(15,23,42,0.2)' }}>|</span>
-            <span style={{ fontSize: '0.85rem', color: 'var(--primary)', fontWeight: 500 }}>
+            <button 
+              onClick={() => { clearHospital(); navigate('/patient/select-hospital'); }}
+              style={{ 
+                fontSize: '0.85rem', 
+                color: 'var(--primary)', 
+                fontWeight: 500,
+                border: 'none',
+                background: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.2rem',
+                padding: '0.2rem 0.5rem',
+                borderRadius: '4px',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(82,178,191,0.1)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'none'}
+              title="Click to Change Hospital"
+            >
               🏥 {selectedHospital.name}
-            </span>
+            </button>
           </>
         )}
       </div>

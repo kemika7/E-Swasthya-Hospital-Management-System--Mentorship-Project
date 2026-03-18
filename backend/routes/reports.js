@@ -262,22 +262,9 @@ router.post('/upload/:id', authenticateToken, authorizeRoles('admin'), upload.si
   }
 });
 
-<<<<<<< HEAD
-// 6. GET /api/reports/my-patient-reports - Get all reports for the logged-in patient
-router.get('/my-patient-reports', authenticateToken, async (req, res) => {
-  try {
-    const patientRoleId = req.user.roleId;
-    if (!patientRoleId) {
-      return res.status(400).json({ message: 'Patient ID missing in session.' });
-    }
+// 6. POST /api/reports/analyze-report  → Doctor analyzes a patient's report using AI
 
-    const [rows] = await db.execute('SELECT * FROM patient_reports WHERE patient_id = ? ORDER BY uploaded_at DESC', [patientRoleId]);
-    res.json(rows);
-  } catch (error) {
-    console.error('[REPORTS MY-PATIENT-REPORTS ERROR]', error);
-    res.status(500).json({ message: 'Server error fetching patient reports' });
-  }
-});
+
 
 // 7. POST /api/reports/upload-report - Upload report by patient
 router.post('/upload-report', authenticateToken, upload.single('report'), async (req, res) => {
@@ -307,7 +294,9 @@ router.post('/upload-report', authenticateToken, upload.single('report'), async 
   } catch (error) {
     console.error('[REPORTS PATIENT UPLOAD ERROR]', error);
     res.status(500).json({ message: 'Server error uploading report' });
-=======
+  }
+});
+
 // POST /api/reports/analyze-report  → Doctor analyzes a patient's report using AI
 router.post('/analyze-report', authenticateToken, authorizeRoles('doctor', 'admin'), async (req, res) => {
   try {
@@ -427,7 +416,7 @@ router.get('/analysis/:reportId', authenticateToken, authorizeRoles('doctor', 'p
   } catch (error) {
     console.error('Fetch analysis error:', error);
     res.status(500).json({ message: 'Server error fetching analysis' });
->>>>>>> 2b96d62fcb8c16480c3cc22a14e5fa015ce925e0
+
   }
 });
 

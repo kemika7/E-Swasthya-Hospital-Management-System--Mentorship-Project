@@ -3,25 +3,7 @@ const router = express.Router();
 const db = require('../config/db');
 const jwt = require('jsonwebtoken');
 
-// Authentication middleware
-const auth = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ message: 'Unauthorized' });
-  }
-
-  const token = authHeader.split(' ')[1];
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
-    req.user = decoded;
-    if (req.user.role !== 'patient') {
-      return res.status(403).json({ message: 'Forbidden: Patients only' });
-    }
-    next();
-  } catch (err) {
-    return res.status(401).json({ message: 'Invalid token' });
-  }
-};
+const { authenticateToken: auth } = require('../middleware/auth');
 
 // GET /api/health/my-health - Fetch all health records for the logged-in patient
 router.get('/my-health', auth, async (req, res) => {

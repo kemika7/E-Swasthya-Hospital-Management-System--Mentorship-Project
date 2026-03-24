@@ -39,6 +39,7 @@ app.use('/api/chatbot', require('./routes/chatbot'));
 app.use('/api/locker', require('./routes/locker'));
 app.use('/api/reports', require('./routes/reports'));
 app.use('/api/health', require('./routes/health'));
+app.use('/api/health-analytics', require('./routes/healthAnalytics'));
 app.use('/api/admin', require('./routes/admin'));
 
 // Health Check
@@ -364,6 +365,53 @@ async function ensurePlansSchema() {
     console.warn('[DB] Could not create doctor_plans table:', err.message);
   }
 }
+
+// Auto-patch: ensure patient_health_metrics table exists and has correct columns
+async function ensureHealthMetricsSchema() {
+  try {
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS patient_health_metrics (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        patient_id INT NOT NULL,
+        health_score INT,
+        risk_level VARCHAR(50) DEFAULT 'Unknown',
+        alerts TEXT,
+        trends TEXT,
+        predictions TEXT,
+        insights TEXT,
+        analysis_date DATETIME,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (patient_id) REFERENCES patients(patient_id) ON DELETE CASCADE
+      )
+    `);
+    
+    // Check for missing columns and add them
+    const [cols] = await db.execute('DESCRIBE patient_health_metrics');
+    const colNames = cols.map(c => c.Field);
+    
+    if (!colNames.includes('trends')) {
+      await db.execute('ALTER TABLE patient_health_metrics ADD COLUMN trends TEXT');
+      console.log('[DB] Added trends column to patient_health_metrics.');
+    }
+    if (!colNames.includes('predictions')) {
+      await db.execute('ALTER TABLE patient_health_metrics ADD COLUMN predictions TEXT');
+      console.log('[DB] Added predictions column to patient_health_metrics.');
+    }
+    if (!colNames.includes('analysis_date')) {
+      await db.execute('ALTER TABLE patient_health_metrics ADD COLUMN analysis_date DATETIME');
+      console.log('[DB] Added analysis_date column to patient_health_metrics.');
+    }
+    if (!colNames.includes('insights')) {
+      await db.execute('ALTER TABLE patient_health_metrics ADD COLUMN insights TEXT');
+      console.log('[DB] Added insights column to patient_health_metrics.');
+    }
+    
+    console.log('[DB] patient_health_metrics schema verified.');
+  } catch (err) {
+    console.warn('[DB] Could not ensure patient_health_metrics schema:', err.message);
+  }
+}
+
 app.listen(PORT, async () => {
   console.log(`Server is running on port ${PORT}`);
   // Run schema patches sequentially to avoid exhausting free DB connection limit
@@ -377,6 +425,7 @@ app.listen(PORT, async () => {
     ensurePatientReportsSchema,
     ensureRequestSchema,
     ensurePlansSchema,
+    ensureHealthMetricsSchema,
   ];
   for (const patch of patches) {
     try { await patch(); } catch (e) { console.warn('[PATCH]', e.message); }

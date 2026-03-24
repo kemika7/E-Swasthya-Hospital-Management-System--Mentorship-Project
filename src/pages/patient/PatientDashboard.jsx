@@ -23,6 +23,7 @@ import {
   FiAlertTriangle,
   FiMapPin,
   FiCheckCircle,
+  FiChevronRight,
 } from 'react-icons/fi';
 import {
   MdLocalHospital,
@@ -94,6 +95,7 @@ const PatientDashboard = () => {
     upcomingAppointment: null,
     categories: []
   });
+  const [healthAnalytics, setHealthAnalytics] = useState(null);
   const [doctors, setDoctors] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
@@ -142,6 +144,17 @@ const PatientDashboard = () => {
     }
   };
 
+  const fetchHealthAnalytics = async () => {
+    if (!userProfile?.roleId) return;
+    try {
+      const { apiFetch } = await import('../../services/apiClient');
+      const data = await apiFetch(`/health-analytics/generate/${userProfile.roleId}`);
+      setHealthAnalytics(data);
+    } catch (err) {
+      console.error('Failed to fetch health analytics:', err);
+    }
+  };
+
   useEffect(() => {
     fetchDashboard();
     const fetchHospitals = async () => {
@@ -154,6 +167,7 @@ const PatientDashboard = () => {
       }
     };
     fetchHospitals();
+    fetchHealthAnalytics();
   }, []);
 
   useEffect(() => {
@@ -369,51 +383,83 @@ const PatientDashboard = () => {
           <div 
             onClick={() => navigate('/patient/reports')}
             style={{ 
-              height: 'calc(100% - 2.5rem)', padding: '1.5rem', backgroundColor: 'var(--white)', borderRadius: 20,
-              boxShadow: '0 4px 20px rgba(0,0,0,0.03)', cursor: 'pointer', border: '1px solid #f1f5f9',
-              display: 'flex', flexDirection: 'column', gap: '1rem', transition: 'all 0.3s ease',
-              justifyContent: 'center'
+              height: 'calc(100% - 2.5rem)', padding: '1.2rem', backgroundColor: 'var(--white)', borderRadius: 24,
+              boxShadow: '0 10px 30px rgba(0,0,0,0.04)', cursor: 'pointer', border: '1px solid #f1f5f9',
+              display: 'flex', flexDirection: 'column', gap: '1rem', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              position: 'relative', overflow: 'hidden'
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 24px rgba(0,0,0,0.06)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.03)'; }}
+            onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-6px)'; e.currentTarget.style.boxShadow = '0 20px 40px rgba(0,0,0,0.08)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 10px 30px rgba(0,0,0,0.04)'; }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <div style={{ width: 50, height: 50, borderRadius: 14, backgroundColor: 'rgba(82,178,191,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
-                <FiActivity size={24} />
+            {/* Critical Alert Banner */}
+            {healthAnalytics?.alerts && healthAnalytics.alerts !== 'None' && (
+              <div style={{ 
+                backgroundColor: '#fef2f2', border: '1px solid #fee2e2', borderRadius: 12, padding: '0.6rem 0.8rem',
+                display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.2rem'
+              }}>
+                <FiAlertTriangle size={16} color="#ef4444" />
+                <div style={{ fontSize: '0.75rem', color: '#b91c1c', fontWeight: 600 }}>
+                   Critical: {healthAnalytics.alerts.split(',')[0]}
+                </div>
               </div>
-              <div style={{ flex: 1 }}>
-                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700, color: '#0f172a' }}>Personal Health Tracker</h3>
-                <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b', marginTop: '0.2rem' }}>Monitor vitals & daily habits</p>
+            )}
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                <h3 style={{ margin: 0, fontSize: '1.10rem', fontWeight: 800, color: '#1e293b' }}>AI Health Score</h3>
+                <div style={{ 
+                  display: 'inline-flex', alignItems: 'center', padding: '0.2rem 0.6rem', 
+                  borderRadius: 20, backgroundColor: healthAnalytics?.risk_level === 'Normal' ? '#f0fdf4' : '#fff7ed',
+                  color: healthAnalytics?.risk_level === 'Normal' ? '#166534' : '#9a3412',
+                  fontSize: '0.7rem', fontWeight: 700, border: '1px solid currentColor'
+                }}>
+                  {healthAnalytics?.risk_level || 'Calculating...'}
+                </div>
               </div>
-            </div>
-            
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: '1fr 1fr', 
-              gap: '0.8rem',
-              marginTop: '0.5rem'
-            }}>
-              <div style={{ padding: '0.6rem', borderRadius: 12, backgroundColor: '#f8fafc', border: '1px solid #f1f5f9' }}>
-                <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase' }}>Steps</div>
-                <div style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>8,432</div>
-              </div>
-              <div style={{ padding: '0.6rem', borderRadius: 12, backgroundColor: '#f8fafc', border: '1px solid #f1f5f9' }}>
-                <div style={{ fontSize: '0.7rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase' }}>Sleep</div>
-                <div style={{ fontSize: '1rem', fontWeight: 700, color: '#0f172a' }}>7.5h</div>
+              
+              {/* Circular Score Widget */}
+              <div style={{ position: 'relative', width: 64, height: 64, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="64" height="64" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="45" fill="none" stroke="#f1f5f9" strokeWidth="10" />
+                  <circle 
+                    cx="50" cy="50" r="45" fill="none" 
+                    stroke={healthAnalytics?.health_score > 70 ? '#22c55e' : healthAnalytics?.health_score > 40 ? '#f59e0b' : '#ef4444'} 
+                    strokeWidth="10" strokeDasharray="283" 
+                    strokeDashoffset={283 - (283 * (healthAnalytics?.health_score || 0)) / 100}
+                    strokeLinecap="round" transform="rotate(-90 50 50)"
+                    style={{ transition: 'stroke-dashoffset 1s ease-out' }}
+                  />
+                </svg>
+                <div style={{ position: 'absolute', fontSize: '1.1rem', fontWeight: 800, color: '#1e293b' }}>
+                  {healthAnalytics?.health_score || '--'}
+                </div>
               </div>
             </div>
 
             <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'space-between',
-              color: 'var(--primary)',
-              fontSize: '0.85rem',
-              fontWeight: 600,
-              marginTop: '0.5rem'
+              backgroundColor: '#f8fafc', borderRadius: 16, padding: '0.8rem', border: '1px solid #f1f5f9'
             }}>
-              <span>View full report</span>
-              <FiBriefcase size={16} />
+              <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.4rem', letterSpacing: '0.025em' }}>
+                Latest Insight
+              </div>
+              <p style={{ 
+                margin: 0, fontSize: '0.8rem', color: '#334155', fontWeight: 500, lineHeight: '1.5',
+                display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden'
+              }}>
+                {healthAnalytics?.insights?.split('.')[0] || 'Fetching personalized health tips...'}
+              </p>
+            </div>
+
+            <div style={{ 
+              marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              paddingTop: '0.5rem', borderTop: '1px solid #f1f5f9'
+            }}>
+              <span style={{ fontSize: '0.81rem', color: '#94a3b8', fontWeight: 500 }}>
+                {healthAnalytics?.analysis_date ? `Last analyzed ${new Date(healthAnalytics.analysis_date).toLocaleDateString()}` : 'Real-time analysis'}
+              </span>
+              <div style={{ color: 'var(--primary)', display: 'flex', alignItems: 'center', gap: '0.2rem', fontWeight: 600, fontSize: '0.85rem' }}>
+                View Full Analytics <FiChevronRight />
+              </div>
             </div>
           </div>
         </div>

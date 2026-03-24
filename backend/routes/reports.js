@@ -32,8 +32,8 @@ const pdfFilter = (req, file, cb) => {
   }
 };
 
-const upload = multer({ 
-  storage, 
+const upload = multer({
+  storage,
   fileFilter: pdfFilter,
   limits: { fileSize: 20 * 1024 * 1024 } // 20MB limit
 });
@@ -153,7 +153,7 @@ router.get('/my-report', authenticateToken, async (req, res) => {
   try {
     const patientRoleId = req.user.roleId; // For patients, roleId is the patient_id
     if (!patientRoleId) {
-        return res.status(400).json({ message: 'Patient ID missing in session.' });
+      return res.status(400).json({ message: 'Patient ID missing in session.' });
     }
 
     const [rows] = await db.execute('SELECT * FROM reports WHERE patient_id = ? ORDER BY uploaded_at DESC LIMIT 1', [patientRoleId]);
@@ -200,7 +200,7 @@ router.get('/', authenticateToken, authorizeRoles('admin'), async (req, res) => 
 
 // 3. PUT /api/reports/:id - Update report status (Admin)
 router.put('/:id', authenticateToken, authorizeRoles('admin'), async (req, res) => {
-  const { 
+  const {
     consultation_status, consultation_percent,
     record_updated_status, record_updated_percent,
     report_generated_status, report_generated_percent,
@@ -233,13 +233,13 @@ router.put('/:id', authenticateToken, authorizeRoles('admin'), async (req, res) 
 
 // 4. POST /api/reports/create/:patientId - Create new report entry (Admin)
 router.post('/create/:patientId', authenticateToken, authorizeRoles('admin'), async (req, res) => {
-    try {
-        const [result] = await db.execute('INSERT INTO reports (patient_id) VALUES (?)', [req.params.patientId]);
-        res.status(201).json({ message: 'Report entry created', id: result.insertId });
-    } catch (err) {
-        console.error('[REPORTS CREATE ERROR]', err);
-        res.status(500).json({ message: 'Server error creating report entry' });
-    }
+  try {
+    const [result] = await db.execute('INSERT INTO reports (patient_id) VALUES (?)', [req.params.patientId]);
+    res.status(201).json({ message: 'Report entry created', id: result.insertId });
+  } catch (err) {
+    console.error('[REPORTS CREATE ERROR]', err);
+    res.status(500).json({ message: 'Server error creating report entry' });
+  }
 });
 
 // 5. POST /api/reports/upload/:id - Upload final report file (Admin)
@@ -250,7 +250,7 @@ router.post('/upload/:id', authenticateToken, authorizeRoles('admin'), upload.si
     }
 
     const filePath = '/uploads/reports/' + path.basename(req.file.path);
-    
+
     await db.execute('UPDATE reports SET report_file_path = ?, report_published_status = "done", report_published_percent = 100, overall_progress = 100 WHERE id = ?', [
       filePath, req.params.id
     ]);
@@ -286,8 +286,8 @@ router.post('/upload-report', authenticateToken, upload.single('report'), async 
       [patientRoleId, fileName, filePath]
     );
 
-    res.status(201).json({ 
-      message: 'Report uploaded successfully', 
+    res.status(201).json({
+      message: 'Report uploaded successfully',
       filePath,
       file_name: fileName
     });
@@ -381,9 +381,9 @@ router.post('/analyze-report', authenticateToken, authorizeRoles('doctor', 'admi
        chart_data = ? 
        WHERE id = ?`,
       [
-        JSON.stringify(analysis), 
-        JSON.stringify(analysis.extracted_data || {}), 
-        JSON.stringify(analysis.chart_data || {}), 
+        JSON.stringify(analysis),
+        JSON.stringify(analysis.extracted_data || {}),
+        JSON.stringify(analysis.chart_data || {}),
         reportId
       ]
     );

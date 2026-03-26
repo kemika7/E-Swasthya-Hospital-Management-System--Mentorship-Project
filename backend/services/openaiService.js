@@ -1,73 +1,90 @@
 const OpenAI = require('openai');
 
 const openai = new OpenAI({
-  apiKey: process.env.GROQ_API_KEY,
-  baseURL: "https://api.groq.com/openai/v1"
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 /**
- * Analyzes medical report text using OpenAI with advanced medical reasoning.
- * @param {string} extractedText - The text extracted from the PDF.
+ * Analyzes medical report text and images using OpenAI Vision with role-based behavior.
+ * @param {string} reportText - The text extracted from the PDF.
+ * @param {string[]} images - Array of base64 encoded page images.
  * @param {Object} historicalContext - Analysis from previous reports for comparison.
+ * @param {string} role - The role of the user (patient, doctor, admin).
  * @returns {Promise<Object>} - The structured analysis result.
  */
-const analyzeMedicalReport = async (extractedText, historicalContext = null) => {
+const analyzeMedicalReport = async (reportText, images = [], historicalContext = null, role = 'patient') => {
   try {
     const prompt = `
-You are an advanced medical diagnostic assistant. Analyze the provided medical report and generate a high-fidelity summarized analysis.
-
-CONTEXT:
-${historicalContext ? `HISTORICAL DATA (for Trend Analysis): ${JSON.stringify(historicalContext)}` : 'No previous reports available for trend analysis.'}
+You are a highly accurate medical report analysis AI.
 
 TASK:
-1. Summary: Condense into a few clear sentences highlighting diagnoses, prescriptions, and key lab results.
-2. Lab Test Interpretation: Analyze values (CBC, Glucose, Liver/Kidney, Mutations, etc.). Flag abnormal values with explanations.
-3. Trend Analysis: Compare current report to historical data if available.
-4. Risk & Alerts: Identify high-risk conditions and provide recommendations.
-5. Medication Summary: List all medications, dosages, and durations.
-6. Actionable Insights: Suggest next steps.
+Analyze the provided medical report text (and images if provided) and extract meaningful clinical insights.
 
-CRITICAL INSTRUCTIONS FOR DATA EXTRACTION:
-- extracted_data: Extract ALL key numeric or status values into this object. (e.g., {"PDGFRA": "Pathogenic", "Tumor Content": "60%"}).
-- chart_data: Create a valid Chart.js data object. 
-  * If multiple reports (Trend): Show parameter changes over time.
-  * If single report: Extract every numeric parameter (e.g., Tumor Content, Allele Frequency, or key Lab Values) and create a BAR chart showing their values.
-  * ALWAYS provide at least one dataset if any numeric value exists. Example for single report: {"labels": ["Tumor Content"], "datasets": [{"label": "Percentage (%)", "data": [60]}]}
-- abnormality_pie: Count interprets. If status is NOT 'Normal', it's 'Abnormal'.
+INSTRUCTIONS:
+- Identify ALL medical tests, values, units, and reference ranges.
+- Detect abnormalities (HIGH / LOW / CRITICAL / NORMAL).
+- DO NOT skip data even if formatting is messy.
+- DO NOT return generic responses.
+- DO NOT say "no findings" unless the report truly has zero medical content.
+- DO NOT classify valid reports as non-medical.
 
-OUTPUT FORMAT (STRICT JSON):
+ANALYSIS REQUIREMENTS:
+- Compare values with reference ranges (if available).
+- If no range is given, use general medical knowledge.
+- Explain what each abnormal value means in simple terms.
+- Infer possible conditions (only if logically inferred, do not overdiagnose).
+- Give practical recommendations.
+
+OUTPUT FORMAT (STRICT JSON ONLY — NO EXTRA TEXT):
 {
-  "summary": "string",
-  "lab_interpretation": [
-    { "parameter": "name", "value": "value", "status": "Normal|High|Low|Abnormal|Pathogenic", "insight": "explanation" }
+  "type": "LAB_REPORT | RADIOLOGY | PRESCRIPTION | OTHER",
+  "summary": "Clear 2-3 line summary of actual findings",
+  "key_findings": [
+    {
+      "test": "Test name",
+      "value": "Value with unit",
+      "normal_range": "Range or null",
+      "status": "HIGH | LOW | NORMAL | CRITICAL",
+      "meaning": "Brief medical implication"
+    }
   ],
-  "trends": "string",
-  "risks": [
-    { "condition": "name", "severity": "Mild|Moderate|High", "recommendation": "string" }
-  ],
-  "medications": [
-    { "name": "drug", "dose": "dose", "duration": "duration", "notes": "string" }
-  ],
-  "actionable_insights": ["string"],
-  "extracted_data": { "Key": "Value", ... },
-  "chart_data": {
-    "labels": ["string"],
-    "chart_type": "line|bar",
-    "datasets": [{ "label": "string", "data": [number] }]
-  },
-  "abnormality_pie": {
-    "labels": ["Normal", "Abnormal"],
-    "values": [number, number]
-  }
+  "abnormalities": ["List of abnormal findings strings"],
+  "possible_conditions": ["Inferred conditions"],
+  "recommendations": ["Actionable steps"],
+  "explanation": "Simple explanation in plain language"
 }
 
-REPORT TEXT:
-${extractedText.substring(0, 15000)}
+REPORT TEXT CONTENT:
+"""
+${reportText}
+"""
 `;
 
+    const userContent = [{ type: "text", text: prompt }];
+    
+    // Add images for Vision analysis if available
+    if (images && images.length > 0) {
+      images.forEach((base64Image, index) => {
+        // CLEAN BASE64: Strip whitespace and ensure correct URI prefix
+        const cleanBase64 = base64Image.replace(/\s/g, '');
+        const hasPrefix = cleanBase64.startsWith('data:');
+        const imageUrl = hasPrefix ? cleanBase64 : `data:image/jpeg;base64,${cleanBase64}`;
+        
+        console.log(`[AI Vision] Attaching image ${index+1} (Length: ${imageUrl.length})`);
+        
+        userContent.push({
+          type: "image_url",
+          image_url: { url: imageUrl }
+        });
+      });
+    }
+
     const completion = await openai.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
-      messages: [{ role: "user", content: prompt }],
+      model: "gpt-4o", 
+      messages: [
+        { role: "system", content: "You are a specialized medical analysis AI that provides structured clinical data." },
+        { role: "user", content: userContent }
+      ],
       response_format: { type: "json_object" },
     });
 

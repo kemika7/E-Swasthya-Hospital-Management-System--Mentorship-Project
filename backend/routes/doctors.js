@@ -297,6 +297,35 @@ router.post('/leave', authenticateToken, async (req, res) => {
     }
 });
 
+// Save calendar notes (Doctor only)
+router.post('/calendar-notes', authenticateToken, async (req, res) => {
+    try {
+        if (req.user.role !== 'doctor') return res.status(403).json({ message: 'Access denied' });
+
+        const { date, notes } = req.body;
+        if (!date) return res.status(400).json({ message: 'Date is required' });
+
+        const [doctor] = await db.execute('SELECT id, calendar_notes FROM doctors WHERE user_id = ?', [req.user.id]);
+        if (doctor.length === 0) return res.status(404).json({ message: 'Doctor record not found' });
+
+        const doctorId = doctor[0].id;
+        let calendarNotes = doctor[0].calendar_notes ? (typeof doctor[0].calendar_notes === 'string' ? JSON.parse(doctor[0].calendar_notes) : doctor[0].calendar_notes) : {};
+        
+        if (!notes || notes.trim() === '') {
+            delete calendarNotes[date];
+        } else {
+            calendarNotes[date] = notes;
+        }
+
+        await db.execute('UPDATE doctors SET calendar_notes = ? WHERE id = ?', [JSON.stringify(calendarNotes), doctorId]);
+
+        res.json({ message: 'Calendar notes updated successfully', calendar_notes: calendarNotes });
+    } catch (err) {
+        console.error('[CALENDAR NOTES ERROR]', err);
+        res.status(500).json({ message: 'Server error updating calendar notes' });
+    }
+});
+
 // Admin: Get all requests
 router.get('/admin/requests', authenticateToken, async (req, res) => {
     try {

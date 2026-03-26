@@ -495,6 +495,9 @@ const DoctorProfile = () => {
                     twoWeeksLater.setDate(today.getDate() + 14);
 
                     const dateIso = day ? `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}` : null;
+                    const unavailableDates = doctor?.unavailable_dates ? (typeof doctor.unavailable_dates === 'string' ? JSON.parse(doctor.unavailable_dates) : doctor.unavailable_dates) : [];
+                    const isOnLeave = dateIso && unavailableDates.includes(dateIso);
+
                     const hasAppointment = day && (appointments || []).some(a => {
                       const aDate = typeof a.date === 'string' ? a.date.split('T')[0] : a.date;
                       return aDate === dateIso && Number(a.doctor_id) === Number(doctorId) && a.status !== 'Cancelled';
@@ -502,7 +505,7 @@ const DoctorProfile = () => {
 
                     const isPast = day && cellDate < today;
                     const isTooFar = day && cellDate > twoWeeksLater;
-                    const isDisabled = day && (isPast || isTooFar || hasAppointment);
+                    const isDisabled = day && (isPast || isTooFar || hasAppointment || isOnLeave);
 
                     if (!day) return <div key={`empty-${index}`} />;
 
@@ -514,23 +517,29 @@ const DoctorProfile = () => {
                         style={{
                           aspectRatio: '1',
                           borderRadius: '50%',
-                          border: 'none',
+                          border: isOnLeave ? '1.5px solid #ef4444' : 'none',
                           backgroundColor: isSelected
                             ? 'var(--primary)'
-                            : isDisabled
-                              ? 'transparent'
-                              : '#f1f5f9',
+                            : isOnLeave
+                              ? '#fff1f2'
+                              : isDisabled
+                                ? 'transparent'
+                                : '#f1f5f9',
                           color: isSelected
                             ? 'var(--white)'
-                            : isDisabled
-                              ? '#cbd5e1'
-                              : '#0f172a',
+                            : isOnLeave
+                              ? '#ef4444'
+                              : isDisabled
+                                ? '#cbd5e1'
+                                : '#0f172a',
                           fontSize: '0.9rem',
-                          fontWeight: 500,
+                          fontWeight: isOnLeave ? 700 : 500,
                           cursor: isDisabled ? 'default' : 'pointer',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
+                          position: 'relative',
+                          textDecoration: isOnLeave ? 'line-through' : 'none',
                         }}
                       >
                         {day}

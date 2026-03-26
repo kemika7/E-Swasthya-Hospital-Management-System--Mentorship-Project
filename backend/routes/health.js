@@ -59,7 +59,7 @@ router.post('/save', auth, async (req, res) => {
     } = data;
 
     // Use provided date or default to today
-    const finalDate = date || new Date().toISOString().split('T')[0];
+    const finalDate = date || new Date().toLocaleDateString('en-CA');
 
     const sql = `
       INSERT INTO patient_health_data (

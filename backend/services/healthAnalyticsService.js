@@ -11,6 +11,7 @@ const calculateHealthMetrics = (historicalData, targetDate = null) => {
         const targetDay = targetDate.split('T')[0];
         // Ensure there is at least one record on this specific day to analyze
         const hasDataOnDay = dataset.some(h => {
+             if (!h.created_at) return false;
              const hDate = new Date(h.created_at).toISOString().split('T')[0];
              return hDate === targetDay;
         });
@@ -39,43 +40,62 @@ const calculateHealthMetrics = (historicalData, targetDate = null) => {
     const latest = dataset[dataset.length - 1];
     const previous = dataset.length > 1 ? dataset[dataset.length - 2] : null;
 
-    // 1. Health Score Calculation (0-100)
-    let score = 0;
-    const rules = [
-        { key: 'bmi', min: 18.5, max: 24.9, pts: 20 },
-        { key: 'blood_pressure_systolic', max: 120, pts: 10 },
-        { key: 'blood_pressure_diastolic', max: 80, pts: 10 },
-        { key: 'glucose_level', min: 70, max: 100, pts: 15 },
-        { key: 'sleep_hours', min: 7, max: 9, pts: 15 },
-        { key: 'water_intake', min: 2, pts: 10 },
-        { key: 'spo2', min: 95, pts: 10 },
-        { key: 'exercise', val: 1, pts: 10 }
-    ];
+    // 1. Health Score Calculation (0-100), with stronger weighting on core vitals
+    let score = 100;
+    const applyPenalty = (condition, points) => {
+        if (condition) score -= points;
+    };
 
-    rules.forEach(rule => {
-        const val = latest[rule.key];
-        if (val !== null && val !== undefined) {
-            if (rule.val !== undefined) {
-                if (val === rule.val) score += rule.pts;
-            } else {
-                let match = true;
-                if (rule.min !== undefined && val < rule.min) match = false;
-                if (rule.max !== undefined && val > rule.max) match = false;
-                if (match) score += rule.pts;
-            }
-        }
-    });
+    const sys = latest.blood_pressure_systolic;
+    const dia = latest.blood_pressure_diastolic;
+    const hr = latest.heart_rate;
+    const spo2 = latest.spo2;
+
+    // Core vital penalties (BP, SPO2, Heart Rate) - Based on user request logic
+    if (sys !== null && sys !== undefined) {
+        applyPenalty(sys >= 140, 15);
+        applyPenalty(sys < 90, 15);
+    }
+    if (dia !== null && dia !== undefined) {
+        applyPenalty(dia >= 90, 10);
+        applyPenalty(dia < 60, 10);
+    }
+    if (spo2 !== null && spo2 !== undefined) {
+        applyPenalty(spo2 < 95, 20);
+    }
+    if (hr !== null && hr !== undefined) {
+        applyPenalty(hr > 100, 15);
+        applyPenalty(hr < 60, 15);
+    }
+
+    // Secondary health factors
+    if (latest.glucose_level !== null && latest.glucose_level !== undefined) {
+        applyPenalty(latest.glucose_level > 140, 8);
+    }
+    if (latest.bmi !== null && latest.bmi !== undefined) {
+        applyPenalty(latest.bmi > 30 || latest.bmi < 18.5, 6);
+    }
+    if (latest.sleep_hours !== null && latest.sleep_hours !== undefined) {
+        applyPenalty(latest.sleep_hours < 7, 5);
+    }
+    if (latest.water_intake !== null && latest.water_intake !== undefined) {
+        applyPenalty(latest.water_intake < 2, 5);
+    }
+
+    score = Math.max(0, Math.min(100, Math.round(score)));
 
     // 2. Risk Level Assessment (ENUM-compliant)
     let riskLevel = "Normal";
-    if (latest.blood_pressure_systolic > 140 || latest.blood_pressure_diastolic > 90) {
+    if (latest.spo2 < 92) {
+        riskLevel = "Respiratory Risk";
+    } else if (latest.blood_pressure_systolic > 140 || latest.blood_pressure_diastolic > 90) {
         riskLevel = "Hypertension Risk";
     } else if (latest.glucose_level > 125) {
         riskLevel = "Diabetes Risk";
     } else if (latest.bmi > 30) {
         riskLevel = "Obesity Risk";
-    } else if (latest.spo2 < 92) {
-        riskLevel = "Respiratory Risk";
+    } else if (latest.heart_rate > 120 || latest.heart_rate < 45) {
+        riskLevel = "Cardiac Risk";
     }
 
     // 3. Alerts Generation
@@ -83,6 +103,7 @@ const calculateHealthMetrics = (historicalData, targetDate = null) => {
     if (latest.blood_pressure_systolic > 140) alertsList.push("High Blood Pressure");
     if (latest.glucose_level > 140) alertsList.push("High Glucose Level");
     if (latest.spo2 < 95) alertsList.push("Low Oxygen (SPO2)");
+    if (latest.heart_rate > 120 || latest.heart_rate < 45) alertsList.push("Abnormal Heart Rate");
     if (latest.temperature > 38) alertsList.push("Fever Detected");
     const alerts = alertsList.length > 0 ? alertsList.join(", ") : "None";
 

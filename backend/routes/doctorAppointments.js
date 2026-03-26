@@ -36,7 +36,7 @@ router.get('/:id/appointments', authenticateToken, async (req, res) => {
         // Calculate end_time for each appointment
         const refinedAppointments = (appointments || []).map(a => {
             if (!a.start_time) {
-                return { ...a, end_time: '00:00:00' };
+                return { ...a, end_time: '00:00:00', patientName: a.patient_name || 'Patient' };
             }
             
             try {
@@ -55,7 +55,7 @@ router.get('/:id/appointments', authenticateToken, async (req, res) => {
                     time: a.start_time,
                     start_time: a.start_time,
                     end_time: `${endHours}:${endMinutes}:00`,
-                    patient_name: a.patient_name || 'Patient',
+                    patientName: a.patient_name || 'Patient',
                     status: a.status || 'Scheduled',
                     type: a.type || 'Consultation',
                     notes: a.notes || '',

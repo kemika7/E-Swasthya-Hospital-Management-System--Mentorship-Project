@@ -152,6 +152,10 @@ async function ensureHospitalSchema() {
       await db.execute('ALTER TABLE doctors ADD COLUMN unavailable_dates LONGTEXT NULL');
       console.log('[DB] Added unavailable_dates column to doctors table.');
     }
+    if (!colNames.includes('calendar_notes')) {
+      await db.execute('ALTER TABLE doctors ADD COLUMN calendar_notes LONGTEXT NULL');
+      console.log('[DB] Added calendar_notes column to doctors table.');
+    }
   } catch (err) {
     console.warn('[DB] Could not patch doctors schema:', err.message);
   }

@@ -1,5 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { FiChevronLeft, FiChevronRight, FiCalendar, FiClock, FiUser, FiCheckCircle, FiAlertCircle, FiXCircle, FiZap } from 'react-icons/fi';
+import { 
+  FiChevronLeft, FiChevronRight, FiCalendar, FiClock, FiUser, 
+  FiCheckCircle, FiAlertCircle, FiXCircle, FiZap, FiEdit3, FiSave, FiTrash2, FiActivity
+} from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import { useAppointment } from '../../context/AppointmentContext';
 import { apiFetch } from '../../services/apiClient';
@@ -16,12 +19,18 @@ const DoctorCalendarPage = () => {
   const [currentMonth, setCurrentMonth] = useState(startOfCurrentMonth);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [unavailableDates, setUnavailableDates] = useState([]);
+  const [calendarNotes, setCalendarNotes] = useState({});
+  const [currentNote, setCurrentNote] = useState('');
+  const [isEditingNote, setIsEditingNote] = useState(false);
   const [loadingLeave, setLoadingLeave] = useState(false);
+  const [loadingNote, setLoadingNote] = useState(false);
   const [toast, setToast] = useState(null);
 
   const fetchDoctorProfile = async () => {
     try {
       const data = await apiFetch('/doctors/profile');
+      
+      // Parse unavailable dates
       let dates = [];
       if (data.unavailable_dates) {
         dates = typeof data.unavailable_dates === 'string' 
@@ -29,6 +38,15 @@ const DoctorCalendarPage = () => {
           : data.unavailable_dates;
       }
       setUnavailableDates(dates);
+
+      // Parse calendar notes
+      let notes = {};
+      if (data.calendar_notes) {
+        notes = typeof data.calendar_notes === 'string'
+          ? JSON.parse(data.calendar_notes)
+          : data.calendar_notes;
+      }
+      setCalendarNotes(notes);
     } catch (err) {
       console.error('Failed to fetch doctor profile:', err);
     }
@@ -43,39 +61,34 @@ const DoctorCalendarPage = () => {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const MAX_MONTHS_AHEAD = 3;
+  const selectedDateIso = useMemo(() => {
+    const y = selectedDate.getFullYear();
+    const m = String(selectedDate.getMonth() + 1).padStart(2, '0');
+    const d = String(selectedDate.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }, [selectedDate]);
+
+  useEffect(() => {
+    setCurrentNote(calendarNotes[selectedDateIso] || '');
+    setIsEditingNote(false);
+  }, [selectedDateIso, calendarNotes]);
 
   const monthLabel = useMemo(() => {
     return currentMonth.toLocaleString('en-US', { month: 'long', year: 'numeric' });
   }, [currentMonth]);
 
-  const canGoPrev = useMemo(() => {
-    const start = new Date(today.getFullYear(), today.getMonth(), 1);
-    return currentMonth > start;
-  }, [currentMonth, today]);
-
-  const canGoNext = useMemo(() => {
-    const max = new Date(today.getFullYear(), today.getMonth() + MAX_MONTHS_AHEAD, 1);
-    const next = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
-    return next <= max;
-  }, [currentMonth, today]);
-
   const goPrevMonth = () => {
-    if (!canGoPrev) return;
     const prev = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
     setCurrentMonth(prev);
-    setSelectedDate(new Date(prev.getFullYear(), prev.getMonth(), 1));
   };
 
   const goNextMonth = () => {
-    if (!canGoNext) return;
     const next = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
     setCurrentMonth(next);
-    setSelectedDate(new Date(next.getFullYear(), next.getMonth(), 1));
   };
 
   const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
-  const getFirstDayOfMonth = (year, month) => new Date(year, month, 1).getDay(); // 0..6
+  const getFirstDayOfMonth = (year, month) => new Date(year, month, 1).getDay();
 
   const daysInMonth = getDaysInMonth(currentMonth.getFullYear(), currentMonth.getMonth());
   const firstDayIndex = getFirstDayOfMonth(currentMonth.getFullYear(), currentMonth.getMonth());
@@ -98,28 +111,9 @@ const DoctorCalendarPage = () => {
     );
   };
 
-  const selectedDateIso = useMemo(() => {
-    const y = selectedDate.getFullYear();
-    const m = String(selectedDate.getMonth() + 1).padStart(2, '0');
-    const d = String(selectedDate.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-  }, [selectedDate]);
-
-  const isDateOnLeave = (date) => {
-    if (!date) return false;
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    const iso = `${y}-${m}-${d}`;
-    return (unavailableDates || []).includes(iso);
-  };
-
   const toggleLeave = async () => {
     const dateStr = selectedDateIso;
-    const selDate = new Date(selectedDate);
-    selDate.setHours(0,0,0,0);
-
-    if (selDate < today) {
+    if (new Date(selectedDate) < today) {
       showToast('Cannot manage leave for past dates', 'error');
       return;
     }
@@ -139,7 +133,24 @@ const DoctorCalendarPage = () => {
     }
   };
 
-  const myAppointmentsByDate = useMemo(() => {
+  const saveNote = async () => {
+    setLoadingNote(true);
+    try {
+      const res = await apiFetch('/doctors/calendar-notes', {
+        method: 'POST',
+        body: JSON.stringify({ date: selectedDateIso, notes: currentNote })
+      });
+      setCalendarNotes(res.calendar_notes);
+      showToast('Note saved successfully!');
+      setIsEditingNote(false);
+    } catch (err) {
+      showToast(err.message || 'Failed to save note', 'error');
+    } finally {
+      setLoadingNote(false);
+    }
+  };
+
+  const appointmentsByDate = useMemo(() => {
     const map = {};
     (appointments || []).forEach(a => {
       const d = typeof a.date === 'string' ? a.date.split('T')[0] : a.date;
@@ -149,161 +160,69 @@ const DoctorCalendarPage = () => {
     return map;
   }, [appointments]);
 
-  const formatTime = (timeStr) => {
-    if (!timeStr) return '';
-    try {
-      const [hours, minutes] = timeStr.split(':');
-      let h = parseInt(hours, 10);
-      const ampm = h >= 12 ? 'PM' : 'AM';
-      h = h % 12 || 12;
-      return `${h}:${minutes} ${ampm}`;
-    } catch (e) {
-      return timeStr;
-    }
-  };
-
-  const getTimeRange = (timeStr, duration = 30) => {
-    if (!timeStr) return '';
-    try {
-      const [hours, minutes] = timeStr.split(':');
-      let h = parseInt(hours, 10);
-      let m = parseInt(minutes, 10);
-      
-      const startDate = new Date();
-      startDate.setHours(h, m, 0);
-      
-      const endDate = new Date(startDate.getTime() + (duration * 60000));
-      
-      const startTimeRefined = formatTime(timeStr);
-      const endHours = endDate.getHours();
-      const endMinutes = String(endDate.getMinutes()).padStart(2, '0');
-      const endTimeStr = `${String(endHours).padStart(2, '0')}:${endMinutes}`;
-      const endTimeRefined = formatTime(endTimeStr);
-      
-      return `${startTimeRefined} - ${endTimeRefined}`;
-    } catch (e) {
-      return formatTime(timeStr);
-    }
-  };
-
-  const myAppointmentsForDay = useMemo(() => {
-    return (myAppointmentsByDate[selectedDateIso] || [])
+  const dailyAppointments = useMemo(() => {
+    return (appointmentsByDate[selectedDateIso] || [])
       .filter(a => a.status !== 'Cancelled')
-      .sort((a, b) => a.start_time.localeCompare(b.start_time));
-  }, [myAppointmentsByDate, selectedDateIso]);
-
-  const isPastDate = selectedDate < today;
+      .sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''));
+  }, [appointmentsByDate, selectedDateIso]);
 
   return (
-    <div className="layout-main">
+    <div className="layout-main" style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #fdfcfb 0%, #e2d1c3 100%)', padding: '1.5rem' }}>
       {toast && (
-        <div style={{
-          position: 'fixed', top: '2rem', right: '2rem', zIndex: 9999,
-          padding: '1rem 1.5rem', borderRadius: 12, display: 'flex', alignItems: 'center', gap: '0.75rem',
-          backgroundColor: toast.type === 'error' ? '#fee2e2' : '#dcfce7',
-          color: toast.type === 'error' ? '#991b1b' : '#166534',
-          border: `1px solid ${toast.type === 'error' ? '#fecaca' : '#bbf7d0'}`,
-          boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
-          fontWeight: 600, animation: 'slideIn 0.3s ease'
-        }}>
+        <div className={`toast-box ${toast.type}`}>
           {toast.type === 'error' ? <FiAlertCircle size={20} /> : <FiCheckCircle size={20} />}
           {toast.message}
         </div>
       )}
 
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <h2 className="page-title">My Calendar</h2>
-          <p style={{ fontSize: '0.9rem', opacity: 0.7 }}>View and manage your monthly schedule</p>
+      <div className="calendar-header-v2">
+        <div className="header-text">
+          <h2 className="title-blue">Swastha Calendar 📅</h2>
+          <p className="subtitle">Plan your lovely month, {doctorName}!</p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <button
-            className="btn btn-outline"
-            onClick={goPrevMonth}
-            disabled={!canGoPrev}
-            style={{ opacity: canGoPrev ? 1 : 0.5, padding: '0.4rem' }}
-            title="Previous month"
-          >
-            <FiChevronLeft />
-          </button>
-          <div
-            style={{
-              padding: '0.4rem 0.75rem',
-              borderRadius: 8,
-              backgroundColor: '#f1f5f9',
-              fontWeight: 600,
-            }}
-          >
-            {monthLabel}
-          </div>
-          <button
-            className="btn btn-outline"
-            onClick={goNextMonth}
-            disabled={!canGoNext}
-            style={{ opacity: canGoNext ? 1 : 0.5, padding: '0.4rem' }}
-            title="Next month"
-          >
-            <FiChevronRight />
-          </button>
+        
+        <div className="month-picker">
+          <button className="cycle-btn" onClick={goPrevMonth}><FiChevronLeft /></button>
+          <div className="current-month-display">{monthLabel}</div>
+          <button className="cycle-btn" onClick={goNextMonth}><FiChevronRight /></button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2" style={{ gap: '1.25rem' }}>
-        {/* Calendar Card */}
-        <div className="card" style={{ padding: '1rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.5rem', marginBottom: '0.5rem', textAlign: 'center' }}>
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
-              <div key={d} style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600 }}>{d}</div>
+      <div className="calendar-container-v2">
+        {/* LEFT: CALENDAR GRID */}
+        <div className="calendar-glass-card main-grid-card">
+          <div className="weekday-header">
+            {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map(d => (
+              <div key={d} className="weekday-label">{d}</div>
             ))}
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '0.5rem' }}>
+          <div className="cells-grid">
             {calendarCells.map((cell, idx) => {
-              if (!cell) return <div key={`empty-${idx}`} />;
+              if (!cell) return <div key={`empty-${idx}`} className="empty-cell" />;
+              
               const isTodayCell = isSameDay(cell, today);
               const isSelected = isSameDay(cell, selectedDate);
-              const leave = isDateOnLeave(cell);
-              
+              const dateStr = cell.toISOString().split('T')[0];
+              const isOnLeave = (unavailableDates || []).includes(dateStr);
+              const dayAppointments = (appointmentsByDate[dateStr] || []).filter(a => a.status !== 'Cancelled');
+              const hasNote = !!calendarNotes[dateStr];
+
               return (
                 <button
-                  key={cell.toISOString()}
+                  key={dateStr}
                   onClick={() => setSelectedDate(cell)}
-                  style={{
-                    aspectRatio: '1',
-                    borderRadius: 12,
-                    border: isSelected ? '2px solid var(--primary)' : leave ? '1.5px solid #ef4444' : '1px solid #e2e8f0',
-                    backgroundColor: isSelected ? 'rgba(82,178,191,0.1)' : leave ? '#fef2f2' : (isTodayCell ? '#eff6ff' : '#f8fafc'),
-                    color: leave ? '#dc2626' : (isTodayCell ? '#1e40af' : '#0f172a'),
-                    fontWeight: isTodayCell ? 700 : 500,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: isSelected ? 'var(--shadow-soft)' : 'none',
-                    transition: 'all 0.15s ease',
-                    position: 'relative'
-                  }}
-                  title={cell.toLocaleDateString() + (leave ? ' (Leave)' : '')}
+                  className={`calendar-cell-v2 ${isSelected ? 'selected' : ''} ${isTodayCell ? 'today' : ''} ${isOnLeave ? 'on-leave' : ''}`}
                 >
-                  <span style={{ fontSize: '1rem' }}>{cell.getDate()}</span>
+                  <span className="date-num">{cell.getDate()}</span>
                   
-                  {leave && (
-                    <div style={{ 
-                      position: 'absolute', bottom: '6px', width: '4px', height: '4px', 
-                      borderRadius: '50%', backgroundColor: '#ef4444' 
-                    }}></div>
-                  )}
+                  <div className="indicators">
+                    {isOnLeave && <div className="leave-dot" />}
+                    {hasNote && <div className="note-dot" title="Has Note" />}
+                  </div>
 
-                  {myAppointmentsByDate[cell.toISOString().split('T')[0]]?.filter(a => a.status !== 'Cancelled').length > 0 && !isSelected && (
-                    <div style={{
-                      position: 'absolute', top: '4px', right: '4px',
-                      backgroundColor: leave ? '#ef4444' : 'var(--primary)', color: 'white',
-                      fontSize: '0.6rem', fontWeight: 700,
-                      width: '14px', height: '14px', borderRadius: '50%',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      border: '1px solid white'
-                    }}>
-                      {myAppointmentsByDate[cell.toISOString().split('T')[0]].filter(a => a.status !== 'Cancelled').length}
+                  {dayAppointments.length > 0 && (
+                    <div className="appt-count-badge">
+                      {dayAppointments.length}
                     </div>
                   )}
                 </button>
@@ -312,107 +231,256 @@ const DoctorCalendarPage = () => {
           </div>
         </div>
 
-        {/* Daily Schedule Panel */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          <div className="card" style={{ padding: '1.25rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <FiCalendar color="var(--primary)" />
-                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700 }}>
-                  {selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
-                </h3>
+        {/* RIGHT: DETAILS SIDEBAR */}
+        <div className="calendar-sidebar">
+          {/* Day Details Card */}
+          <div className="sidebar-glass-card day-details-card">
+            <div className="card-header">
+              <div className="date-display">
+                <FiCalendar className="primary-icon" />
+                <span>{selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</span>
               </div>
               
-              {!isPastDate && (
-                <button
+              {new Date(selectedDate) >= today && (
+                <button 
+                  className={`leave-toggle-btn ${isOnLeave(selectedDateIso) ? 'active' : ''}`}
                   onClick={toggleLeave}
                   disabled={loadingLeave}
-                  style={{
-                    padding: '0.5rem 1rem', borderRadius: 10, border: 'none',
-                    backgroundColor: isDateOnLeave(selectedDate) ? '#fee2e2' : 'rgba(82,178,191,0.1)',
-                    color: isDateOnLeave(selectedDate) ? '#dc2626' : 'var(--primary)',
-                    fontWeight: 700, fontSize: '0.85rem', cursor: loadingLeave ? 'not-allowed' : 'pointer',
-                    display: 'flex', alignItems: 'center', gap: '0.4rem', transition: 'all 0.2s',
-                    opacity: loadingLeave ? 0.7 : 1
-                  }}
                 >
-                  {isDateOnLeave(selectedDate) ? (
-                    <><FiXCircle /> Remove Leave</>
-                  ) : (
-                    <><FiZap /> Mark as Leave</>
-                  )}
+                  {isOnLeave(selectedDateIso) ? <FiCheckCircle /> : <FiZap />}
+                  {isOnLeave(selectedDateIso) ? 'Vacation Mode' : 'Take Leave'}
                 </button>
               )}
             </div>
 
-            {isDateOnLeave(selectedDate) && (
-              <div style={{
-                padding: '0.75rem 1rem', borderRadius: 12, backgroundColor: '#fef2f2',
-                border: '1px solid #fee2e2', color: '#b91c1c', fontSize: '0.85rem',
-                display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1rem'
-              }}>
-                <FiAlertCircle />
-                <span>You are marked as <strong>on leave</strong> for this date. No new appointments can be booked.</span>
+            {isOnLeave(selectedDateIso) && (
+              <div className="leave-alert-banner">
+                <FiActivity />
+                <span>Booking is closed for this date. Happy rest! 🌸</span>
               </div>
             )}
 
-            {myAppointmentsForDay.length === 0 ? (
-              <div style={{ 
-                padding: '3rem 1rem', textAlign: 'center', color: '#94a3b8', 
-                backgroundColor: '#f8fafc', borderRadius: 16, border: '1px dashed #e2e8f0'
-              }}>
-                <FiCalendar size={32} style={{ marginBottom: '0.5rem', opacity: 0.3 }} />
-                <p style={{ margin: 0, fontWeight: 500 }}>No scheduled appointments</p>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {myAppointmentsForDay.map((a) => (
-                  <div
-                    key={a.id}
-                    style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      padding: '0.85rem', borderRadius: 14, backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <div style={{
-                        width: 40, height: 40, borderRadius: 12, backgroundColor: 'rgba(82,178,191,0.1)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)',
-                      }}>
-                        <FiUser />
+            <div className="appointments-section">
+              <h4 className="section-title">Schedule</h4>
+              {dailyAppointments.length === 0 ? (
+                <div className="empty-state">
+                  <p>No appointments today. ☕</p>
+                </div>
+              ) : (
+                <div className="appt-list">
+                  {dailyAppointments.map(a => (
+                    <div key={a.id} className="appt-item-v2">
+                      <div className="appt-info">
+                        <strong>{a.patientName || 'Patient'}</strong>
+                        <span><FiClock /> {a.start_time} - {a.duration} min</span>
                       </div>
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#0f172a' }}>
-                          {a.patientName}
-                        </div>
-                        <div style={{ fontSize: '0.8rem', color: '#64748b', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                          <FiClock size={12} /> {getTimeRange(a.time, a.duration)}
-                        </div>
-                      </div>
+                      <div className={`status-pill ${a.status.toLowerCase()}`}>{a.status}</div>
                     </div>
-                    <span style={{
-                      fontSize: '0.75rem', fontWeight: 700, borderRadius: 8, padding: '0.3rem 0.6rem',
-                      backgroundColor: a.status === 'Completed' ? '#dcfce7' : a.status === 'Cancelled' ? '#fee2e2' : '#eff6ff',
-                      color: a.status === 'Completed' ? '#166534' : a.status === 'Cancelled' ? '#991b1b' : '#1e40af',
-                    }}>
-                      {a.status}
-                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Notes Card */}
+          <div className="sidebar-glass-card notes-card">
+            <div className="card-header">
+              <h4 className="section-title"><FiEdit3 /> Personal Notes</h4>
+              {!isEditingNote && currentNote && (
+                <button className="icon-btn danger" onClick={() => { setCurrentNote(''); setIsEditingNote(true); }}>
+                  <FiTrash2 />
+                </button>
+              )}
+            </div>
+
+            <div className="notes-container">
+              {isEditingNote ? (
+                <div className="edit-mode">
+                  <textarea 
+                    value={currentNote} 
+                    onChange={(e) => setCurrentNote(e.target.value)}
+                    placeholder="Write something special for this day..."
+                    className="notes-textarea"
+                    autoFocus
+                  />
+                  <div className="actions">
+                    <button className="btn-cancel" onClick={() => { setIsEditingNote(false); setCurrentNote(calendarNotes[selectedDateIso] || ''); }}>Cancel</button>
+                    <button className="btn-save" onClick={saveNote} disabled={loadingNote}>
+                      {loadingNote ? '...' : <><FiSave /> Save</>}
+                    </button>
                   </div>
-                ))}
-              </div>
-            )}
+                </div>
+              ) : (
+                <div className="display-mode" onClick={() => setIsEditingNote(true)}>
+                  {currentNote ? (
+                    <div className="note-text">{currentNote}</div>
+                  ) : (
+                    <div className="note-placeholder">Click to add a note for this day... ✍️</div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       <style>{`
-        @keyframes slideIn {
-          from { transform: translateY(-20px); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
+        .calendar-header-v2 {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 2rem;
+          padding: 0 1rem;
+        }
+        .title-blue {
+          background: linear-gradient(to right, #2563eb, #3b82f6, #60a5fa);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          font-size: 2.2rem;
+          font-weight: 800;
+          margin: 0;
+        }
+        .subtitle { color: #64748b; font-weight: 500; margin-top: 0.2rem; }
+        
+        .month-picker {
+          display: flex;
+          align-items: center;
+          background: white;
+          padding: 0.5rem;
+          border-radius: 20px;
+          box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+          gap: 1rem;
+        }
+        .cycle-btn {
+          border: none; background: #f1f5f9; width: 36px; height: 36px;
+          border-radius: 50%; display: flex; align-items: center; justify-content: center;
+          cursor: pointer; transition: 0.2s; color: #6366f1;
+        }
+        .cycle-btn:hover { background: #6366f1; color: white; }
+        .current-month-display { font-weight: 700; color: #1e293b; min-width: 140px; text-align: center; }
+
+        .calendar-container-v2 {
+          display: grid;
+          grid-template-columns: 1fr 380px;
+          gap: 1.5rem;
+        }
+
+        .calendar-glass-card {
+          background: rgba(255, 255, 255, 0.7);
+          backdrop-filter: blur(12px);
+          border-radius: 30px;
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          box-shadow: 0 20px 40px rgba(0,0,0,0.05);
+          padding: 2rem;
+        }
+
+        .sidebar-glass-card {
+          background: rgba(255, 255, 255, 0.7);
+          backdrop-filter: blur(12px);
+          border-radius: 24px;
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+          padding: 1.5rem;
+          margin-bottom: 1.2rem;
+        }
+
+        .weekday-header { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1rem; margin-bottom: 1rem; }
+        .weekday-label { text-align: center; font-size: 0.8rem; font-weight: 800; color: #94a3b8; }
+
+        .cells-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1rem; }
+        .calendar-cell-v2 {
+          aspect-ratio: 1; border: none; background: white; border-radius: 20px;
+          position: relative; display: flex; align-items: center; justify-content: center;
+          cursor: pointer; transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+          box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+        }
+        .calendar-cell-v2:hover { transform: scale(1.05); box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
+        .calendar-cell-v2.selected { background: #6366f1; color: white; transform: scale(1.1); z-index: 10; }
+        .calendar-cell-v2.today { border: 2px solid #a855f7; }
+        .calendar-cell-v2.on-leave { background: #fff1f2; }
+        .date-num { font-size: 1.1rem; font-weight: 700; }
+
+        .indicators { position: absolute; bottom: 10px; display: flex; gap: 4px; }
+        .leave-dot { width: 6px; height: 6px; background: #ef4444; border-radius: 50%; }
+        .note-dot { width: 6px; height: 6px; background: #6366f1; border-radius: 50%; }
+        .calendar-cell-v2.selected .note-dot { background: white; }
+
+        .appt-count-badge {
+          position: absolute; top: -6px; right: -6px; background: #ec4899;
+          color: white; font-size: 0.7rem; font-weight: 800; width: 22px; height: 22px;
+          border-radius: 50%; display: flex; align-items: center; justify-content: center;
+          border: 2px solid white;
+        }
+
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        .date-display { display: flex; alignItems: center; gap: 0.75rem; font-weight: 800; color: #1e293b; font-size: 1.1rem; }
+        .primary-icon { color: #6366f1; }
+
+        .leave-toggle-btn {
+          border: none; padding: 0.5rem 1rem; border-radius: 15px; background: #f1f5f9;
+          color: #64748b; font-size: 0.8rem; font-weight: 700; cursor: pointer;
+          display: flex; align-items: center; gap: 0.5rem; transition: 0.2s;
+        }
+        .leave-toggle-btn.active { background: #fee2e2; color: #ef4444; }
+        
+        .leave-alert-banner {
+          background: #fff1f2; border: 1px dashed #fecaca; border-radius: 15px;
+          padding: 1rem; color: #be123c; font-size: 0.85rem; display: flex; gap: 0.75rem;
+          margin-bottom: 1.5rem; animation: bounceIn 0.5s;
+        }
+
+        .section-title { margin: 0; font-size: 1rem; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 0.5rem; }
+        .empty-state { padding: 2rem 0; text-align: center; color: #94a3b8; }
+        
+        .appt-list { display: flex; flexDirection: column; gap: 0.8rem; }
+        .appt-item-v2 {
+          background: white; padding: 1rem; border-radius: 15px; display: flex;
+          justify-content: space-between; align-items: center;
+          border: 1px solid #f1f5f9; box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        }
+        .appt-info { display: flex; flexDirection: column; }
+        .appt-info strong { color: #1e293b; font-size: 0.95rem; }
+        .appt-info span { font-size: 0.8rem; color: #64748b; margin-top: 0.2rem; display: flex; align-items: center; gap: 0.3rem; }
+
+        .status-pill { font-size: 0.7rem; font-weight: 800; padding: 0.3rem 0.6rem; border-radius: 8px; }
+        .status-pill.scheduled { background: #eff6ff; color: #3b82f6; }
+        .status-pill.completed { background: #f0fdf4; color: #22c55e; }
+
+        .notes-container { margin-top: 1rem; }
+        .display-mode { min-height: 80px; padding: 1rem; background: rgba(99, 102, 241, 0.05); border-radius: 15px; cursor: pointer; transition: 0.2s; border: 1px dashed transparent; }
+        .display-mode:hover { border-color: #6366f1; background: rgba(99, 102, 241, 0.08); }
+        .note-placeholder { color: #94a3b8; font-style: italic; font-size: 0.9rem; }
+        .note-text { color: #334155; font-size: 0.95rem; white-space: pre-wrap; line-height: 1.5; }
+
+        .notes-textarea {
+          width: 100%; min-height: 120px; border: 1px solid #e2e8f0; border-radius: 15px;
+          padding: 1rem; font-family: inherit; font-size: 0.95rem; resize: none; margin-bottom: 1rem;
+        }
+        .actions { display: flex; justify-content: flex-end; gap: 0.75rem; }
+        .btn-cancel { border: none; background: #f1f5f9; color: #64748b; font-weight: 700; padding: 0.5rem 1rem; border-radius: 12px; cursor: pointer; }
+        .btn-save { border: none; background: #6366f1; color: white; font-weight: 700; padding: 0.5rem 1rem; border-radius: 12px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; }
+
+        .toast-box {
+          position: fixed; top: 2rem; right: 2rem; z-index: 9999;
+          padding: 1rem 1.5rem; border-radius: 20px; display: flex; align-items: center; gap: 0.75rem;
+          box-shadow: 0 20px 40px rgba(0,0,0,0.1); font-weight: 700; animation: slideIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .toast-box.success { background: white; color: #166534; border: 1px solid #bbf7d0; }
+        .toast-box.error { background: white; color: #991b1b; border: 1px solid #fecaca; }
+
+        @keyframes slideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes bounceIn { 0% { opacity: 0; transform: scale(0.3); } 50% { opacity: 1; transform: scale(1.05); } 100% { transform: scale(1); } }
+        
+        @media (max-width: 1200px) {
+          .calendar-container-v2 { grid-template-columns: 1fr; }
         }
       `}</style>
     </div>
   );
+  
+  function isOnLeave(date) {
+    return (unavailableDates || []).includes(date);
+  }
 };
 
 export default DoctorCalendarPage;

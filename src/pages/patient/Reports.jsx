@@ -38,7 +38,7 @@ const EMPTY_FORM = {
   cholesterol_hdl: '', cholesterol_ldl: '',
   temperature: '', sleep_hours: '', water_intake: '',
   exercise_duration: '', notes: '',
-  date: new Date().toISOString().split('T')[0],
+  date: new Date().toLocaleDateString('en-CA'),
 };
 
 // ─── sub-components ─────────────────────────────────────────────────────────
@@ -404,11 +404,12 @@ const Reports = () => {
     }
   }, []);
 
-  const fetchAnalytics = useCallback(async () => {
+  const fetchAnalytics = useCallback(async (date) => {
     if (!userProfile?.roleId) return;
     setAnalyticsLoading(true);
     try {
-      const data = await apiFetch(`/health-analytics/generate/${userProfile.roleId}`);
+      const query = date ? `?date=${encodeURIComponent(date)}` : '';
+      const data = await apiFetch(`/health-analytics/generate/${userProfile.roleId}${query}`);
       setAnalytics(data);
     } catch (err) {
       console.error('Failed to fetch analytics:', err);
@@ -419,8 +420,7 @@ const Reports = () => {
 
   useEffect(() => {
     fetchHistory();
-    fetchAnalytics();
-  }, [fetchHistory, fetchAnalytics]);
+  }, [fetchHistory]);
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -430,6 +430,7 @@ const Reports = () => {
     }
     setSaving(true);
     try {
+      const savedDate = form.date;
       await apiFetch('/health/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -438,8 +439,8 @@ const Reports = () => {
       showToast('Entry saved successfully!');
       setForm(EMPTY_FORM);
       setView('dashboard');
+      setSelectedDate(savedDate);
       fetchHistory();
-      fetchAnalytics();
     } catch {
       showToast('Failed to save. Please try again.', 'error');
     } finally {
@@ -448,10 +449,18 @@ const Reports = () => {
   };
 
   const set = (field) => (val) => setForm(prev => ({ ...prev, [field]: val }));
-  const [selectedHistoryDate, setSelectedHistoryDate] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(new Date().toLocaleDateString('en-CA')); // YYYY-MM-DD (Local Time)
+
+  useEffect(() => {
+    fetchAnalytics(selectedDate);
+  }, [fetchAnalytics, selectedDate]);
 
   // ── data processing ────────────────────────────────────────────────────────
   const latest = history[0] || {};
+  const selectedDateHasLog = useMemo(
+    () => history.some(h => h.created_at?.startsWith(selectedDate)),
+    [history, selectedDate]
+  );
   
   // Chart Data
   const filteredHistory = useMemo(() => {
@@ -610,7 +619,7 @@ const Reports = () => {
             border: '1px solid rgba(255,255,255,0.05)',
             position: 'relative', overflow: 'hidden'
           }}>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', zIndex: 1, alignItems: 'center' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', zIndex: 1, alignItems: 'center', opacity: analyticsLoading ? 0.6 : 1, transition: 'opacity 0.2s' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 <div style={{ 
                   padding: '1.25rem', borderRadius: '50%', 
@@ -619,7 +628,9 @@ const Reports = () => {
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   width: 80, height: 80, position: 'relative'
                 }}>
-                  <span style={{ fontSize: '1.8rem', fontWeight: 800 }}>{analytics?.health_score || '--'}</span>
+                  <span style={{ fontSize: selectedDateHasLog ? '1.8rem' : '1rem', fontWeight: 800 }}>
+                    {analyticsLoading ? '...' : (selectedDateHasLog ? (analytics?.health_score ?? '--') : 'NO DATA')}
+                  </span>
                   <div style={{ 
                     position: 'absolute', bottom: -5, 
                     backgroundColor: 'rgba(255,255,255,0.2)', padding: '2px 10px', borderRadius: 10,
@@ -636,11 +647,14 @@ const Reports = () => {
                     color: analytics?.risk_level === 'Normal' ? '#4ade80' : '#f87171',
                     fontSize: '0.8rem', fontWeight: 800, border: '1px solid currentColor'
                   }}>
-                    {analytics?.risk_level === 'Normal' ? <FiCheck size={14} /> : <FiAlertTriangle size={14} />}
-                    {analytics?.risk_level?.toUpperCase() || 'ANALYZING...'}
+                    {analyticsLoading ? <FiActivity className="spin" size={14} /> : (analytics?.risk_level === 'Normal' ? <FiCheck size={14} /> : <FiAlertTriangle size={14} />)}
+                    {analyticsLoading ? 'ANALYZING...' : (selectedDateHasLog ? (analytics?.risk_level?.toUpperCase() || 'READY') : 'NO DATA')}
                   </div>
                 </div>
               </div>
+            </div>
+            <div style={{ zIndex: 1, fontSize: '0.8rem', opacity: 0.9 }}>
+              Selected date: <strong>{new Date(selectedDate).toLocaleDateString(undefined, { dateStyle: 'medium' })}</strong>
             </div>
 
             <div style={{ zIndex: 1 }}>
@@ -648,7 +662,11 @@ const Reports = () => {
                 Personalized AI Insights
               </div>
               
-              {analytics?.insights ? (
+              {!selectedDateHasLog ? (
+                <p style={{ color: 'rgba(255,255,255,0.95)', fontSize: '0.95rem', fontWeight: 600 }}>
+                  No data logged for this date.
+                </p>
+              ) : analytics?.insights ? (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
                   {analytics.insights.split('.').filter(i => i.trim()).slice(0, expandedInsights ? undefined : 3).map((insight, idx) => {
                     const low = insight.toLowerCase();
@@ -675,7 +693,7 @@ const Reports = () => {
                 <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem' }}>Record more health data to get personalized AI tips.</p>
               )}
 
-              {analytics?.insights?.split('.').length > 4 && (
+              {selectedDateHasLog && analytics?.insights?.split('.').length > 4 && (
                 <button 
                   onClick={() => setExpandedInsights(!expandedInsights)}
                   style={{ 
@@ -689,7 +707,7 @@ const Reports = () => {
               )}
             </div>
             
-            {analytics?.alerts && analytics.alerts !== 'None' && (
+            {selectedDateHasLog && analytics?.alerts && analytics.alerts !== 'None' && (
               <div style={{ 
                 width: '100%', backgroundColor: '#ef444422', 
                 borderRadius: 16, padding: '0.8rem 1.2rem', border: '1px solid #ef444444',
@@ -706,12 +724,12 @@ const Reports = () => {
         )}
 
         {/* Specific Day Spotlight */}
-        {selectedHistoryDate && (
+        {selectedDate && selectedDateHasLog && (
           <DaySummary 
-            date={selectedHistoryDate} 
+            date={selectedDate} 
             patientId={userProfile?.roleId}
             history={history} 
-            onClose={() => setSelectedHistoryDate(null)} 
+            onClose={() => setSelectedDate(new Date().toISOString().split('T')[0])} 
           />
         )}
 
@@ -775,7 +793,7 @@ const Reports = () => {
                 Showing {timeFilter} Data
               </div>
             </div>
-            <HistoryTable records={filteredHistory} highlightDate={selectedHistoryDate} />
+            <HistoryTable records={filteredHistory} highlightDate={selectedDate} />
           </div>
         ) : view === 'add' ? (
           <div style={{ 
@@ -882,16 +900,16 @@ const Reports = () => {
             {Array.from({length: 14}).map((_, i) => {
               const d = new Date();
               d.setDate(d.getDate() - (13 - i));
-              const dtString = d.toISOString().split('T')[0];
+              const dtString = d.toLocaleDateString('en-CA');
               const hasLog = history.some(h => h.created_at?.startsWith(dtString));
               const isToday = i === 13;
-              const isSelected = selectedHistoryDate === dtString;
+              const isSelected = selectedDate === dtString;
               
               return (
                 <div 
                   key={i} 
                   onClick={() => {
-                    setSelectedHistoryDate(dtString);
+                    setSelectedDate(dtString);
                     if (hasLog && i < 7) setTimeFilter('Monthly'); // Ensure date is visible in trends if relevant
                   }}
                   style={{
@@ -901,7 +919,7 @@ const Reports = () => {
                     color: (isToday || isSelected) ? 'white' : hasLog ? '#0284c7' : '#94a3b8',
                     border: isToday ? 'none' : hasLog ? '1px solid #bae6fd' : '1px solid transparent',
                     transition: 'all 0.2s',
-                    cursor: hasLog ? 'pointer' : 'default',
+                    cursor: 'pointer',
                     transform: isSelected ? 'scale(1.1)' : 'scale(1)',
                     boxShadow: isSelected ? '0 4px 10px rgba(2, 132, 199, 0.4)' : 'none',
                     zIndex: isSelected ? 2 : 1
@@ -921,5 +939,22 @@ const Reports = () => {
     </div>
   );
 };
+
+const spinStyle = `
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .spin {
+    display: inline-block;
+    animation: spin 2s linear infinite;
+  }
+`;
+
+if (typeof document !== 'undefined') {
+  const style = document.createElement('style');
+  style.textContent = spinStyle;
+  document.head.appendChild(style);
+}
 
 export default Reports;

@@ -82,7 +82,7 @@ const DoctorAppointments = () => {
               <tbody>
                 {myAppointments.map(app => (
                   <tr key={app.id} style={{ borderTop: '1px solid #e2e8f0' }}>
-                    <td style={{ padding: '0.75rem' }}>{app.patientName}</td>
+                    <td style={{ padding: '0.75rem' }}>{app.patientName || 'Patient'}</td>
                     <td style={{ padding: '0.75rem' }}>{formatDate(app.date)}</td>
                     <td style={{ padding: '0.75rem' }}>{formatTime(app.time)}</td>
                     <td style={{ padding: '0.75rem' }}>{app.type}</td>

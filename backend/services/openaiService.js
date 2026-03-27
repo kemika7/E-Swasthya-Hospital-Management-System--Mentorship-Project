@@ -14,15 +14,24 @@ const openai = new OpenAI({
  */
 const analyzeMedicalReport = async (reportText, images = [], historicalContext = null, role = 'patient') => {
   try {
+    const historicalContextText = historicalContext && historicalContext.length > 0
+      ? `
+HISTORICAL CONTEXT (Past Analyses):
+${JSON.stringify(historicalContext.map(h => ({ date: h.date, summary: h.analysis?.summary })), null, 2)}
+`
+      : "";
+
     const prompt = `
 You are a highly accurate medical report analysis AI.
 
 TASK:
 Analyze the provided medical report text (and images if provided) and extract meaningful clinical insights.
+${historicalContextText}
 
 INSTRUCTIONS:
 - Identify ALL medical tests, values, units, and reference ranges.
 - Detect abnormalities (HIGH / LOW / CRITICAL / NORMAL).
+- COMPARE with historical context if provided to identify trends (improved, worsening, stable).
 - DO NOT skip data even if formatting is messy.
 - DO NOT return generic responses.
 - DO NOT say "no findings" unless the report truly has zero medical content.
@@ -34,6 +43,7 @@ ANALYSIS REQUIREMENTS:
 - Explain what each abnormal value means in simple terms.
 - Infer possible conditions (only if logically inferred, do not overdiagnose).
 - Give practical recommendations.
+- Provide a summary of trends if historical data exists.
 
 OUTPUT FORMAT (STRICT JSON ONLY — NO EXTRA TEXT):
 {
@@ -51,7 +61,8 @@ OUTPUT FORMAT (STRICT JSON ONLY — NO EXTRA TEXT):
   "abnormalities": ["List of abnormal findings strings"],
   "possible_conditions": ["Inferred conditions"],
   "recommendations": ["Actionable steps"],
-  "explanation": "Simple explanation in plain language"
+  "explanation": "Simple explanation in plain language",
+  "note": "Standard medical disclaimer: This is an AI-generated analysis. Please consult with a professional doctor for final medical decisions."
 }
 
 REPORT TEXT CONTENT:
@@ -66,6 +77,7 @@ ${reportText}
     if (images && images.length > 0) {
       images.forEach((base64Image, index) => {
         // CLEAN BASE64: Strip whitespace and ensure correct URI prefix
+        if (typeof base64Image !== 'string') return;
         const cleanBase64 = base64Image.replace(/\s/g, '');
         const hasPrefix = cleanBase64.startsWith('data:');
         const imageUrl = hasPrefix ? cleanBase64 : `data:image/jpeg;base64,${cleanBase64}`;
@@ -82,7 +94,7 @@ ${reportText}
     const completion = await openai.chat.completions.create({
       model: "gpt-4o", 
       messages: [
-        { role: "system", content: "You are a specialized medical analysis AI that provides structured clinical data." },
+        { role: "system", content: "You are a specialized medical analysis AI that provides structured clinical data with trend awareness." },
         { role: "user", content: userContent }
       ],
       response_format: { type: "json_object" },
@@ -91,7 +103,7 @@ ${reportText}
     return JSON.parse(completion.choices[0].message.content);
   } catch (error) {
     console.error('OpenAI Service Error:', error);
-    throw new Error('Failed to analyze report with AI');
+    throw new Error('Failed to analyze report with AI: ' + error.message);
   }
 };
 

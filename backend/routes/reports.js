@@ -133,6 +133,15 @@ router.post('/analyze', authenticateToken, async (req, res) => {
         return res.status(404).json({ message: 'Report not found' });
       }
       const filePath = path.join(__dirname, '..', rows[0].file_path);
+      
+      // Proactive file existence check
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ 
+          message: 'Physical report file not found on server.', 
+          error: 'The PDF file associated with this report ID is missing. It may have been removed during a recent system revert. Please re-upload the report.' 
+        });
+      }
+
       const extracted = await extractTextFromPDF(filePath);
       reportText = extracted.text;
       images = extracted.images;
@@ -178,6 +187,14 @@ router.post('/analyze-report', authenticateToken, authorizeRoles('doctor', 'admi
     const report = reports[0];
     const filePath = path.join(__dirname, '..', report.file_path);
     
+    // Proactive file existence check
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ 
+        message: 'Physical report file not found on server.', 
+        error: 'The PDF file associated with this report ID is missing. Please ask the patient to re-upload it.' 
+      });
+    }
+
     // Extract with Vision fallback
     const { text, images } = await extractTextFromPDF(filePath);
     

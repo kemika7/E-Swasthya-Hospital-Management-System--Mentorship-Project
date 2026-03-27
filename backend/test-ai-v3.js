@@ -24,11 +24,12 @@ async function test(reportId) {
         console.log('Historical context records:', historicalContext.length);
 
         const filePath = path.join(__dirname, report.file_path);
-        const text = await extractTextFromPDF(filePath);
+        const { text, images } = await extractTextFromPDF(filePath);
         console.log('Extracted text length:', text?.length);
+        console.log('Extracted images count:', images?.length);
 
         console.log('Analyzing with AI...');
-        const analysis = await analyzeMedicalReport(text, historicalContext);
+        const analysis = await analyzeMedicalReport(text, images, historicalContext);
         console.log('Analysis summary:', analysis.summary);
 
         console.log('Updating DB...');

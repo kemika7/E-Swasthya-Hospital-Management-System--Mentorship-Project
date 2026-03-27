@@ -297,13 +297,14 @@ router.post('/upload-report', authenticateToken, upload.single('report'), async 
   }
 });
 
-// POST /api/reports/analyze-report  → Doctor analyzes a patient's report using AI
-router.post('/analyze-report', authenticateToken, authorizeRoles('doctor', 'admin'), async (req, res) => {
+// POST /api/reports/analyze-report  → Doctor or Patient analyzes a report using AI
+router.post('/analyze-report', authenticateToken, authorizeRoles('doctor', 'patient', 'admin'), async (req, res) => {
   try {
     const { reportId } = req.body;
-    const doctorId = req.user.roleId;
+    const userId = req.user.roleId;
+    const userRole = req.user.role;
 
-    console.log(`[AI Analysis] Request received for Report ID: ${reportId}, Doctor ID: ${doctorId}`);
+    console.log(`[AI Analysis] Request received for Report ID: ${reportId}, User ID: ${userId}, Role: ${userRole}`);
 
     if (!reportId) {
       return res.status(400).json({ message: 'Report ID is required.' });
@@ -321,15 +322,24 @@ router.post('/analyze-report', authenticateToken, authorizeRoles('doctor', 'admi
 
     const report = reports[0];
 
-    // Access control: doctor must have at least one appointment with this patient
-    const [assigned] = await db.execute(
-      'SELECT 1 FROM appointments WHERE doctor_id = ? AND patient_id = ? LIMIT 1',
-      [doctorId, report.patient_id]
-    );
+    // Access control:
+    // If patient: must own the report
+    // If doctor: must have at least one appointment with this patient
+    if (userRole === 'patient') {
+      if (report.patient_id !== userId) {
+        console.warn(`[AI Analysis] Access denied: Patient ${userId} tried to analyze Report ${reportId} owned by Patient ${report.patient_id}`);
+        return res.status(403).json({ message: 'Access denied: You can only analyze your own reports.' });
+      }
+    } else if (userRole === 'doctor') {
+      const [assigned] = await db.execute(
+        'SELECT 1 FROM appointments WHERE doctor_id = ? AND patient_id = ? LIMIT 1',
+        [userId, report.patient_id]
+      );
 
-    if (assigned.length === 0) {
-      console.warn(`[AI Analysis] Access denied: Doctor ${doctorId} not assigned to Patient ${report.patient_id}`);
-      return res.status(403).json({ message: 'Access denied: Patient is not assigned to you.' });
+      if (assigned.length === 0) {
+        console.warn(`[AI Analysis] Access denied: Doctor ${userId} not assigned to Patient ${report.patient_id}`);
+        return res.status(403).json({ message: 'Access denied: Patient is not assigned to you.' });
+      }
     }
 
     console.log(`[AI Analysis] Access granted for Doctor ${doctorId} to Patient ${report.patient_id}`);

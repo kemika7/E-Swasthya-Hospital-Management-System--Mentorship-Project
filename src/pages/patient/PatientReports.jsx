@@ -10,6 +10,9 @@ import {
   FiAlertCircle,
   FiClock,
   FiX,
+  FiCpu,
+  FiTrendingUp,
+  FiActivity,
 } from 'react-icons/fi';
 
 // Derive the server root (no /api) from the env variable
@@ -27,6 +30,9 @@ const PatientReports = () => {
   const [dragOver, setDragOver] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [toast, setToast] = useState(null); // { type: 'success' | 'error', message }
+  const [analyzingId, setAnalyzingId] = useState(null);
+  const [analysisResult, setAnalysisResult] = useState(null);
+  const [showAnalysisModal, setShowAnalysisModal] = useState(false);
 
   const showToast = (type, message) => {
     setToast({ type, message });
@@ -106,6 +112,54 @@ const PatientReports = () => {
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleAnalyze = async (reportId) => {
+    setAnalyzingId(reportId);
+    try {
+      const { apiFetch } = await import('../../services/apiClient');
+      const response = await apiFetch('/reports/analyze-report', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ reportId }),
+      });
+      
+      const newAnalysis = response.analysis;
+      setAnalysisResult(newAnalysis);
+      setShowAnalysisModal(true);
+      
+      showToast('success', 'AI Analysis completed successfully!');
+      await fetchReports();
+    } catch (err) {
+      console.error('Analysis failed:', err);
+      showToast('error', 'AI Analysis failed. Please try again.');
+    } finally {
+      setAnalyzingId(null);
+    }
+  };
+
+  const openAnalysis = (report) => {
+    // Robust parsing of JSON columns from database if they are strings
+    const tryParse = (val) => {
+      if (!val) return null;
+      if (typeof val === 'object') return val;
+      try {
+        return JSON.parse(val);
+      } catch (e) {
+        return null;
+      }
+    };
+
+    const processedAnalysis = tryParse(report.gpt_analysis);
+    if (!processedAnalysis) {
+      showToast('error', 'Analysis data is corrupted or missing.');
+      return;
+    }
+
+    setAnalysisResult(processedAnalysis);
+    setShowAnalysisModal(true);
   };
 
   const formatDate = (dateStr) => {
@@ -317,7 +371,34 @@ const PatientReports = () => {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
+                <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0, flexWrap: 'wrap' }}>
+                  {report.gpt_analysis ? (
+                    <button
+                      onClick={() => openAnalysis(report)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '0.4rem',
+                        padding: '0.5rem 1rem', borderRadius: 10,
+                        backgroundColor: 'rgba(34,197,94,0.1)', color: '#16a34a',
+                        fontWeight: 700, fontSize: '0.85rem', border: 'none', cursor: 'pointer',
+                      }}>
+                      <FiCheckCircle size={15} /> AI Analysis
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleAnalyze(report.id)}
+                      disabled={analyzingId === report.id}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '0.4rem',
+                        padding: '0.5rem 1rem', borderRadius: 10,
+                        backgroundColor: analyzingId === report.id ? 'rgba(148,163,184,0.1)' : 'var(--primary)',
+                        color: analyzingId === report.id ? 'var(--text-secondary)' : 'white',
+                        fontWeight: 700, fontSize: '0.85rem', border: 'none', cursor: analyzingId === report.id ? 'not-allowed' : 'pointer',
+                      }}>
+                      <FiCpu size={15} className={analyzingId === report.id ? 'spin' : ''} />
+                      {analyzingId === report.id ? 'Analyzing...' : 'Run AI Analysis'}
+                    </button>
+                  )}
+
                   <a
                     href={BACKEND_URL + report.file_path}
                     target="_blank"
@@ -349,10 +430,115 @@ const PatientReports = () => {
         )}
       </div>
 
+      {/* Analysis Result Modal */}
+      {showAnalysisModal && analysisResult && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000,
+          padding: '1.5rem',
+        }}>
+          <div style={{
+            backgroundColor: 'white', borderRadius: 24, width: '100%', maxWidth: 800,
+            maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+            display: 'flex', flexDirection: 'column',
+          }}>
+            <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid rgba(15,23,42,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: 'rgba(82,178,191,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
+                  <FiCpu size={20} />
+                </div>
+                <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700 }}>Medical AI Insights</h2>
+              </div>
+              <button onClick={() => setShowAnalysisModal(false)} style={{ border: 'none', backgroundColor: 'rgba(15,23,42,0.05)', width: 32, height: 32, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <FiX size={18} />
+              </button>
+            </div>
+
+            <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+              <section>
+                <h3 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '1rem', fontWeight: 700 }}>Analysis Summary</h3>
+                <div style={{ padding: '1.25rem', backgroundColor: 'rgba(82,178,191,0.05)', borderRadius: 16, border: '1px solid rgba(82,178,191,0.1)', lineHeight: 1.6 }}>
+                  {analysisResult.summary}
+                </div>
+              </section>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2rem' }}>
+                <section>
+                  <h3 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '1rem', fontWeight: 700 }}>Lab Test Interpretation</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {analysisResult.lab_interpretation?.map((lab, idx) => (
+                      <div key={idx} style={{ padding: '0.85rem', borderRadius: 12, backgroundColor: lab.status !== 'Normal' ? '#fee2e2' : 'rgba(15,23,42,0.03)', border: lab.status !== 'Normal' ? '1px solid #f87171' : '1px solid rgba(15,23,42,0.06)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                          <span style={{ fontWeight: 700, fontSize: '0.85rem' }}>{lab.parameter}: {lab.value}</span>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 800, color: lab.status !== 'Normal' ? '#dc2626' : '#16a34a' }}>{lab.status}</span>
+                        </div>
+                        <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.8 }}>{lab.insight}</p>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+                
+                <section>
+                  <h3 style={{ fontSize: '0.9rem', color: 'var(--primary)', textTransform: 'uppercase', marginBottom: '1rem', fontWeight: 700 }}>Health Trends</h3>
+                  <div style={{ padding: '1.25rem', backgroundColor: 'rgba(82,178,191,0.05)', borderRadius: 16, border: '1px solid rgba(82,178,191,0.1)', fontSize: '0.9rem', lineHeight: 1.6 }}>
+                    {analysisResult.trends || "Not enough historical data for comparison yet."}
+                  </div>
+                </section>
+              </div>
+
+              <section>
+                <h3 style={{ fontSize: '0.9rem', color: '#dc2626', textTransform: 'uppercase', marginBottom: '1rem', fontWeight: 700 }}>Potential Risks</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {analysisResult.risks?.length > 0 ? analysisResult.risks.map((risk, idx) => (
+                      <div key={idx} style={{ padding: '1rem', backgroundColor: risk.severity === 'High' ? '#fee2e2' : '#fff7ed', borderRadius: 12, border: risk.severity === 'High' ? '1px solid #ef4444' : '1px solid #fed7aa' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                          <span style={{ fontWeight: 700 }}>{risk.condition}</span>
+                          <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: 20, backgroundColor: risk.severity === 'High' ? '#ef4444' : '#f97316', color: 'white', fontWeight: 700 }}>{risk.severity}</span>
+                        </div>
+                        <p style={{ margin: 0, fontSize: '0.85rem' }}>{risk.recommendation}</p>
+                      </div>
+                    )) : (
+                      <div style={{ padding: '1rem', backgroundColor: '#f0fdf4', borderRadius: 12, border: '1px solid #bbf7d0', color: '#166534', fontSize: '0.9rem' }}>
+                        No immediate health risks detected.
+                      </div>
+                    )}
+                </div>
+              </section>
+
+              <section>
+                <h3 style={{ fontSize: '0.9rem', color: '#166534', textTransform: 'uppercase', marginBottom: '1rem', fontWeight: 700 }}>Actionable Insights</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                  {analysisResult.actionable_insights?.map((insight, idx) => (
+                    <div key={idx} style={{ padding: '1rem', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 12, display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                      <FiCheckCircle size={18} color="#16a34a" style={{ marginTop: 2, flexShrink: 0 }} />
+                      <span style={{ fontSize: '0.85rem', color: '#14532d' }}>{insight}</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            </div>
+
+            <div style={{ padding: '1.5rem 2rem', borderTop: '1px solid rgba(15,23,42,0.06)', display: 'flex', justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowAnalysisModal(false)} style={{ padding: '0.75rem 2rem', borderRadius: 12, backgroundColor: 'var(--text)', color: 'white', fontWeight: 700, border: 'none', cursor: 'pointer' }}>
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style>{`
         @keyframes slideIn {
           from { transform: translateX(100px); opacity: 0; }
           to   { transform: translateX(0);    opacity: 1; }
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
+        }
+        .spin {
+          animation: spin 1.5s linear infinite;
         }
       `}</style>
     </main>

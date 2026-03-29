@@ -126,7 +126,7 @@ const DoctorReport = () => {
     setError('');
     try {
       const { apiFetch } = await import('../../services/apiClient');
-      const response = await apiFetch('/reports/analyze-report', {
+      const response = await apiFetch('/reports/analyze', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -134,7 +134,7 @@ const DoctorReport = () => {
         body: JSON.stringify({ reportId }),
       });
       
-      const newAnalysis = response.analysis;
+      const newAnalysis = response;
       setAnalysisResult(newAnalysis);
       setShowAnalysisModal(true);
       
@@ -524,17 +524,30 @@ const DoctorReport = () => {
 
             <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
               <section>
-                <h3 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '1rem', fontWeight: 700 }}>Summary</h3>
+                <h3 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '1rem', fontWeight: 700 }}>Clinical Summary</h3>
                 <div style={{ padding: '1.25rem', backgroundColor: 'rgba(82,178,191,0.05)', borderRadius: 16, border: '1px solid rgba(82,178,191,0.1)', lineHeight: 1.6 }}>
                   {analysisResult.summary}
                 </div>
               </section>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2rem' }}>
+              {/* Show Comparison (New) or Trends (Old) */}
+              {(analysisResult.comparison || analysisResult.trends) && (
+                <section>
+                  <h3 style={{ fontSize: '0.9rem', color: '#8b5cf6', textTransform: 'uppercase', marginBottom: '1rem', fontWeight: 700 }}>
+                    {analysisResult.comparison ? 'Report Comparison' : 'Trend Analysis'}
+                  </h3>
+                  <div style={{ padding: '1.25rem', backgroundColor: 'rgba(139,92,246,0.05)', borderRadius: 16, border: '1px solid rgba(139,92,246,0.1)', fontSize: '0.9rem', lineHeight: 1.6 }}>
+                    {analysisResult.comparison || analysisResult.trends}
+                  </div>
+                </section>
+              )}
+
+              {/* Legacy Sections: Only show if data exists (for historical reports) */}
+              {analysisResult.lab_interpretation?.length > 0 && (
                 <section>
                   <h3 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '1rem', fontWeight: 700 }}>Lab Test Interpretation</h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    {analysisResult.lab_interpretation?.map((lab, idx) => (
+                    {analysisResult.lab_interpretation.map((lab, idx) => (
                       <div key={idx} style={{ padding: '0.85rem', borderRadius: 12, backgroundColor: lab.status !== 'Normal' ? '#fee2e2' : 'rgba(15,23,42,0.03)', border: lab.status !== 'Normal' ? '1px solid #f87171' : '1px solid rgba(15,23,42,0.06)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
                           <span style={{ fontWeight: 700, fontSize: '0.85rem' }}>{lab.parameter}: {lab.value}</span>
@@ -545,54 +558,49 @@ const DoctorReport = () => {
                     ))}
                   </div>
                 </section>
-                
+              )}
+
+              {analysisResult.medications?.length > 0 && (
                 <section>
-                  <h3 style={{ fontSize: '0.9rem', color: '#8b5cf6', textTransform: 'uppercase', marginBottom: '1rem', fontWeight: 700 }}>Trend Analysis</h3>
-                  <div style={{ padding: '1.25rem', backgroundColor: 'rgba(139,92,246,0.05)', borderRadius: 16, border: '1px solid rgba(139,92,246,0.1)', fontSize: '0.9rem', lineHeight: 1.6 }}>
-                    {analysisResult.trends || "Not enough historical data for comparison."}
+                  <h3 style={{ fontSize: '0.9rem', color: 'var(--primary)', textTransform: 'uppercase', marginBottom: '1rem', fontWeight: 700 }}>Medication & Prescription Summary</h3>
+                  <div style={{ overflowX: 'auto', borderRadius: 16, border: '1px solid rgba(15,23,42,0.08)' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                      <thead style={{ backgroundColor: 'rgba(15,23,42,0.02)' }}>
+                        <tr>
+                          <th style={{ padding: '0.75rem 1rem', textAlign: 'left', borderBottom: '1px solid rgba(15,23,42,0.08)' }}>Drug</th>
+                          <th style={{ padding: '0.75rem 1rem', textAlign: 'left', borderBottom: '1px solid rgba(15,23,42,0.08)' }}>Dose</th>
+                          <th style={{ padding: '0.75rem 1rem', textAlign: 'left', borderBottom: '1px solid rgba(15,23,42,0.08)' }}>Duration</th>
+                          <th style={{ padding: '0.75rem 1rem', textAlign: 'left', borderBottom: '1px solid rgba(15,23,42,0.08)' }}>Notes</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {analysisResult.medications.map((med, idx) => (
+                          <tr key={idx}>
+                            <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid rgba(15,23,42,0.04)', fontWeight: 600 }}>{med.name}</td>
+                            <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid rgba(15,23,42,0.04)' }}>{med.dose}</td>
+                            <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid rgba(15,23,42,0.04)' }}>{med.duration}</td>
+                            <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid rgba(15,23,42,0.04)', fontSize: '0.8rem', opacity: 0.8 }}>{med.notes}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </section>
-              </div>
+              )}
 
-              <section>
-                <h3 style={{ fontSize: '0.9rem', color: 'var(--primary)', textTransform: 'uppercase', marginBottom: '1rem', fontWeight: 700 }}>Medication & Prescription Summary</h3>
-                <div style={{ overflowX: 'auto', borderRadius: 16, border: '1px solid rgba(15,23,42,0.08)' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
-                    <thead style={{ backgroundColor: 'rgba(15,23,42,0.02)' }}>
-                      <tr>
-                        <th style={{ padding: '0.75rem 1rem', textAlign: 'left', borderBottom: '1px solid rgba(15,23,42,0.08)' }}>Drug</th>
-                        <th style={{ padding: '0.75rem 1rem', textAlign: 'left', borderBottom: '1px solid rgba(15,23,42,0.08)' }}>Dose</th>
-                        <th style={{ padding: '0.75rem 1rem', textAlign: 'left', borderBottom: '1px solid rgba(15,23,42,0.08)' }}>Duration</th>
-                        <th style={{ padding: '0.75rem 1rem', textAlign: 'left', borderBottom: '1px solid rgba(15,23,42,0.08)' }}>Notes</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {analysisResult.medications?.length > 0 ? analysisResult.medications.map((med, idx) => (
-                        <tr key={idx}>
-                          <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid rgba(15,23,42,0.04)', fontWeight: 600 }}>{med.name}</td>
-                          <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid rgba(15,23,42,0.04)' }}>{med.dose}</td>
-                          <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid rgba(15,23,42,0.04)' }}>{med.duration}</td>
-                          <td style={{ padding: '0.75rem 1rem', borderBottom: '1px solid rgba(15,23,42,0.04)', fontSize: '0.8rem', opacity: 0.8 }}>{med.notes}</td>
-                        </tr>
-                      )) : (
-                        <tr><td colSpan="4" style={{ padding: '2rem', textAlign: 'center', opacity: 0.5 }}>No medications detected in report.</td></tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-
-              <section>
-                <h3 style={{ fontSize: '0.9rem', color: '#166534', textTransform: 'uppercase', marginBottom: '1rem', fontWeight: 700 }}>Actionable Insights</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-                  {analysisResult.actionable_insights?.map((insight, idx) => (
-                    <div key={idx} style={{ padding: '1rem', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 12, display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-                      <FiCheckCircle size={18} color="#16a34a" style={{ marginTop: 2, flexShrink: 0 }} />
-                      <span style={{ fontSize: '0.85rem', color: '#14532d' }}>{insight}</span>
-                    </div>
-                  ))}
-                </div>
-              </section>
+              {analysisResult.actionable_insights?.length > 0 && (
+                <section>
+                  <h3 style={{ fontSize: '0.9rem', color: '#166534', textTransform: 'uppercase', marginBottom: '1rem', fontWeight: 700 }}>Actionable Insights</h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+                    {analysisResult.actionable_insights.map((insight, idx) => (
+                      <div key={idx} style={{ padding: '1rem', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 12, display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
+                        <FiCheckCircle size={18} color="#16a34a" style={{ marginTop: 2, flexShrink: 0 }} />
+                        <span style={{ fontSize: '0.85rem', color: '#14532d' }}>{insight}</span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
             </div>
 
             <div style={{ padding: '1.5rem 2rem', borderTop: '1px solid rgba(15,23,42,0.06)', display: 'flex', justifyContent: 'flex-end' }}>

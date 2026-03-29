@@ -12,7 +12,6 @@ import {
   FiX,
   FiCpu,
   FiTrendingUp,
-  FiActivity,
 } from 'react-icons/fi';
 
 // Derive the server root (no /api) from the env variable
@@ -55,6 +54,39 @@ const PatientReports = () => {
   useEffect(() => {
     fetchReports();
   }, []);
+
+  const handleAnalyze = async (reportId) => {
+    setAnalyzingId(reportId);
+    try {
+      const { apiFetch } = await import('../../services/apiClient');
+      const response = await apiFetch('/reports/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reportId }),
+      });
+      
+      setAnalysisResult(response.analysis);
+      setShowAnalysisModal(true);
+      
+      // Update reports list with new analysis
+      setReports(prev => prev.map(r => r.id === reportId ? { ...r, gpt_analysis: response.analysis } : r));
+      showToast('success', 'AI Analysis completed!');
+    } catch (err) {
+      console.error('Analysis failed:', err);
+      showToast('error', 'AI Analysis failed. Please try again.');
+    } finally {
+      setAnalyzingId(null);
+    }
+  };
+
+  const openAnalysis = (report) => {
+    // If gpt_analysis is still a string in the DB, parse it
+    const analysis = typeof report.gpt_analysis === 'string' 
+      ? JSON.parse(report.gpt_analysis) 
+      : report.gpt_analysis;
+    setAnalysisResult(analysis);
+    setShowAnalysisModal(true);
+  };
 
   const validateFile = (file) => {
     if (!file) return 'No file selected.';
@@ -112,54 +144,6 @@ const PatientReports = () => {
     } finally {
       setUploading(false);
     }
-  };
-
-  const handleAnalyze = async (reportId) => {
-    setAnalyzingId(reportId);
-    try {
-      const { apiFetch } = await import('../../services/apiClient');
-      const response = await apiFetch('/reports/analyze-report', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ reportId }),
-      });
-      
-      const newAnalysis = response.analysis;
-      setAnalysisResult(newAnalysis);
-      setShowAnalysisModal(true);
-      
-      showToast('success', 'AI Analysis completed successfully!');
-      await fetchReports();
-    } catch (err) {
-      console.error('Analysis failed:', err);
-      showToast('error', 'AI Analysis failed. Please try again.');
-    } finally {
-      setAnalyzingId(null);
-    }
-  };
-
-  const openAnalysis = (report) => {
-    // Robust parsing of JSON columns from database if they are strings
-    const tryParse = (val) => {
-      if (!val) return null;
-      if (typeof val === 'object') return val;
-      try {
-        return JSON.parse(val);
-      } catch (e) {
-        return null;
-      }
-    };
-
-    const processedAnalysis = tryParse(report.gpt_analysis);
-    if (!processedAnalysis) {
-      showToast('error', 'Analysis data is corrupted or missing.');
-      return;
-    }
-
-    setAnalysisResult(processedAnalysis);
-    setShowAnalysisModal(true);
   };
 
   const formatDate = (dateStr) => {
@@ -371,36 +355,35 @@ const PatientReports = () => {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0, flexWrap: 'wrap' }}>
-                  {report.gpt_analysis ? (
-                    <button
-                      onClick={() => openAnalysis(report)}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: '0.4rem',
-                        padding: '0.5rem 1rem', borderRadius: 10,
-                        backgroundColor: 'rgba(34,197,94,0.1)', color: '#16a34a',
-                        fontWeight: 700, fontSize: '0.85rem', border: 'none', cursor: 'pointer',
-                      }}>
-                      <FiCheckCircle size={15} /> AI Analysis
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => handleAnalyze(report.id)}
-                      disabled={analyzingId === report.id}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: '0.4rem',
-                        padding: '0.5rem 1rem', borderRadius: 10,
-                        backgroundColor: analyzingId === report.id ? 'rgba(148,163,184,0.1)' : 'var(--primary)',
-                        color: analyzingId === report.id ? 'var(--text-secondary)' : 'white',
-                        fontWeight: 700, fontSize: '0.85rem', border: 'none', cursor: analyzingId === report.id ? 'not-allowed' : 'pointer',
-                      }}>
-                      <FiCpu size={15} className={analyzingId === report.id ? 'spin' : ''} />
-                      {analyzingId === report.id ? 'Analyzing...' : 'Run AI Analysis'}
-                    </button>
-                  )}
-
-                  <a
-                    href={BACKEND_URL + report.file_path}
+                  <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0 }}>
+                    {report.gpt_analysis ? (
+                      <button
+                        onClick={() => openAnalysis(report)}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '0.4rem',
+                          padding: '0.5rem 1rem', borderRadius: 10,
+                          backgroundColor: 'rgba(34,197,94,0.1)', color: '#16a34a',
+                          fontWeight: 700, fontSize: '0.85rem', border: 'none', cursor: 'pointer',
+                        }}>
+                        <FiTrendingUp size={15} /> AI Result
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleAnalyze(report.id)}
+                        disabled={analyzingId === report.id}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '0.4rem',
+                          padding: '0.5rem 1rem', borderRadius: 10,
+                          backgroundColor: analyzingId === report.id ? '#f1f5f9' : 'rgba(139,92,246,0.1)', 
+                          color: analyzingId === report.id ? '#94a3b8' : '#8b5cf6',
+                          fontWeight: 700, fontSize: '0.85rem', border: 'none', cursor: analyzingId === report.id ? 'not-allowed' : 'pointer',
+                        }}>
+                        <FiCpu size={15} className={analyzingId === report.id ? 'spin' : ''} /> 
+                        {analyzingId === report.id ? 'Analyzing...' : 'AI Analyze'}
+                      </button>
+                    )}
+                    <a
+                      href={BACKEND_URL + report.file_path}
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{
@@ -435,20 +418,25 @@ const PatientReports = () => {
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
           backgroundColor: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
           padding: '1.5rem',
         }}>
           <div style={{
-            backgroundColor: 'white', borderRadius: 24, width: '100%', maxWidth: 800,
+            backgroundColor: 'white', borderRadius: 24, width: '100%', maxWidth: 700,
             maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
-            display: 'flex', flexDirection: 'column',
+            display: 'flex', flexDirection: 'column', animation: 'modalFadeIn 0.3s ease',
           }}>
             <div style={{ padding: '1.5rem 2rem', borderBottom: '1px solid rgba(15,23,42,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, backgroundColor: 'white', zIndex: 10 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: 'rgba(82,178,191,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: 'rgba(139,92,246,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8b5cf6' }}>
                   <FiCpu size={20} />
                 </div>
-                <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700 }}>Medical AI Insights</h2>
+                <div>
+                  <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700 }}>AI Report Analysis</h2>
+                  <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'capitalize' }}>
+                    Type: {analysisResult.type}
+                  </p>
+                </div>
               </div>
               <button onClick={() => setShowAnalysisModal(false)} style={{ border: 'none', backgroundColor: 'rgba(15,23,42,0.05)', width: 32, height: 32, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <FiX size={18} />
@@ -457,71 +445,112 @@ const PatientReports = () => {
 
             <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
               <section>
-                <h3 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '1rem', fontWeight: 700 }}>Analysis Summary</h3>
-                <div style={{ padding: '1.25rem', backgroundColor: 'rgba(82,178,191,0.05)', borderRadius: 16, border: '1px solid rgba(82,178,191,0.1)', lineHeight: 1.6 }}>
+                <h3 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '1rem', fontWeight: 700, letterSpacing: '0.5px' }}>Summary</h3>
+                <div style={{ padding: '1.25rem', backgroundColor: 'rgba(82,178,191,0.05)', borderRadius: 16, border: '1px solid rgba(82,178,191,0.1)', lineHeight: 1.6, color: 'var(--text)', fontSize: '1rem' }}>
                   {analysisResult.summary}
                 </div>
               </section>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2rem' }}>
-                <section>
-                  <h3 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '1rem', fontWeight: 700 }}>Lab Test Interpretation</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    {analysisResult.lab_interpretation?.map((lab, idx) => (
-                      <div key={idx} style={{ padding: '0.85rem', borderRadius: 12, backgroundColor: lab.status !== 'Normal' ? '#fee2e2' : 'rgba(15,23,42,0.03)', border: lab.status !== 'Normal' ? '1px solid #f87171' : '1px solid rgba(15,23,42,0.06)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                          <span style={{ fontWeight: 700, fontSize: '0.85rem' }}>{lab.parameter}: {lab.value}</span>
-                          <span style={{ fontSize: '0.7rem', fontWeight: 800, color: lab.status !== 'Normal' ? '#dc2626' : '#16a34a' }}>{lab.status}</span>
+              <section>
+                <h3 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '1rem', fontWeight: 700, letterSpacing: '0.5px' }}>Detailed Findings</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {analysisResult.key_findings?.map((item, idx) => (
+                    <div key={idx} style={{ 
+                      padding: '1.25rem', borderRadius: 16, 
+                      backgroundColor: 'white', border: '1px solid #f1f5f9',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.01)',
+                      display: 'flex', flexDirection: 'column', gap: '0.5rem'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div style={{ fontWeight: 700, color: '#1e293b', fontSize: '1rem' }}>{item.test || 'Test'}</div>
+                        <div style={{ 
+                          padding: '0.25rem 0.6rem', borderRadius: 8, fontSize: '0.7rem', fontWeight: 800,
+                          backgroundColor: item.status === 'NORMAL' ? '#22c55e15' : '#ef444415',
+                          color: item.status === 'NORMAL' ? '#22c55e' : '#ef4444',
+                          border: '1px solid currentColor'
+                        }}>{item.status || 'N/A'}</div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '1rem', alignItems: 'baseline' }}>
+                        <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>{item.value || '--'}</div>
+                        {item.normal_range && (
+                          <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                            Range: <span style={{ fontWeight: 600 }}>{item.normal_range}</span>
+                          </div>
+                        )}
+                      </div>
+                      {item.meaning && (
+                        <div style={{ fontSize: '0.85rem', color: '#475569', backgroundColor: '#f8fafc', padding: '0.75rem', borderRadius: 10, marginTop: '0.25rem' }}>
+                          <span style={{ fontWeight: 700, color: '#64748b', fontSize: '0.75rem', textTransform: 'uppercase' }}>Medical Meaning: </span>
+                          {item.meaning}
                         </div>
-                        <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.8 }}>{lab.insight}</p>
+                      )}
+                    </div>
+                  ))}
+                  {(!analysisResult.key_findings || analysisResult.key_findings.length === 0) && (
+                    <p style={{ margin: 0, fontSize: '0.9rem', opacity: 0.6, fontStyle: 'italic' }}>No specific findings extracted.</p>
+                  )}
+                </div>
+              </section>
+
+              {analysisResult.abnormalities?.length > 0 && (
+                <section>
+                  <h3 style={{ fontSize: '0.9rem', color: '#ef4444', textTransform: 'uppercase', marginBottom: '1rem', fontWeight: 700, letterSpacing: '0.5px' }}>Abnormalities Detected</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {analysisResult.abnormalities.map((abn, idx) => (
+                      <div key={idx} style={{ padding: '0.85rem 1rem', borderRadius: 12, backgroundColor: '#fef2f2', border: '1px solid #fee2e2', display: 'flex', gap: '0.75rem', alignItems: 'center', color: '#991b1b', fontSize: '0.9rem', fontWeight: 600 }}>
+                        <FiAlertCircle size={16} /> {abn}
                       </div>
                     ))}
                   </div>
                 </section>
-                
+              )}
+
+              {analysisResult.possible_conditions?.length > 0 && (
                 <section>
-                  <h3 style={{ fontSize: '0.9rem', color: 'var(--primary)', textTransform: 'uppercase', marginBottom: '1rem', fontWeight: 700 }}>Health Trends</h3>
-                  <div style={{ padding: '1.25rem', backgroundColor: 'rgba(82,178,191,0.05)', borderRadius: 16, border: '1px solid rgba(82,178,191,0.1)', fontSize: '0.9rem', lineHeight: 1.6 }}>
-                    {analysisResult.trends || "Not enough historical data for comparison yet."}
+                  <h3 style={{ fontSize: '0.9rem', color: '#8b5cf6', textTransform: 'uppercase', marginBottom: '1rem', fontWeight: 700, letterSpacing: '0.5px' }}>Clinical Inferences</h3>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    {analysisResult.possible_conditions.map((cond, idx) => (
+                      <span key={idx} style={{ padding: '0.4rem 0.8rem', borderRadius: 20, backgroundColor: '#f5f3ff', border: '1px solid #ddd6fe', color: '#5b21b6', fontSize: '0.85rem', fontWeight: 600 }}>
+                        {cond}
+                      </span>
+                    ))}
                   </div>
                 </section>
-              </div>
+              )}
+
+              {analysisResult.recommendations?.length > 0 && (
+                <section>
+                  <h3 style={{ fontSize: '0.9rem', color: '#10b981', textTransform: 'uppercase', marginBottom: '1rem', fontWeight: 700, letterSpacing: '0.5px' }}>Recommendations</h3>
+                  <ul style={{ margin: 0, paddingLeft: '1.25rem', color: '#065f46', fontSize: '0.95rem', lineHeight: 1.6 }}>
+                    {analysisResult.recommendations.map((rec, idx) => (
+                      <li key={idx} style={{ marginBottom: '0.5rem' }}>{rec}</li>
+                    ))}
+                  </ul>
+                </section>
+              )}
 
               <section>
-                <h3 style={{ fontSize: '0.9rem', color: '#dc2626', textTransform: 'uppercase', marginBottom: '1rem', fontWeight: 700 }}>Potential Risks</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    {analysisResult.risks?.length > 0 ? analysisResult.risks.map((risk, idx) => (
-                      <div key={idx} style={{ padding: '1rem', backgroundColor: risk.severity === 'High' ? '#fee2e2' : '#fff7ed', borderRadius: 12, border: risk.severity === 'High' ? '1px solid #ef4444' : '1px solid #fed7aa' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                          <span style={{ fontWeight: 700 }}>{risk.condition}</span>
-                          <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: 20, backgroundColor: risk.severity === 'High' ? '#ef4444' : '#f97316', color: 'white', fontWeight: 700 }}>{risk.severity}</span>
-                        </div>
-                        <p style={{ margin: 0, fontSize: '0.85rem' }}>{risk.recommendation}</p>
-                      </div>
-                    )) : (
-                      <div style={{ padding: '1rem', backgroundColor: '#f0fdf4', borderRadius: 12, border: '1px solid #bbf7d0', color: '#166534', fontSize: '0.9rem' }}>
-                        No immediate health risks detected.
-                      </div>
-                    )}
+                <h3 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '1rem', fontWeight: 700, letterSpacing: '0.5px' }}>Plain Language Explanation</h3>
+                <div style={{ padding: '1.25rem', backgroundColor: '#f0f9ff', borderRadius: 16, border: '1px solid #e0f2fe', fontSize: '1rem', lineHeight: 1.6, color: '#0369a1' }}>
+                  {analysisResult.explanation}
                 </div>
               </section>
 
-              <section>
-                <h3 style={{ fontSize: '0.9rem', color: '#166534', textTransform: 'uppercase', marginBottom: '1rem', fontWeight: 700 }}>Actionable Insights</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-                  {analysisResult.actionable_insights?.map((insight, idx) => (
-                    <div key={idx} style={{ padding: '1rem', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 12, display: 'flex', gap: '0.75rem', alignItems: 'flex-start' }}>
-                      <FiCheckCircle size={18} color="#16a34a" style={{ marginTop: 2, flexShrink: 0 }} />
-                      <span style={{ fontSize: '0.85rem', color: '#14532d' }}>{insight}</span>
-                    </div>
-                  ))}
+              <section style={{ padding: '1.25rem', backgroundColor: '#fff7ed', borderRadius: 16, border: '1px solid #fed7aa', display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                <FiAlertCircle size={24} color="#f97316" style={{ flexShrink: 0, marginTop: '2px' }} />
+                <div>
+                  <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.95rem', color: '#9a3412', fontWeight: 700 }}>Medical Note</h4>
+                  <p style={{ margin: 0, fontSize: '0.9rem', color: '#7c2d12', lineHeight: 1.5 }}>
+                    {analysisResult.note}
+                  </p>
                 </div>
               </section>
             </div>
 
             <div style={{ padding: '1.5rem 2rem', borderTop: '1px solid rgba(15,23,42,0.06)', display: 'flex', justifyContent: 'flex-end' }}>
-              <button onClick={() => setShowAnalysisModal(false)} style={{ padding: '0.75rem 2rem', borderRadius: 12, backgroundColor: 'var(--text)', color: 'white', fontWeight: 700, border: 'none', cursor: 'pointer' }}>
-                Dismiss
+              <button 
+                onClick={() => setShowAnalysisModal(false)} 
+                style={{ padding: '0.8rem 2.5rem', borderRadius: 14, backgroundColor: 'var(--primary)', color: 'white', fontWeight: 700, border: 'none', cursor: 'pointer', boxShadow: '0 4px 12px rgba(82,178,191,0.3)' }}>
+                Got it
               </button>
             </div>
           </div>
@@ -533,13 +562,15 @@ const PatientReports = () => {
           from { transform: translateX(100px); opacity: 0; }
           to   { transform: translateX(0);    opacity: 1; }
         }
+        @keyframes modalFadeIn {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
         @keyframes spin {
           from { transform: rotate(0deg); }
-          to   { transform: rotate(360deg); }
+          to { transform: rotate(360deg); }
         }
-        .spin {
-          animation: spin 1.5s linear infinite;
-        }
+        .spin { animation: spin 2s linear infinite; }
       `}</style>
     </main>
   );

@@ -88,6 +88,26 @@ router.get('/my-patient-reports', authenticateToken, authorizeRoles('patient', '
   }
 });
 
+// GET /api/reports/my-patients  → Doctor fetches their assigned patients
+router.get('/my-patients', authenticateToken, authorizeRoles('doctor', 'admin'), async (req, res) => {
+  try {
+    const doctorId = req.user.roleId;
+    
+    // A doctor's patients are those who have appointments with them
+    const [rows] = await db.execute(`
+      SELECT DISTINCT p.patient_id as id, p.name, p.email, p.phone, p.gender, p.age
+      FROM patients p
+      JOIN appointments a ON p.patient_id = a.patient_id
+      WHERE a.doctor_id = ?
+    `, [doctorId]);
+    
+    res.json(rows);
+  } catch (error) {
+    console.error('Fetch my patients error:', error);
+    res.status(500).json({ message: 'Server error fetching patients' });
+  }
+});
+
 // GET /api/reports/patient-reports/:patientId  → Doctor fetches a patient's reports
 router.get('/patient-reports/:patientId', authenticateToken, authorizeRoles('doctor', 'admin'), async (req, res) => {
   try {

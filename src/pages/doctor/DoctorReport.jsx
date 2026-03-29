@@ -126,7 +126,7 @@ const DoctorReport = () => {
     setError('');
     try {
       const { apiFetch } = await import('../../services/apiClient');
-      const response = await apiFetch('/reports/analyze', {
+      const response = await apiFetch('/reports/analyze-report', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -134,7 +134,7 @@ const DoctorReport = () => {
         body: JSON.stringify({ reportId }),
       });
       
-      const newAnalysis = response;
+      const newAnalysis = response.analysis;
       setAnalysisResult(newAnalysis);
       setShowAnalysisModal(true);
       
